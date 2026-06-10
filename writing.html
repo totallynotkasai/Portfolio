@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Writing — Kasai Portfolio</title>
+  <meta name="description" content="Stories, articles and creative writing by Andrew Worgan (Kasai)." />
+
+  <!-- Link previews. og:image must be ABSOLUTE — update domain once deployed. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Writing — Kasai" />
+  <meta property="og:description" content="Web novels, stories and creative writing by Andrew Worgan (Kasai)." />
+  <meta property="og:image" content="https://littlekasai.github.io/portfolio/assets/ui/Logo%20Coloured.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="assets/ui/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <noscript>
+    <p style="padding:2rem;text-align:center;">
+      This site needs JavaScript to show its content — or just email me:
+      <a href="mailto:andrew.worgan@yahoo.co.uk">andrew.worgan@yahoo.co.uk</a>
+    </p>
+  </noscript>
+
+  <!-- ========== HEADER ==========
+       The current page's link is highlighted automatically (markActiveNav). -->
+  <header class="site-header">
+    <a href="index.html" class="brand"><span class="brand-dot"></span>Kasai</a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="index.html">About</a>
+      <a href="coding_projects.html">Coding</a>
+      <a href="illustrations_and_graphics.html">Art</a>
+      <a href="writing.html">Writing</a>
+      <a href="certificates.html">Certificates</a>
+    </nav>
+    <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="mobile-nav">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <a href="index.html">About</a>
+    <a href="coding_projects.html">Coding</a>
+    <a href="illustrations_and_graphics.html">Art</a>
+    <a href="writing.html">Writing</a>
+    <a href="certificates.html">Certificates</a>
+  </nav>
+
+  <!-- ========== MAIN ==========
+       Pieces come from the `writing` list in content.js. -->
+  <main class="page-content">
+
+    <section class="page-banner teal">
+      <div class="container">
+        <span class="banner-chip">Writing</span>
+        <h1>My Writing <span class="h1-doodle" aria-hidden="true">✍️</span></h1>
+        <p>Web novels, stories &amp; creative writing.</p>
+      </div>
+    </section>
+
+    <div class="container">
+      <div class="wave-divider teal"></div>
+    </div>
+
+    <section class="section section--tight">
+      <div class="container">
+        <div class="writing-list stagger-children" id="writing-list"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <p class="footer-text">&copy; 2026 Andrew Worgan (Kasai). All rights reserved.</p>
+        <div class="footer-socials">
+          <a href="https://www.linkedin.com/in/andrew-worgan-littlekasai/" target="_blank" rel="noopener"
+            class="social-link" aria-label="LinkedIn"><img src="assets/ui/linkedinY.png" alt="LinkedIn" /></a>
+          <a href="https://github.com/LittleKasai" target="_blank" rel="noopener" class="social-link"
+            aria-label="GitHub"><img src="assets/ui/githubY.png" alt="GitHub" /></a>
+          <a href="https://www.instagram.com/totallynotkasai/" target="_blank" rel="noopener" class="social-link"
+            aria-label="Instagram"><img src="assets/ui/instagramY.png" alt="Instagram" /></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="content.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

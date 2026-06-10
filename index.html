@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About — Kasai Portfolio</title>
+  <meta name="description"
+    content="Andrew Worgan (Kasai) — IT professional and hobbyist artist based around Bristol, UK." />
+
+  <!-- Link previews (LinkedIn, Discord, iMessage…). og:image must be an
+       ABSOLUTE url — update the domain below once the site is deployed. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Kasai — Andrew Worgan" />
+  <meta property="og:description"
+    content="IT professional & hobbyist artist — coding projects, illustration, writing & certifications." />
+  <meta property="og:image" content="https://littlekasai.github.io/portfolio/assets/ui/Logo%20Coloured.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="assets/ui/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <noscript>
+    <p style="padding:2rem;text-align:center;">
+      This site needs JavaScript to show its content — or just email me:
+      <a href="mailto:andrew.worgan@yahoo.co.uk">andrew.worgan@yahoo.co.uk</a>
+    </p>
+  </noscript>
+
+  <!-- ========== HEADER ==========
+       The current page's link is highlighted automatically (markActiveNav). -->
+  <header class="site-header">
+    <a href="index.html" class="brand"><span class="brand-dot"></span>Kasai</a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="index.html">About</a>
+      <a href="coding_projects.html">Coding</a>
+      <a href="illustrations_and_graphics.html">Art</a>
+      <a href="writing.html">Writing</a>
+      <a href="certificates.html">Certificates</a>
+    </nav>
+    <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="mobile-nav">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <a href="index.html">About</a>
+    <a href="coding_projects.html">Coding</a>
+    <a href="illustrations_and_graphics.html">Art</a>
+    <a href="writing.html">Writing</a>
+    <a href="certificates.html">Certificates</a>
+  </nav>
+
+  <!-- ========== ROLLING MARQUEE ==========
+       To change this, just edit the <li> phrases below — one per item.
+       The single wave between items and the seamless loop are handled for you. -->
+  <div class="marquee-container" aria-label="What I do">
+    <div class="marquee-content">
+      <ul class="marquee-group">
+        <li>DIGITAL ILLUSTRATION</li>
+        <li>GRAPHIC DESIGN</li>
+        <li>WEB DESIGN</li>
+        <li>CREATIVE WRITING</li>
+        <li>IT</li>
+        <li>QA</li>
+        <li>AUTOMATION</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ========== MAIN ==========
+       All text/photo for this page comes from the `about` section of
+       content.js — you don't edit anything here. -->
+  <main class="page-content">
+
+    <section class="section">
+      <div class="container">
+        <div class="about-hero animate-on-scroll" id="about-hero"></div>
+      </div>
+    </section>
+
+    <div class="container">
+      <div class="wave-divider peri"></div>
+    </div>
+
+    <section class="skills-section">
+      <div class="container" id="about-skills"></div>
+    </section>
+
+    <div class="container">
+      <div class="signoff" id="about-signoff"></div>
+    </div>
+
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <p class="footer-text">&copy; 2026 Andrew Worgan (Kasai). All rights reserved.</p>
+        <div class="footer-socials">
+          <a href="https://www.linkedin.com/in/andrew-worgan-littlekasai/" target="_blank" rel="noopener"
+            class="social-link" aria-label="LinkedIn"><img src="assets/ui/linkedinY.png" alt="LinkedIn" /></a>
+          <a href="https://github.com/LittleKasai" target="_blank" rel="noopener" class="social-link"
+            aria-label="GitHub"><img src="assets/ui/githubY.png" alt="GitHub" /></a>
+          <a href="https://www.instagram.com/totallynotkasai/" target="_blank" rel="noopener" class="social-link"
+            aria-label="Instagram"><img src="assets/ui/instagramY.png" alt="Instagram" /></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="content.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

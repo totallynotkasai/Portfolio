@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "portfolio",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["C:\\Users\\andre\\My Files\\Projects\\Coding Projects\\Portfolio\\.claude\\devserver.mjs"],
+      "port": 4321
+    }
+  ]
+}
