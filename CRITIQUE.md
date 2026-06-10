@@ -1,5 +1,12 @@
 # Portfolio Panel Critique — Kasai / Andrew Worgan
 
+> ## ✅ Implementation status (June 2026)
+> Every fix in §3 has been **applied to the codebase** (see git history). The snippets below are kept as documentation of what changed and why. **Four things still need *you*, because they need information or accounts only you have:**
+> 1. **GitHub username** — `github.com/LittleKasai` returns **404**. Fix the URLs in `content.js` (project links) and the footer of all five HTML pages, then create the repo and push (`git init` + first commit are already done locally).
+> 2. **Real certificates** — drop scans into `assets/certs/` and add entries in `content.js` (the placeholder card was removed; the page shows its empty state until then).
+> 3. **Project screenshots** — add an `img:` to each coding project in `content.js`.
+> 4. **Deploy + og:image domain** — once hosted, replace the placeholder `littlekasai.github.io/portfolio` domain in each page's `og:image` meta tag.
+
 > Reviewed June 2026 by a three-persona panel: **Creative Director (CD)**, **UI/UX Researcher (UX)**, and **Senior Frontend Developer (Dev)**.
 > Scope: all five pages reviewed in source *and* rendered in a browser at desktop (1280px) and mobile (375px) widths. Console verified clean. Contrast ratios computed from your actual hex values. Cursor PNGs measured.
 

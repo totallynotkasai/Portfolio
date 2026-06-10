@@ -566,6 +566,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
    LIGHTBOX  (native <dialog> — focus trap, Esc and aria-modal for free)
    ============================================================ */
 .lightbox {
+  margin: auto;          /* restores <dialog> centring (the * reset zeroes it) */
   border: none;
   background: transparent;
   padding: 0;
