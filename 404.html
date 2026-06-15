@@ -4,16 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Certificates — Andrew Worgan Portfolio</title>
-  <meta name="description" content="Certificates, courses and professional development of Andrew Worgan (Kasai)." />
-
-  <!-- Link previews. og:image must be ABSOLUTE — update domain once deployed. -->
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Certificates — Kasai" />
-  <meta property="og:description"
-    content="Courses, certifications and professional development of Andrew Worgan (Kasai)." />
-  <meta property="og:image" content="https://littlekasai.github.io/portfolio/assets/ui/Logo%20Coloured.png" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <title>404 — Andrew Worgan Portfolio</title>
+  <meta name="description" content="Page not found — Andrew Worgan (Kasai)." />
+  <meta name="robots" content="noindex" />
 
   <link rel="icon" type="image/png" href="assets/ui/favicon.png" />
   <link rel="apple-touch-icon" href="assets/ui/apple-touch-icon.png" />
@@ -23,7 +16,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body class="page-certs">
+<body class="page-notfound">
 
   <noscript>
     <p style="padding:2rem;text-align:center;">
@@ -57,26 +50,36 @@
   </nav>
 
   <!-- ========== MAIN ==========
-       Certificates come from the `certificates` list in content.js.
-       Drop a scan/photo of a certificate in this folder, put its filename
-       in `img`, and it shows as a clickable thumbnail. -->
+       The lost-page page. GitHub Pages serves this automatically for any
+       URL that doesn't exist (once the site is deployed).
+       UPGRADE: swap the image below for a drawn "lost wizard holding a map
+       upside down" (~800×800 transparent PNG) when you make one. -->
   <main class="page-content">
 
-    <section class="page-banner pink">
+    <section class="page-banner yellow">
       <div class="container">
-        <span class="banner-chip">Certificates</span>
-        <h1>Certificates</h1>
-        <p>Courses, certifications &amp; professional development. Click a certificate to enlarge.</p>
+        <span class="banner-chip">Lost?</span>
+        <h1>404</h1>
+        <p>The wizard ate this page. He says sorry. (He is not sorry.)</p>
       </div>
     </section>
 
     <div class="container">
-      <div class="wave-divider pink"></div>
+      <div class="wave-divider yellow"></div>
     </div>
 
     <section class="section section--tight">
-      <div class="container">
-        <div class="cert-grid stagger-children" id="cert-grid"></div>
+      <div class="container notfound-box">
+        <img class="notfound-wizard" src="assets/ui/Pet Wizard Cursor default Not rotated.png"
+          alt="The Pet Wizard, looking suspiciously full" />
+        <p class="notfound-text">Whatever lived at this address is gone — but everything else is still here:</p>
+        <div class="skills-grid">
+          <a class="skill-tag yellow" href="index.html">About</a>
+          <a class="skill-tag blue" href="coding_projects.html">Coding</a>
+          <a class="skill-tag lavender" href="illustrations_and_graphics.html">Art</a>
+          <a class="skill-tag teal" href="writing.html">Writing</a>
+          <a class="skill-tag pink" href="certificates.html">Certificates</a>
+        </div>
       </div>
     </section>
 

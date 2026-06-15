@@ -4,39 +4,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>About — Kasai Portfolio</title>
+  <title>About — Andrew Worgan Portfolio</title>
   <meta name="description"
     content="Andrew Worgan (Kasai) — IT professional and hobbyist artist based around Bristol, UK." />
 
   <!-- Link previews (LinkedIn, Discord, iMessage…). og:image must be an
        ABSOLUTE url — update the domain below once the site is deployed. -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Kasai — Andrew Worgan" />
+  <meta property="og:title" content="Andrew Worgan — Portfolio" />
   <meta property="og:description"
     content="IT professional & hobbyist artist — coding projects, illustration, writing & certifications." />
   <meta property="og:image" content="https://littlekasai.github.io/portfolio/assets/ui/Logo%20Coloured.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
   <link rel="icon" type="image/png" href="assets/ui/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/ui/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body>
+<body class="page-index">
 
   <noscript>
     <p style="padding:2rem;text-align:center;">
       This site needs JavaScript to show its content — or just email me:
-      <a href="mailto:andrew.worgan@yahoo.co.uk">andrew.worgan@yahoo.co.uk</a>
+      <a href="mailto:andrew.worgan.enquiry@gmail.com">andrew.worgan.enquiry@gmail.com</a>
     </p>
   </noscript>
 
   <!-- ========== HEADER ==========
        The current page's link is highlighted automatically (markActiveNav). -->
   <header class="site-header">
-    <a href="index.html" class="brand"><span class="brand-dot"></span>Kasai</a>
+    <a href="index.html" class="brand"><img class="brand-flame" src="assets/ui/favicon.png" alt="" />Andrew Worgan</a>
     <nav class="nav-links" aria-label="Main navigation">
       <a href="index.html">About</a>
       <a href="coding_projects.html">Coding</a>
@@ -83,6 +84,11 @@
       <div class="container">
         <div class="about-hero animate-on-scroll" id="about-hero"></div>
       </div>
+    </section>
+
+    <!-- "Currently…" card — content comes from about.currently in content.js -->
+    <section class="currently-section">
+      <div class="container" id="about-currently"></div>
     </section>
 
     <div class="container">

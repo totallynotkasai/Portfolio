@@ -1,5 +1,5 @@
 /* ============================================================
-   KASAI PORTFOLIO — DESIGN SYSTEM (flat / playful)
+   Andrew Worgan PORTFOLIO — DESIGN SYSTEM (flat / playful)
    ============================================================
    Flat colour palette — NO gradients:
      --blush:      #FEF6FE   (page background)
@@ -158,13 +158,22 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   gap: 0.5rem;
   flex-shrink: 0;
 }
-.brand .brand-dot {
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: var(--yellow);
-  border: 2px solid var(--ink);
+/* Kasai flame beside the name — flickers gently, burns faster on hover. */
+.brand .brand-flame {
+  height: 26px;
+  width: auto;
+  transform-origin: bottom center;
 }
 .brand:hover { transform: rotate(-2deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .brand .brand-flame { animation: flame-flicker 2.4s ease-in-out infinite; }
+  .brand:hover .brand-flame { animation-duration: 0.7s; }
+}
+@keyframes flame-flicker {
+  0%, 100% { transform: scaleY(1) rotate(-2deg); }
+  30%      { transform: scaleY(1.08) scaleX(0.95) rotate(2.5deg); }
+  60%      { transform: scaleY(0.94) scaleX(1.05) rotate(-1deg); }
+}
 
 .nav-links {
   display: flex;
@@ -267,8 +276,6 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   animation: scroll-marquee 30s linear infinite;
   will-change: transform;
 }
-.marquee-container:hover .marquee-content { animation-play-state: paused; }
-
 /* One authored group of phrases (a <ul>). Each <li> gets a single wave after
    it with equal spacing, so every seam looks identical — no double-wave gap. */
 .marquee-group {
@@ -363,7 +370,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
    PAGE BANNER (top of each section page)
    ============================================================ */
 .page-banner {
-  padding: var(--space-2xl) 0 var(--space-lg);
+  padding: var(--space-lg) 0;
   text-align: center;
   position: relative;
 }
@@ -454,7 +461,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
-  background: var(--periwinkle);
+  background: var(--blue);
   border-bottom: 2.5px solid var(--ink);
   display: flex;
   align-items: center;
@@ -488,7 +495,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   font-weight: 600;
   padding: 4px 11px;
   border-radius: var(--radius-full);
-  background: var(--periwinkle-tint);
+  background: var(--blue-tint);
   border: 1.5px solid var(--ink);
   color: var(--ink);
 }
@@ -751,8 +758,11 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   grid-template-columns: 1.2fr 0.9fr;
   gap: var(--space-lg) var(--space-2xl);
   align-items: start;
-  padding: var(--space-xl) 0 var(--space-lg);
+  padding: 0 0 var(--space-lg);
 }
+
+/* The About page opens straight after the marquee — keep the gap tight. */
+.page-index .section:first-of-type { padding-top: var(--space-md); }
 
 /* Full-width hero header: eyebrow + one-line greeting + subheading. */
 .about-head { grid-column: 1 / -1; }
@@ -1056,4 +1066,267 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 
 @media (max-width: 480px) {
   .gallery-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   PERSONALITY LAYER
+   ============================================================ */
+
+/* Text selection matches each page's accent colour (ink text on every
+   flat accent passes AA — same combos as the chips/buttons). */
+::selection { background: var(--yellow); color: var(--ink); }
+.page-coding ::selection { background: var(--blue); color: var(--ink); }
+.page-art ::selection { background: var(--periwinkle); color: var(--ink); }
+.page-writing ::selection { background: var(--teal); color: var(--ink); }
+.page-certs ::selection { background: var(--pink); color: var(--ink); }
+
+/* Art page leans periwinkle, not blue — focus rings and chip hovers follow. */
+.page-art :focus-visible { outline-color: var(--periwinkle); }
+.page-art .skill-tag.blue:hover { background: var(--periwinkle); }
+/* Coding page leans blue, not purple. */
+.page-coding :focus-visible { outline-color: var(--blue); }
+.page-coding .project-card:hover { box-shadow: var(--pop-lg); }
+
+/* Visually-hidden utility (screen-reader announcements). */
+.vh {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* "About me" chip lifts on hover — same playful swing as the banner chips. */
+.about-eyebrow { transition: transform var(--transition), box-shadow var(--transition); }
+.about-eyebrow:hover {
+  transform: rotate(2deg) translateY(-3px) scale(1.05);
+  box-shadow: var(--pop-lg);
+}
+
+/* Little wizard waving goodbye under the About sign-off. */
+.signoff-wizard {
+  width: 90px;
+  margin: var(--space-sm) auto 0;
+  transition: transform var(--transition);
+}
+.signoff-wizard:hover { transform: rotate(-10deg) translateY(-4px); }
+
+/* ---------- "CURRENTLY…" CARD (About page) ---------- */
+.currently-section { padding: 0 0 var(--space-md); }
+.currently-card {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--pop);
+}
+.currently-heading {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--yellow);
+  padding: 0 0.3em;
+  border-radius: 6px;
+  transform: rotate(-1.5deg);
+  margin-bottom: var(--space-sm);
+}
+.currently-list { display: grid; gap: 10px; }
+.currently-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.currently-icon { align-self: center; display: inline-flex; flex-shrink: 0; }
+.currently-icon svg { width: 20px; height: 20px; }
+.currently-list li:nth-child(4n+1) .currently-icon { color: var(--periwinkle); }
+.currently-list li:nth-child(4n+2) .currently-icon { color: var(--blue); }
+.currently-list li:nth-child(4n+3) .currently-icon { color: var(--teal); }
+.currently-list li:nth-child(4n)   .currently-icon { color: var(--pink); }
+.currently-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ---------- GALLERY FILTER CHIPS + SHUFFLE ---------- */
+.gallery-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: var(--space-lg);
+}
+.filter-chip[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--blush);
+}
+.gallery-item.filtered-out { display: none; }
+
+/* ---------- THE PET WIZARD (mascot, bottom-right) ---------- */
+.wizard-buddy {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.wizard-sprite {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  padding: 0;
+  transition: transform var(--transition);
+}
+.wizard-sprite:hover { transform: translateY(-3px); }
+.wizard-sprite img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: bottom center;
+  /* hard offset, zero blur — stays flat */
+  filter: drop-shadow(3px 3px 0 rgba(22, 26, 46, 0.22));
+}
+.wizard-sprite.asleep img {
+  transform: rotate(9deg);
+  opacity: 0.85;
+  animation: none;
+}
+.wizard-zzz {
+  display: none;
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-full);
+  padding: 1px 9px;
+  box-shadow: var(--pop);
+}
+.wizard-sprite.asleep .wizard-zzz { display: block; }
+
+.wizard-bubble {
+  position: relative;
+  max-width: 230px;
+  padding: 8px 14px;
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--pop);
+  font-family: var(--font-display);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--ink);
+  text-align: center;
+}
+.wizard-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  right: 28px;
+  width: 13px;
+  height: 13px;
+  background: var(--white);
+  border-right: 2.5px solid var(--ink);
+  border-bottom: 2.5px solid var(--ink);
+  transform: rotate(45deg);
+}
+.wizard-bubble[hidden] { display: none; }
+
+/* He politely steps out while the lightbox is open, and on small phones. */
+body:has(dialog[open]) .wizard-buddy { display: none; }
+@media (max-width: 480px) {
+  .wizard-buddy { display: none; }
+}
+
+/* Doodle rain — the 10-pet reward. Flat glyphs in brand colours. */
+.doodle-rain {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  pointer-events: none;
+  overflow: hidden;
+}
+.doodle-rain span {
+  position: absolute;
+  top: -48px;
+  font-size: 1.7rem;
+  color: var(--periwinkle);
+  animation: doodle-fall 2.5s linear forwards;
+}
+.doodle-rain span:nth-child(3n)   { color: var(--pink); }
+.doodle-rain span:nth-child(4n)   { color: var(--teal); }
+.doodle-rain span:nth-child(5n)   { color: var(--yellow); }
+@keyframes doodle-fall {
+  to { transform: translateY(112vh) rotate(310deg); }
+}
+
+/* Wizard motion (idle breathing + pet squish) — only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .wizard-sprite img { animation: wizard-breathe 3.6s ease-in-out infinite; }
+  .wizard-sprite.petted img { animation: wizard-squish 0.45s ease; }
+}
+@keyframes wizard-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(0.96); }
+}
+@keyframes wizard-squish {
+  30% { transform: scaleY(0.74) scaleX(1.18); }
+  70% { transform: scaleY(1.08) scaleX(0.94); }
+}
+/* ---------- 404 PAGE ---------- */
+.notfound-box { text-align: center; }
+.notfound-wizard {
+  width: 140px;
+  margin: 0 auto var(--space-md);
+  transform: rotate(-6deg);
+}
+.notfound-text {
+  color: var(--ink-soft);
+  margin-bottom: var(--space-md);
+}
+
+/* ---------- FOOTER TAGLINE ---------- */
+.footer-tagline {
+  margin-top: var(--space-sm);
+  font-size: var(--fs-tiny);
+  color: var(--periwinkle);
+  opacity: 0.85;
+  text-align: center;
+  width: 100%;
+}
+
+/* ============================================================
+   VIEW TRANSITIONS (cross-page morphs — progressive enhancement;
+   browsers without support simply navigate as normal)
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+
+  /* Header and footer persist; the page body does a quick slide-fade. */
+  .site-header { view-transition-name: site-header; }
+  .site-footer { view-transition-name: site-footer; }
+  main.page-content { view-transition-name: page-main; }
+
+  ::view-transition-old(page-main) { animation: vt-leave 0.16s ease both; }
+  ::view-transition-new(page-main) { animation: vt-enter 0.18s ease both; }
+}
+@keyframes vt-leave {
+  to { opacity: 0; transform: translateY(8px); }
+}
+@keyframes vt-enter {
+  from { opacity: 0; transform: translateY(8px); }
 }

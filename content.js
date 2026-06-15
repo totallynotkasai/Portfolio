@@ -44,31 +44,42 @@ window.CONTENT = {
     eyebrow: 'About me',
 
     // Big one-line greeting at the top. Wrap any part in *asterisks* to highlight.
-    heading: "Hi I'm *Andrew Worgan*.",
+    heading: "Hi I'm *Andrew Worgan*",
 
     // Shown as a subheading just under the greeting.
-    subheading: "I'm an IT professional and hobbyist artist living around Bristol, UK.",
+    subheading: "IT professional and hobbyist artist living around Bristol, UK",
 
-    photo: 'assets/photos/about-photo.jpg',
+    photo: 'assets/photos/About Me Photo.png',
     photoAlt: 'Photo of Andrew',
 
     paragraphs: [
       "I currently work in the IT sector, doing a bit of everything from user support to QA testing.",
-      "I'm a massive creative at heart, and I spend most of my time writing and creating characters. I'm mostly a hobbyist, but I've done a fair amount of commission work over the years for a number of clients — you can check that out in the illustrations section. I'm currently re-writing my web novel \"Dilettantes in the Interim\".",
+      "I'm a massive creative at heart, I spend most of my time writing, creating character designs or building small tools and web apps to help me with my creative work. My main creative project at the moment is re-writing my web novel \"Dilettantes in the Interim\".",
       "My current goals are to finish my main side project, my PKM \"Filo\", and to keep progressing my career in IT.",
     ],
 
-    email: 'andrew.worgan@yahoo.co.uk',
+    email: 'andrew.worgan.enquiry@gmail.com',
+
+    // "Currently" card — a little life-status block under the bio.
+    // Keep it fresh: update me monthly, or delete every line to hide the card.
+    // icon can be: 'pencil' 'quill' 'hammer' 'book' 'sprout' 'controller'
+    currentlyHeading: 'Current Goals:',
+    currently: [
+      { icon: 'hammer', label: 'Building', value: 'Filo, my personal knowledge manager.' },
+      { icon: 'pencil', label: 'Drawing', value: 'Getting better everyday :)' },
+      { icon: 'quill', label: 'Writing', value: '"Dilettantes in the Interim" An Isekai Web-Novel.' },
+      { icon: 'sprout', label: 'Growing', value: 'My career in IT, one cert at a time.' },
+    ],
 
     // The "Other Pages" chips on the About page link to the rest of the site.
     // Each chip lights up in its own page's colour on hover (set by "accent").
     //   accent can be:  'blue'  'lavender'  'teal'  'yellow'  'pink'
     pagesHeading: 'Other Pages',
     pages: [
-      { label: 'Coding',       url: 'coding_projects.html',            accent: 'blue' },
-      { label: 'Art',          url: 'illustrations_and_graphics.html', accent: 'lavender' },
-      { label: 'Writing',      url: 'writing.html',                    accent: 'teal' },
-      { label: 'Certificates', url: 'certificates.html',               accent: 'pink' },
+      { label: 'Coding', url: 'coding_projects.html', accent: 'blue' },
+      { label: 'Art', url: 'illustrations_and_graphics.html', accent: 'lavender' },
+      { label: 'Writing', url: 'writing.html', accent: 'teal' },
+      { label: 'Certificates', url: 'certificates.html', accent: 'pink' },
     ],
 
     // Casual Niv-style sign-off shown at the bottom of the About page.
@@ -79,11 +90,45 @@ window.CONTENT = {
      2. ILLUSTRATIONS & GRAPHICS  (illustrations_and_graphics.html)
      ──────────────────────────────────────────────────────────────────────
      One line per artwork. Click an image on the site to view it full-size.
-        { img: 'file.png', title: 'Name',  tag: 'Category' },             */
+        { img: 'file.png', title: 'Name',  tag: 'Category' },
+     • "tag" powers the filter chips above the gallery — stick to a few
+       categories so the chip row stays tidy:
+         'Character Design'  'Poster'  'Fanart'  'Digital Art'
+     • "img" should be a web-sized file (~1200px); "full" is the optional
+       full-resolution original that opens in the lightbox.                 */
   art: [
-    { img: 'assets/art/assisted-existence-web.jpg', full: 'assets/art/assisted existence.png',
-      title: 'Assisted Existence', tag: 'Digital Art' },
+    {
+      img: 'assets/art/assisted-existence-web.jpg', full: 'assets/art/assisted existence.png',
+      title: 'Assisted Existence', tag: 'Digital Art'
+    },
     { img: 'assets/art/Pet Wizard 2.png', title: 'Pet Wizard', tag: 'Character Design' },
+    {
+      img: 'assets/art/growth-is-good-web.jpg', full: 'assets/art/GROWTH is GOOD.png',
+      title: 'GROWTH is GOOD', tag: 'Poster'
+    },
+    { img: 'assets/art/Ellie fr fr fr.png', title: 'Ellie', tag: 'Character Design' },
+    {
+      img: 'assets/art/owl-house-poster-web.jpg', full: 'assets/art/House movie poster OWL HOUSE LONG.png',
+      title: 'Owl House — Movie Poster', tag: 'Poster'
+    },
+    { img: 'assets/art/Frieren Fr this time ACTUALLY THO FIXED EYES.png', title: 'Frieren', tag: 'Fanart' },
+    { img: 'assets/art/Mountain.png', title: 'Mountain', tag: 'Digital Art' },
+    {
+      img: 'assets/art/kurugaya-vaporwave-web.jpg', full: 'assets/art/Kurugaya vaporwave.png',
+      title: 'Kurugaya, Vaporwave', tag: 'Fanart'
+    },
+    {
+      img: 'assets/art/summoning-god-web.jpg', full: 'assets/art/Summoning God.png',
+      title: 'Summoning God', tag: 'Digital Art'
+    },
+    { img: 'assets/art/Horn guy.png', title: 'Horn Guy', tag: 'Character Design' },
+    { img: 'assets/art/Decay.png', title: 'Decay', tag: 'Digital Art' },
+    { img: 'assets/art/Dinosaur.png', title: 'Dinosaur', tag: 'Character Design' },
+    { img: 'assets/art/Outgoing personality.png', title: 'Outgoing Personality', tag: 'Poster' },
+    { img: 'assets/art/Filthy Habit.png', title: 'Filthy Habit', tag: 'Poster' },
+    { img: 'assets/art/Party bottle.png', title: 'Party Bottle', tag: 'Poster' },
+    { img: 'assets/art/Rakka.png', title: 'Rakka', tag: 'Fanart' },
+    { img: 'assets/art/My Pet Wizard.png', title: 'My Pet Wizard', tag: 'Character Design' },
     // ↑ copy a line, change the filename/title/tag to add another piece.
     //   "full" is optional — a high-res original that opens in the lightbox.
   ],
@@ -95,18 +140,13 @@ window.CONTENT = {
      • "tags" is a list of technologies.
      • "links" is a list of buttons — give each a label and url.            */
   coding: [
-    /* ⚠️ FIX ME: github.com/LittleKasai currently returns 404 — the links
-       below (and the GitHub icon in the footer of every page) are dead.
-       Replace with your real GitHub username, and point each project at
-       its own repo (github.com/<you>/<repo>), not just your profile.
-       Also: add a real screenshot to each project — img: 'assets/...'    */
     {
       img: '',
       title: 'Filo — Personal Knowledge Manager',
       desc: 'My main side project: a personal knowledge-management app for organising notes, ideas and worldbuilding.',
       tags: ['JavaScript', 'In Progress'],
       links: [
-        { label: 'GitHub', url: 'https://github.com/LittleKasai' },
+        { label: 'GitHub', url: 'https://github.com/totallynotkasai' },
       ],
     },
     {
@@ -115,7 +155,7 @@ window.CONTENT = {
       desc: 'The site you are looking at — a hand-built static portfolio with a one-file content system.',
       tags: ['HTML', 'CSS', 'JavaScript'],
       links: [
-        { label: 'GitHub', url: 'https://github.com/LittleKasai' },
+        { label: 'GitHub', url: 'https://github.com/totallynotkasai' },
       ],
     },
     // ↑ copy a whole { ... }, block to add another project.
@@ -128,7 +168,7 @@ window.CONTENT = {
           url: 'https://…', accent: 'blue' },                              */
   writing: [
     {
-      date: '2025',
+      date: '2026',
       title: 'Dilettantes in the Interim',
       excerpt: 'My web novel, currently being re-written. A character-driven story I keep coming back to.',
       url: '',                              // no url = no dead link; shows the status text instead
@@ -155,5 +195,88 @@ window.CONTENT = {
     // which looks better to a recruiter than placeholder data ever would.
     // Add your first real one by copying the template from the comment above.
   ],
+
+  /* ──────────────────────────────────────────────────────────────────────
+     6. SITE PERSONALITY  (every page)
+     ──────────────────────────────────────────────────────────────────────
+     Small bits of voice that live around the edges of the site.           */
+  site: {
+    // Shown under the copyright line in the footer. '' hides it.
+    footerTagline: 'Hand-coded, hand-drawn — no frameworks were harmed.',
+
+    // Per-page "nothing here yet" jokes. Keys match each page's section.
+    // The coding one stays straight on purpose — recruiters read that page.
+    emptyStates: {
+      art: 'The easel is warming up — art arriving soon.',
+      coding: 'Projects are being tidied up — check back soon.',
+      writing: 'The ink is still drying on this page.',
+      certificates: "The certificate goblin hasn't delivered yet. Soon.",
+    },
+
+    // Printed in the browser dev console for nosy developers (hi!).
+    consoleMsg: 'Oh hi — you opened the console. The wizard sees you. 🧙\n' +
+      'Yes, this site is hand-built vanilla HTML/CSS/JS. View source away —\n' +
+      'all the content lives in one friendly file: content.js',
+
+    // Tab title when you wander off to another tab. '' disables it.
+    awayTitle: 'hey, come back :(',
+  },
+
+  /* ──────────────────────────────────────────────────────────────────────
+     7. THE PET WIZARD  (your interactive mascot, bottom-right of every page)
+     ──────────────────────────────────────────────────────────────────────
+     • Click him (or Tab to him + Enter) to pet him. Pet him a LOT and
+       something nice happens.
+     • "lines" = speech-bubble greetings per page; one is picked at random
+       a moment after the page loads. Pages listed in "quietPages" never
+       speak first — the wizard only talks there if clicked.
+     • FRAMES: he now blinks on his own, beams when petted, and dozes off —
+       driven by five hand-drawn 960×960 PNGs below. Blank out any one of
+       them (or remove `frames`) and he falls back to the single `image`.   */
+  wizard: {
+    enabled: true,                // set false to retire him (he'll understand)
+    image: 'assets/ui/Pet Wizard Cursor default Not rotated.png', // fallback frame
+    frames: {                     // 5 expressions — see assets/Wizard Sprite/
+      idle: 'assets/Wizard Sprite/Idle Wizard.png',            // eyes open, resting
+      half: 'assets/Wizard Sprite/Inbetween Frame Wizard.png', // mid-blink (eyes half)
+      blink: 'assets/Wizard Sprite/Blink Wizard.png',           // eyes shut
+      happy: 'assets/Wizard Sprite/Happy Wizard.png',           // when you pet him
+      asleep: 'assets/Wizard Sprite/Sleepy Wizard.png',          // napping (zzz drawn in)
+    },
+    sleepAfter: 60,               // seconds of being ignored before he naps
+    quietPages: ['coding'],       // pages where he won't speak unprompted
+
+    lines: {
+      index: [
+        'hello! i live here now.',
+        "that's my human up there ↑",
+        'psst… try petting me.',
+      ],
+      coding: [
+        'All hand-built. I QA’d it myself.',
+      ],
+      art: [
+        'my human drew all of these.',
+        "i'm in some of them. look closely.",
+        'click a piece — the lightbox is cosy.',
+      ],
+      writing: [
+        'quiet please, novel in progress.',
+        'plot holes are just secret tunnels.',
+      ],
+      certificates: [
+        'paper achievements! shiny.',
+        'more coming, allegedly.',
+      ],
+      notfound: [
+        'i ate this page. sorry.',
+        'it tasted like 404.',
+      ],
+    },
+
+    // What he says when you pet him (cycles in order, then repeats).
+    petLines: ['!', '♥', 'Momentai', 'Good vibes only, gang.', 'again.', 'this is acceptable', 'magic +1', 'okay one more'],
+    sleepLine: 'zzz…',
+  },
 
 };
