@@ -735,8 +735,12 @@
     });
   }
 
-  /* ---------- boot ---------- */
-  document.addEventListener('DOMContentLoaded', () => {
+  /* ---------- boot ----------
+     Runs straight away rather than on DOMContentLoaded: this script sits at
+     the end of <body>, so the page's markup already exists, and building the
+     content now means it's there before the browser's first paint (each page
+     holds rendering until #page-end, just after this script — see <head>). */
+  (() => {
     // 1) Build content from content.js
     renderAbout();
     renderCurrently();
@@ -756,5 +760,5 @@
     wireWizard();
     wireAwayTitle();
     consoleEgg();
-  });
+  })();
 })();

@@ -1515,8 +1515,9 @@ body:has(dialog[open]) .wizard-buddy { display: none; }
   /* Everything except the header fades in as one unit on every page load. */
   .marquee-container,
   main.page-content,
-  .site-footer { animation: page-enter 0.25s ease-out backwards; }
+  .site-footer { animation: page-enter 0.16s ease-out backwards; }
 }
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(8px); }
+  /* Starts part-visible so the body lands with the header, not after it. */
+  from { opacity: 0.4; transform: translateY(4px); }
 }

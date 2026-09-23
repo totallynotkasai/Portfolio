@@ -18,6 +18,9 @@
   <link rel="apple-touch-icon" href="assets/ui/apple-touch-icon.png" />
   <link rel="preload" href="fonts/ArialRoundedMTBold.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/Inter-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- Hold the first paint until the content script has built the page
+       (#page-end sits right after it), so content never pops in late. -->
+  <link rel="expect" href="#page-end" blocking="render" />
   <link rel="stylesheet" href="style.css" />
 </head>
 
@@ -97,6 +100,7 @@
 
   <script src="content.js"></script>
   <script src="script.js"></script>
+  <span id="page-end" hidden></span>
 </body>
 
 </html>
