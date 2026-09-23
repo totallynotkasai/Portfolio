@@ -86,6 +86,13 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   --teal-tint:       #E0F5F1;
   --pink-tint:       #FEEAF3;
 
+  /* Deep accent inks — accent-coloured text on white (stamps, icons) */
+  --periwinkle-ink:  #4A52B8;
+  --yellow-ink:      #8A6400;
+  --blue-ink:        #1F5FC0;
+  --teal-ink:        #1F7D6E;
+  --pink-ink:        #B03A70;
+
   /* Typography */
   --font-display: 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
   --font-body:    'Inter', sans-serif;
@@ -127,9 +134,18 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 
   --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);   /* card hovers overshoot a touch */
 
   --border: 2.5px solid var(--ink);
 }
+
+/* Accent classes expose their colour trio to the cards (folders, index
+   cards, tickets), which read --acc / --acc-tint / --acc-ink. */
+.lavender { --acc: var(--periwinkle); --acc-tint: var(--periwinkle-tint); --acc-ink: var(--periwinkle-ink); }
+.blue     { --acc: var(--blue);       --acc-tint: var(--blue-tint);       --acc-ink: var(--blue-ink); }
+.teal     { --acc: var(--teal);       --acc-tint: var(--teal-tint);       --acc-ink: var(--teal-ink); }
+.yellow   { --acc: var(--yellow);     --acc-tint: var(--yellow-tint);     --acc-ink: var(--yellow-ink); }
+.pink     { --acc: var(--pink);       --acc-tint: var(--pink-tint);       --acc-ink: var(--pink-ink); }
 
 /* ============================================================
    HEADER / NAVIGATION
@@ -295,11 +311,16 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   font-weight: 600;
   letter-spacing: 0.06em;
 }
+/* The wave is an SVG mask filled with currentColor, so it always matches the text. */
 .marquee-group li::after {
-  content: '〰';
+  content: '';
+  width: 30px;
+  height: 12px;
   margin: 0 1.5rem;
-  font-weight: 500;
+  background: currentColor;
   opacity: 0.85;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 12'%3E%3Cpath d='M2 6 Q 6.5 1 11 6 T 20 6 T 29 6' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 12'%3E%3Cpath d='M2 6 Q 6.5 1 11 6 T 20 6 T 29 6' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 @keyframes scroll-marquee {
   from { transform: translateX(0); }
@@ -338,7 +359,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   max-width: 600px;
 }
 
-/* ---------- WAVY DIVIDER (Niv-style 〰️) ---------- */
+/* ---------- WAVY DIVIDER (Niv-style) ---------- */
 .wave-divider {
   height: 22px;
   width: 100%;
@@ -434,42 +455,129 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 }
 
 /* ============================================================
-   PROJECT CARDS (Coding)
-   ============================================================ */
+   PROJECT CARDS (Coding) — file folders
+   ============================================================
+   One fill (the accent tint) for tab + folder. The tab is a normal
+   CSS-bordered box (both top corners rounded the same way); only the
+   concave curve where it meets the folder top is an inline SVG (.tab-cap),
+   which also paints over the straight border lines that would otherwise
+   run through that curve.
+   The screenshot is a sheet of paper hidden behind the folder, to the
+   right of the tab; it rises out of the folder on hover. */
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: var(--space-2xl) var(--space-lg);   /* headroom for the rising paper */
 }
 
 .project-card {
+  --tab-h: 38px;
+  --fillet: 14px;
+  container-type: inline-size;
+  position: relative;
   display: flex;
   flex-direction: column;
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  border: var(--border);
-  box-shadow: var(--pop);
-  overflow: hidden;
-  transition: transform var(--transition), box-shadow var(--transition);
 }
-.project-card:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: var(--pop-lg);
+.project-card:hover,
+.project-card:focus-within { z-index: 2; translate: 0 -4px; }
+
+/* Tab row: the tab, then a slot for the paper. No z-index here, so the
+   tab can sit above the folder while the paper sits below it. */
+.project-card-top {
+  position: relative;
+  display: flex;
+  height: var(--tab-h);
+  margin-bottom: -2.5px;        /* tab covers the folder's top border */
 }
 
+.project-card-tab {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 8rem;              /* every tab the same size (longer labels still fit) */
+  padding: 0 16px 2px 14px;
+  margin-right: var(--fillet);
+  font-family: var(--font-display);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+  background: var(--acc-tint);
+  border: var(--border);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+}
+/* Seals any sub-pixel gap between the tab and the folder, between its borders. */
+.project-card-tab::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--acc-tint);
+}
+.project-card-tab > svg:not(.tab-cap) { width: 18px; height: 18px; flex-shrink: 0; }
+.tab-cap {
+  position: absolute;
+  left: 100%;                   /* = start of the tab's right border */
+  bottom: 0;
+  width: calc(var(--fillet) + 3px);
+  height: var(--fillet);
+  overflow: visible;
+}
+.tab-cap .fill   { fill: var(--acc-tint); }
+.tab-cap .stroke { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+
+.project-card-slot {
+  position: relative;
+  flex: 1;
+  margin-left: 10px;
+}
+/* Same size on every card (54% of the card width, right-aligned), hidden
+   12px inside the folder at rest; rises out on hover or keyboard focus. */
+.project-card-paper {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 8px;
+  width: min(54cqw, 100% - 8px);
+  z-index: 0;
+  rotate: -1.5deg;
+  transition: rotate 0.4s var(--ease-bounce), translate 0.4s var(--ease-bounce);
+}
+.project-card:hover .project-card-paper,
+.project-card:focus-within .project-card-paper { rotate: 2deg; translate: 0 -85%; }
+/* No hover on touch screens — show the preview peeking out instead. */
+@media (hover: none) {
+  .project-card-paper { translate: 0 -60%; }
+}
 .project-card-image {
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
-  background: var(--blue);
-  border-bottom: 2.5px solid var(--ink);
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
+  color: var(--acc-ink);
 }
+.project-card-image svg { width: 44px; height: 44px; }
 
-.project-card-body { padding: var(--space-md); display: flex; flex-direction: column; flex: 1; }
+.project-card-body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Tall enough to hide the paper at rest (54cqw wide at 16:10). */
+  min-height: calc(54cqw * 0.625 + 28px);
+  padding: var(--space-md);
+  background: var(--acc-tint);
+  border: var(--border);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg);
+}
 
 .project-card-title {
   font-family: var(--font-display);
@@ -493,9 +601,9 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   display: inline-block;
   font-size: var(--fs-tiny);
   font-weight: 600;
-  padding: 4px 11px;
+  padding: 3px 11px;
   border-radius: var(--radius-full);
-  background: var(--blue-tint);
+  background: var(--white);
   border: 1.5px solid var(--ink);
   color: var(--ink);
 }
@@ -505,50 +613,69 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   font-size: var(--fs-small);
   font-weight: 600;
   color: var(--ink);
-  border-bottom: 2.5px solid var(--blue);
-  transition: color var(--transition), border-color var(--transition);
+  border-bottom: 2.5px solid var(--acc);
 }
-.project-card-links a:hover { color: var(--blue); }
+
+/* Shared link arrow on cards — nudges right on hover. */
+.card-arrow {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  transition: translate var(--transition);
+}
+.project-card-links a:hover .card-arrow,
+.writing-card:hover .card-arrow,
+.cert-link:hover .card-arrow { translate: 4px 0; }
 
 /* ============================================================
-   GALLERY GRID (Illustrations — Niv-style: caption UNDER art)
-   ============================================================ */
+   GALLERY GRID (Illustrations) — polaroids
+   ============================================================
+   White mat, thin edge, a slight tilt that varies card to card;
+   straightens and lifts on hover. Art keeps its natural ratio. */
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-lg);
+  gap: var(--space-xl) var(--space-lg);
   align-items: start;   /* cards keep their natural (uneven) heights */
 }
 
 .gallery-item {
+  position: relative;
   display: flex;
   flex-direction: column;
+  padding: 12px 12px 0;
   background: var(--white);
-  border: var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--pop);
-  overflow: hidden;
-  transition: transform var(--transition), box-shadow var(--transition);
+  border: 1.5px solid rgba(22, 26, 46, 0.14);
+  border-radius: 4px;
+  rotate: -1.5deg;
 }
+.gallery-item:nth-child(3n+2) { rotate: 1.8deg; }
+.gallery-item:nth-child(3n)   { rotate: -0.6deg; }
 .gallery-item:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: var(--pop-lg);
+  z-index: 1;
+  rotate: 0deg;
+  translate: 0 -6px;
+  scale: 1.02;
 }
 /* No forced aspect ratio — artwork keeps its own proportions, never cropped. */
 .gallery-item-img {
   width: 100%;
   overflow: hidden;
   background: var(--periwinkle-tint);
-  border-bottom: 2.5px solid var(--ink);
+  border-radius: 2px;
 }
-.gallery-item-img img {
-  width: 100%; height: auto;
-  transition: transform var(--transition-slow);
+.gallery-item-img--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  color: var(--periwinkle);
 }
-.gallery-item:hover .gallery-item-img img { transform: scale(1.05); }
+.gallery-item-img--empty svg { width: 52px; height: 52px; }
+.gallery-item-img img { width: 100%; height: auto; }
 
 .gallery-item-cap {
-  padding: var(--space-sm) var(--space-md);
+  padding: 14px 4px 18px;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -559,6 +686,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   font-size: var(--fs-h3);
   font-weight: 600;
   color: var(--ink);
+  line-height: 1.25;
 }
 .gallery-item-cap p {
   font-size: var(--fs-tiny);
@@ -614,138 +742,172 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .lightbox-close:hover { transform: rotate(90deg); }
 
 /* ============================================================
-   WRITING / ARTICLE LIST
-   ============================================================ */
-.writing-list { display: flex; flex-direction: column; gap: var(--space-md); }
+   WRITING — library index cards
+   ============================================================
+   Every line of text sits on a 28px ruled grid (--rule), so keep
+   margins inside the card at 0 or a multiple of it. */
+.writing-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr));
+  gap: var(--space-lg);
+  align-items: start;
+}
 
 .writing-card {
-  display: flex;
-  align-items: stretch;
-  gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
+  --rule: 28px;
+  position: relative;
+  display: block;
+  padding: var(--rule) var(--space-lg) 22px 3.4rem;
+  line-height: var(--rule);
+  background-color: #FFFDF8;
+  /* ruled lines as a flat SVG tile, not a gradient */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='28'%3E%3Crect y='22' width='10' height='1' fill='%23DDE3F7'/%3E%3C/svg%3E");
+  border: 1.5px solid rgba(22, 26, 46, 0.2);
+  border-radius: 6px;
+}
+.writing-card:hover { rotate: -0.8deg; translate: 0 -3px; }
+
+/* Margin rule in the card's accent colour */
+.writing-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2.3rem;
+  width: 2px;
+  background: var(--acc);
+}
+.writing-card-hole {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--blush);
+  border: 1.5px solid rgba(22, 26, 46, 0.25);
+  translate: 0 -50%;
+}
+.writing-card-stamp {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  rotate: 8deg;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  line-height: 1.9;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acc-ink);
   background: var(--white);
-  border-radius: var(--radius-lg);
-  border: var(--border);
-  box-shadow: var(--pop);
-  transition: transform var(--transition), box-shadow var(--transition);
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  padding: 0 8px;
 }
-.writing-card:hover { transform: translate(-3px, -3px); box-shadow: var(--pop-lg); }
 
-.writing-card-accent {
-  width: 8px;
-  align-self: stretch;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--ink);
-  flex-shrink: 0;
-}
-.writing-card-accent.lavender { background: var(--periwinkle); }
-.writing-card-accent.blue     { background: var(--blue); }
-.writing-card-accent.teal     { background: var(--teal); }
-.writing-card-accent.yellow   { background: var(--yellow); }
-.writing-card-accent.pink     { background: var(--pink); }
-
-.writing-card-content { flex: 1; }
 .writing-card-date {
   font-family: var(--font-display);
   font-size: var(--fs-tiny);
-  font-weight: 600;
   color: var(--ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-bottom: 4px;
+  padding-right: 6rem;            /* clear of the stamp */
 }
 .writing-card-title {
   font-family: var(--font-display);
-  font-size: var(--fs-h3);
+  font-size: 1.35rem;
   font-weight: 600;
   color: var(--ink);
-  margin-bottom: var(--space-xs);
 }
 .writing-card-excerpt {
   font-size: var(--fs-small);
   color: var(--ink-soft);
-  line-height: 1.6;
-  margin-bottom: var(--space-xs);
 }
 .read-more {
   font-family: var(--font-display);
   font-size: var(--fs-small);
   font-weight: 600;
   color: var(--ink);
-  border-bottom: 2.5px solid var(--blue);
+  border-bottom: 2.5px solid var(--acc);
 }
-.writing-card:hover .read-more { color: var(--blue); }
+.read-more svg { width: 1.05em; height: 1.05em; vertical-align: -0.15em; }
 
 /* ============================================================
-   CERTIFICATE CARDS (image-forward)
-   ============================================================ */
+   CERTIFICATES — ticket stubs
+   ============================================================
+   Coloured stub (scan or icon) | dashed perforation with notches | details. */
 .cert-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: var(--space-lg);
 }
 
 .cert-card {
+  --stub: 104px;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--stub) 1fr;
+  min-height: 124px;
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius-md);
+}
+.cert-card:hover { rotate: -1.5deg; scale: 1.02; }
+
+.cert-stub {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--acc);
+  border-right: 2.5px dashed var(--ink);
+  border-radius: calc(var(--radius-md) - 2.5px) 0 0 calc(var(--radius-md) - 2.5px);
+}
+.cert-stub svg { width: 44px; height: 44px; }
+.cert-stub--img img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Notches: half-circles in the page colour sitting on the perforation. */
+.cert-card::before,
+.cert-card::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--stub) - 12.25px);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blush);
+  border: var(--border);
+}
+.cert-card::before { top: -12.25px;    clip-path: inset(50% 0 0 0); }
+.cert-card::after  { bottom: -12.25px; clip-path: inset(0 0 50% 0); }
+
+.cert-info {
+  padding: var(--space-sm) var(--space-md);
   display: flex;
   flex-direction: column;
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  border: var(--border);
-  box-shadow: var(--pop);
-  overflow: hidden;
-  transition: transform var(--transition), box-shadow var(--transition);
-}
-.cert-card:hover { transform: translate(-3px, -3px); box-shadow: var(--pop-lg); }
-
-/* Certificate image thumbnail (click to enlarge) */
-.cert-thumb {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  background: var(--blue-tint);
-  border-bottom: 2.5px solid var(--ink);
-  overflow: hidden;
-}
-.cert-thumb img { width: 100%; height: 100%; object-fit: cover; }
-
-/* Fallback badge when no certificate image is supplied */
-.cert-badge {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  border-bottom: 2.5px solid var(--ink);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  gap: 2px;
 }
-.cert-badge.lavender { background: var(--periwinkle); }
-.cert-badge.blue     { background: var(--blue); }
-.cert-badge.teal     { background: var(--teal); }
-.cert-badge.yellow   { background: var(--yellow); }
-.cert-badge.pink     { background: var(--pink); }
-
-.cert-info { padding: var(--space-md); display: flex; flex-direction: column; gap: 3px; }
+.cert-meta {
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 .cert-info h3 {
   font-family: var(--font-display);
   font-size: var(--fs-h3);
   font-weight: 600;
+  line-height: 1.25;
   color: var(--ink);
 }
-.cert-info p { font-size: var(--fs-small); color: var(--ink-soft); }
-.cert-info .cert-date {
-  font-family: var(--font-display);
-  font-size: var(--fs-tiny);
-  font-weight: 600;
-  color: var(--ink-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 2px;
-}
-.cert-info .cert-link {
+.cert-link {
   font-family: var(--font-display);
   font-size: var(--fs-small);
   font-weight: 600;
   color: var(--ink);
-  border-bottom: 2.5px solid var(--blue);
+  border-bottom: 2.5px solid var(--acc);
   align-self: flex-start;
   margin-top: var(--space-xs);
 }
@@ -848,7 +1010,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 4rem;
+  color: var(--ink);
   border: 3px solid var(--ink);
   box-shadow: var(--pop-lg);
   transform: rotate(2.5deg);
@@ -996,7 +1158,9 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   border: 2.5px dashed var(--ink);
   border-radius: var(--radius-lg);
 }
-.empty-state-icon { font-size: 3.5rem; margin-bottom: var(--space-sm); }
+.about-photo-placeholder svg { width: 72px; height: 72px; }
+.empty-state-icon { display: flex; justify-content: center; margin-bottom: var(--space-sm); color: var(--ink); }
+.empty-state-icon svg { width: 56px; height: 56px; }
 .empty-state h3 {
   font-family: var(--font-display);
   font-size: var(--fs-h3);
@@ -1022,7 +1186,11 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .animate-on-scroll {
   opacity: 0;
   transform: translateY(28px);
-  transition: opacity 0.55s ease-out, transform 0.55s ease-out;
+  /* Card hovers use the individual translate/rotate/scale properties so they
+     never fight this entrance transform. */
+  transition: opacity 0.55s ease-out, transform 0.55s ease-out,
+              translate 0.35s var(--ease-bounce), rotate 0.35s var(--ease-bounce),
+              scale 0.35s var(--ease-bounce);
 }
 .animate-on-scroll.visible { opacity: 1; transform: translateY(0); }
 
@@ -1085,7 +1253,6 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .page-art .skill-tag.blue:hover { background: var(--periwinkle); }
 /* Coding page leans blue, not purple. */
 .page-coding :focus-visible { outline-color: var(--blue); }
-.page-coding .project-card:hover { box-shadow: var(--pop-lg); }
 
 /* Visually-hidden utility (screen-reader announcements). */
 .vh {
@@ -1163,6 +1330,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   gap: 10px;
   margin-bottom: var(--space-lg);
 }
+.filter-chip svg { width: 1.1em; height: 1.1em; vertical-align: -0.2em; margin-right: 6px; }
 .filter-chip[aria-pressed="true"] {
   background: var(--ink);
   color: var(--blush);
@@ -1263,10 +1431,12 @@ body:has(dialog[open]) .wizard-buddy { display: none; }
 .doodle-rain span {
   position: absolute;
   top: -48px;
-  font-size: 1.7rem;
+  width: 28px;
+  height: 28px;
   color: var(--periwinkle);
   animation: doodle-fall 2.5s linear forwards;
 }
+.doodle-rain span svg { display: block; width: 100%; height: 100%; }
 .doodle-rain span:nth-child(3n)   { color: var(--pink); }
 .doodle-rain span:nth-child(4n)   { color: var(--teal); }
 .doodle-rain span:nth-child(5n)   { color: var(--yellow); }

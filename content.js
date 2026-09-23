@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   ✏️  YOUR PORTFOLIO CONTENT  —  THIS IS THE ONLY FILE YOU NEED TO EDIT
+   YOUR PORTFOLIO CONTENT  —  THIS IS THE ONLY FILE YOU NEED TO EDIT
    ════════════════════════════════════════════════════════════════════════
 
    HOW IT WORKS
@@ -14,7 +14,7 @@
           photos  → assets/photos/  icons & logos → assets/ui/
      2. Add ONE line to the matching list below (copy the line above it),
         using the folder in the path, e.g.  img: 'assets/art/My Piece.png'
-     3. Save & refresh the page. Done. ✅
+     3. Save & refresh the page. Done.
 
    TIP — keep the site fast: resize images to ~1200px before adding them
    (squoosh.app does this in the browser). For artwork you can also keep a
@@ -35,7 +35,7 @@
 window.CONTENT = {
 
   /* ──────────────────────────────────────────────────────────────────────
-     1. ABOUT PAGE  (index.html)
+     1. ABOUT PAGE  (about.html)
      ──────────────────────────────────────────────────────────────────────
      • Put *asterisks* around words you want highlighted in yellow.
      • Each string in "paragraphs" becomes one paragraph. Add/remove freely.
@@ -138,7 +138,10 @@ window.CONTENT = {
      ──────────────────────────────────────────────────────────────────────
      • "img" is an optional screenshot ('' shows a coloured block).
      • "tags" is a list of technologies.
-     • "links" is a list of buttons — give each a label and url.            */
+     • "links" is a list of buttons — give each a label and url.
+     • Each project shows as a file folder. The tab reads the title up to any
+       " — " (e.g. "filo/"); set  tab: "my-name"  to choose it yourself.
+     • "accent" colours the folder (default blue).                         */
   coding: [
     {
       img: '',
@@ -152,6 +155,8 @@ window.CONTENT = {
     {
       img: '',
       title: 'This Portfolio',
+      tab: 'portfolio',                     // folder tab label (optional)
+      accent: 'teal',
       desc: 'The site you are looking at — a hand-built static portfolio with a one-file content system.',
       tags: ['HTML', 'CSS', 'JavaScript'],
       links: [
@@ -165,14 +170,17 @@ window.CONTENT = {
      4. WRITING  (writing.html)
      ──────────────────────────────────────────────────────────────────────
         { date: 'Month Year', title: 'Title', excerpt: 'Teaser…',
-          url: 'https://…', accent: 'blue' },                              */
+          url: 'https://…', accent: 'blue', stamp: 'Short' },
+     • Each piece shows as a library index card. "accent" colours the
+       margin line; "stamp" (optional) is the little rubber stamp.        */
   writing: [
     {
       date: '2026',
       title: 'Dilettantes in the Interim',
       excerpt: 'My web novel, currently being re-written. A character-driven story I keep coming back to.',
       url: '',                              // no url = no dead link; shows the status text instead
-      status: 'Re-write in progress ✍️',    // shown in place of "Read more →"
+      status: 'Re-write in progress',    // shown in place of "Read more →"
+      stamp: 'Re-write',                  // rubber stamp in the top corner (optional)
       accent: 'lavender',
     },
     // ↑ copy a whole { ... }, block to add another piece of writing.
@@ -183,13 +191,15 @@ window.CONTENT = {
      5. CERTIFICATES  (certificates.html)
      ──────────────────────────────────────────────────────────────────────
      EASIEST WAY: drop a photo/scan of the certificate into assets/certs/
-     and put its path in "img" — it shows as a thumbnail you can click to
-     enlarge. No image? Leave img:'' and it shows a coloured badge + emoji.
+     and put its path in "img" — it fills the stub of the ticket and opens
+     full size when clicked. No image? Leave img:'' and the stub shows
+     an icon on its accent colour (default pink).
 
         { img: 'assets/certs/my-cert.png', title: 'Certificate Name',
           issuer: 'Who issued it', date: 'Month Year',
           link: 'https://credential-url',     // optional 'View credential'
-          accent: 'yellow', emoji: '🎓' },                                 */
+          accent: 'yellow', icon: 'cap' },
+     • "icon" (badge only) can be:  'cap'  'ribbon'  'book'  'laptop'      */
   certificates: [
     // Empty on purpose — the page shows a tidy "nothing here yet" state,
     // which looks better to a recruiter than placeholder data ever would.
@@ -214,7 +224,7 @@ window.CONTENT = {
     },
 
     // Printed in the browser dev console for nosy developers (hi!).
-    consoleMsg: 'Oh hi — you opened the console. The wizard sees you. 🧙\n' +
+    consoleMsg: 'Oh hi — you opened the console. The wizard sees you.\n' +
       'Yes, this site is hand-built vanilla HTML/CSS/JS. View source away —\n' +
       'all the content lives in one friendly file: content.js',
 
@@ -248,20 +258,20 @@ window.CONTENT = {
 
     lines: {
       index: [
-        'hello! i live here now.',
-        "that's my human up there ↑",
-        'psst… try petting me.',
+        'hello!',
+        "Give me a click ;~;",
+        'psst…',
       ],
       coding: [
-        'All hand-built. I QA’d it myself.',
+        'Computer magic.',
       ],
       art: [
-        'my human drew all of these.',
-        "i'm in some of them. look closely.",
-        'click a piece — the lightbox is cosy.',
+        'Hey nice Cursor :3',
+        "Is that me or my twin?",
+        'click a piece, the lightbox is cosy.',
       ],
       writing: [
-        'quiet please, novel in progress.',
+        'shhhhhhh... novel in progress.',
         'plot holes are just secret tunnels.',
       ],
       certificates: [
@@ -275,7 +285,7 @@ window.CONTENT = {
     },
 
     // What he says when you pet him (cycles in order, then repeats).
-    petLines: ['!', '♥', 'Momentai', 'Good vibes only, gang.', 'again.', 'this is acceptable', 'magic +1', 'okay one more'],
+    petLines: ['!', '<3', 'Momentai', 'Good vibes only, gang.', 'again.', 'this is acceptable', 'magic +1', 'okay one more'],
     sleepLine: 'zzz…',
   },
 
