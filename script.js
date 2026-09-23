@@ -357,6 +357,14 @@
       els.forEach((el) => el.classList.add('visible'));
       return;
     }
+    // Anything already on screen joins the whole-page fade-in instead of
+    // waiting for the observer and fading in late on its own.
+    const fold = window.innerHeight;
+    const below = [];
+    els.forEach((el) => {
+      if (el.getBoundingClientRect().top < fold) el.classList.add('no-enter', 'visible');
+      else below.push(el);
+    });
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -365,7 +373,7 @@
       },
       { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
     );
-    els.forEach((el) => obs.observe(el));
+    below.forEach((el) => obs.observe(el));
   }
 
   // One lightbox for the whole site; opens on any element with [data-full].

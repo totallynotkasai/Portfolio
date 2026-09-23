@@ -22,8 +22,19 @@
   font-display: swap;
 }
 
-/* Display face is the bundled Arial Rounded MT Bold above; body text is Inter,
-   loaded via <link> in each page's <head> (an @import here would block rendering). */
+/* Body text: Inter, self-hosted (one variable file covers weights 300–700,
+   Latin only) so pages don't wait on Google Fonts. Both fonts are also
+   preloaded in each page's <head>. */
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-latin-var.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+                 U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+                 U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 /* ---------- RESET ---------- */
 *, *::before, *::after {
@@ -1193,6 +1204,12 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
               scale 0.35s var(--ease-bounce);
 }
 .animate-on-scroll.visible { opacity: 1; transform: translateY(0); }
+/* Above-the-fold cards: no entrance of their own (the page fade covers
+   them), but hovers still bounce. */
+.animate-on-scroll.no-enter {
+  transition: translate 0.35s var(--ease-bounce), rotate 0.35s var(--ease-bounce),
+              scale 0.35s var(--ease-bounce);
+}
 
 .stagger-children .animate-on-scroll:nth-child(1) { transition-delay: 0.04s; }
 .stagger-children .animate-on-scroll:nth-child(2) { transition-delay: 0.08s; }
@@ -1202,6 +1219,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .stagger-children .animate-on-scroll:nth-child(6) { transition-delay: 0.24s; }
 .stagger-children .animate-on-scroll:nth-child(7) { transition-delay: 0.28s; }
 .stagger-children .animate-on-scroll:nth-child(8) { transition-delay: 0.32s; }
+.stagger-children .animate-on-scroll.no-enter { transition-delay: 0s; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-on-scroll { opacity: 1; transform: none; transition: none; }
@@ -1486,17 +1504,19 @@ body:has(dialog[open]) .wizard-buddy { display: none; }
 @media (prefers-reduced-motion: no-preference) {
   @view-transition { navigation: auto; }
 
-  /* Header and footer persist; the page body does a quick slide-fade. */
+  /* The header persists untouched. The old page is dropped at once (fading
+     it out would leave its pieces floating over the new page), and the new
+     page's own page-enter fade (below) is the only fade — everything arrives
+     together. */
   .site-header { view-transition-name: site-header; }
-  .site-footer { view-transition-name: site-footer; }
-  main.page-content { view-transition-name: page-main; }
+  ::view-transition-old(root) { display: none; }
+  ::view-transition-new(root) { animation: none; }
 
-  ::view-transition-old(page-main) { animation: vt-leave 0.16s ease both; }
-  ::view-transition-new(page-main) { animation: vt-enter 0.18s ease both; }
+  /* Everything except the header fades in as one unit on every page load. */
+  .marquee-container,
+  main.page-content,
+  .site-footer { animation: page-enter 0.25s ease-out backwards; }
 }
-@keyframes vt-leave {
-  to { opacity: 0; transform: translateY(8px); }
-}
-@keyframes vt-enter {
+@keyframes page-enter {
   from { opacity: 0; transform: translateY(8px); }
 }
