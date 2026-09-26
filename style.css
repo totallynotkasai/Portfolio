@@ -1432,9 +1432,11 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 }
 .wizard-bubble[hidden] { display: none; }
 
-/* He politely steps out while the lightbox is open, and on small phones. */
+/* He politely steps out while the lightbox is open, and on phones and
+   tablets (narrow screens, or any touch-first device such as a large iPad).
+   Keep this query in sync with WIZARD_HIDDEN_MQ in script.js. */
 body:has(dialog[open]) .wizard-buddy { display: none; }
-@media (max-width: 480px) {
+@media (max-width: 1024px), (hover: none) and (pointer: coarse) {
   .wizard-buddy { display: none; }
 }
 

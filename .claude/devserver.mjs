@@ -1,11 +1,24 @@
-// Zero-dependency static file server for local preview of the portfolio.
-// Serves the Portfolio root (the parent of this .claude/ folder) regardless of CWD.
+// Zero-config local preview of the portfolio that routes URLs the way Vercel
+// does (see vercel.json), so what works here works live:
+//   /                       -> about.html
+//   /about                  -> about.html        (cleanUrls)
+//   /about.html, /about/    -> 308 to /about     (cleanUrls, trailingSlash: false)
+//   anything missing        -> 404.html with a 404 status
+// /generated/* (WebP copies + the art list) is built on the fly by the same
+// code Vercel runs, into dist/generated/.
+//
+//   node .claude/devserver.mjs          serve the source files (normal use)
+//   node .claude/devserver.mjs --dist   serve dist/ exactly as deployed
+//                                        (run `npm run build` first)
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, extname, normalize } from 'node:path';
+import { dirname, join, extname, normalize, sep } from 'node:path';
 
-const ROOT = dirname(dirname(fileURLToPath(import.meta.url))); // .claude/ -> Portfolio/
+const PROJECT = dirname(dirname(fileURLToPath(import.meta.url))); // .claude/ -> Portfolio/
+const SERVE_DIST = process.argv.includes('--dist');
+const ROOT = SERVE_DIST ? join(PROJECT, 'dist') : PROJECT;
+const GEN_DIR = join(PROJECT, 'dist', 'generated');
 const PORT = Number(process.env.PORT) || 4321;
 
 const MIME = {
@@ -26,34 +39,74 @@ const MIME = {
   '.ttf': 'font/ttf',
 };
 
+// Rebuild the art list / WebP copies when a page asks for them, so a file
+// dropped into assets/art shows up on the next refresh. Only new or changed
+// images are converted, so this is quick after the first run.
+let build = null;
+let generating = null;
+async function regenerate() {
+  if (SERVE_DIST) return;
+  try {
+    build = build || (await import('../build/build.mjs'));
+  } catch (err) {
+    console.warn('Could not load the build step (run `npm install`?) — serving without WebP copies.\n ', err.message);
+    return;
+  }
+  generating = generating || (async () => {
+    const { errors, warnings } = await build.checkContent(PROJECT);
+    [...errors, ...warnings].forEach((m) => console.warn('  ⚠ ' + m));
+    await build.generate({ root: PROJECT, outDir: GEN_DIR, log: () => {} });
+  })().finally(() => { generating = null; });
+  await generating;
+}
+
+const isFile = (p) => stat(p).then((s) => s.isFile(), () => false);
+
+// Resolve a URL path inside `base`, refusing anything that escapes it.
+const inside = (base, rel) => {
+  const p = join(base, normalize(rel).replace(/^([/\\])+/, ''));
+  return p === base || p.startsWith(base + sep) ? p : null;
+};
+
+async function send(res, status, filePath) {
+  const body = await readFile(filePath);
+  const type = MIME[extname(filePath).toLowerCase()] || 'application/octet-stream';
+  res.writeHead(status, { 'content-type': type, 'cache-control': 'no-store' }).end(body);
+}
+
 const server = createServer(async (req, res) => {
   try {
-    let rel = decodeURIComponent(new URL(req.url, `http://localhost`).pathname);
-    if (rel.endsWith('/')) rel += 'index.html';
-    // Prevent path traversal: normalize and keep inside ROOT.
-    const safe = normalize(rel).replace(/^([/\\])+/, '');
-    let filePath = join(ROOT, safe);
-    if (!filePath.startsWith(ROOT)) {
-      res.writeHead(403).end('Forbidden');
+    const url = new URL(req.url, 'http://localhost');
+    const path = decodeURIComponent(url.pathname);
+
+    // cleanUrls + trailingSlash:false redirects
+    let clean = null;
+    if (/\.html$/i.test(path)) clean = path.replace(/\.html$/i, '') || '/';
+    else if (path.length > 1 && path.endsWith('/')) clean = path.replace(/\/+$/, '');
+    if (clean !== null) {
+      res.writeHead(308, { location: encodeURI(clean) + url.search }).end();
       return;
     }
-    let info;
-    try {
-      info = await stat(filePath);
-    } catch {
-      res.writeHead(404, { 'content-type': 'text/html; charset=utf-8' })
-        .end('<h1>404</h1>');
-      return;
+
+    if (path.startsWith('/generated/') && !SERVE_DIST) {
+      if (path === '/generated/manifest.js') await regenerate();
+      const file = inside(GEN_DIR, path.slice('/generated/'.length));
+      if (file && (await isFile(file))) return send(res, 200, file);
+    } else {
+      const rel = path === '/' ? '/about' : path;
+      const file = inside(ROOT, rel);
+      if (file && (await isFile(file))) return send(res, 200, file);
+      if (file && !extname(rel) && (await isFile(file + '.html'))) return send(res, 200, file + '.html');
     }
-    if (info.isDirectory()) filePath = join(filePath, 'index.html');
-    const body = await readFile(filePath);
-    const type = MIME[extname(filePath).toLowerCase()] || 'application/octet-stream';
-    res.writeHead(200, { 'content-type': type }).end(body);
+
+    const notFound = join(ROOT, '404.html');
+    if (await isFile(notFound)) return send(res, 404, notFound);
+    res.writeHead(404, { 'content-type': 'text/plain' }).end('404');
   } catch (err) {
-    res.writeHead(500).end(String(err));
+    res.writeHead(500, { 'content-type': 'text/plain' }).end(String(err));
   }
 });
 
 server.listen(PORT, () => {
-  console.log(`Portfolio dev server running at http://localhost:${PORT}/  (root: ${ROOT})`);
+  console.log(`Portfolio preview at http://localhost:${PORT}/  (serving ${SERVE_DIST ? 'dist/' : 'source files'})`);
 });

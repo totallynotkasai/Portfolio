@@ -10,7 +10,23 @@
   'use strict';
 
   const C = window.CONTENT || {};
+  // Made by the build step (build/build.mjs): small WebP copies of every image
+  // with their sizes, plus every artwork found in assets/art. If it's missing,
+  // the site just uses the original files and the content.js art list.
+  const GEN = window.GENERATED || {};
   const ACCENTS = ['lavender', 'blue', 'teal', 'yellow', 'pink'];
+
+  /* ---------- image paths ----------
+     content.js paths look like 'assets/art/x.png'. Pages are served from
+     several depths (/about, a 404 at /old/page), so they're made absolute. */
+  const assetKey = (p) => String(p || '').replace(/^\/+/, '');
+  const assetUrl = (p) => (!p || /^(https?:|data:|\/)/.test(p) ? p || '' : '/' + p);
+  const imgInfo = (p) => (GEN.images || {})[assetKey(p)];
+  // The small copy for the page, the large one for the lightbox.
+  const webSrc = (p) => (imgInfo(p) ? imgInfo(p).web : assetUrl(p));
+  const largeSrc = (p) => (imgInfo(p) ? imgInfo(p).large || imgInfo(p).web : assetUrl(p));
+  // Real width/height, so the page reserves the space before the image loads.
+  const dims = (p) => (imgInfo(p) ? ` width="${imgInfo(p).w}" height="${imgInfo(p).h}"` : '');
 
   // Placeholder shown if an image filename in content.js doesn't match a file,
   // so a typo gives a tidy graphic instead of a broken-image icon.
@@ -53,7 +69,7 @@
   // Current page name without ".html" — Vercel serves clean URLs (/about),
   // local previews use the file name (about.html); the site root is About.
   const pageName = (path) =>
-    (String(path).split('/').pop() || 'about').toLowerCase().replace(/\.html$/, '');
+    (String(path).replace(/\/+$/, '').split('/').pop() || 'about').toLowerCase().replace(/\.html$/, '');
 
   // Which page are we on? Used for per-page wizard lines and empty-state copy.
   const PAGE_KEYS = {
@@ -88,7 +104,7 @@
     const a = C.about;
 
     const photo = a.photo
-      ? `<img class="about-photo" src="${esc(a.photo)}" alt="${esc(a.photoAlt || a.name || 'Photo')}" />`
+      ? `<img class="about-photo" src="${esc(webSrc(a.photo))}"${dims(a.photo)} alt="${esc(a.photoAlt || a.name || 'Photo')}" />`
       : `<div class="about-photo-placeholder">${doodleIcon('camera')}</div>`;
 
     const paras = (a.paragraphs || []).map((p) => `<p>${esc(p)}</p>`).join('');
@@ -126,7 +142,7 @@
     if (signoff && a.signoff) {
       signoff.innerHTML = `<p>${esc(a.signoff)} ${a.signoffDoodle ? `<span class="doodle">${esc(a.signoffDoodle)}</span>` : ''
         }</p>
-      ${a.signoffImg ? `<img class="signoff-wizard" src="${esc(a.signoffImg)}" alt="${esc(a.signoffImgAlt || '')}" loading="lazy" decoding="async" />` : ''}`;
+      ${a.signoffImg ? `<img class="signoff-wizard" src="${esc(assetUrl(a.signoffImg))}" alt="${esc(a.signoffImgAlt || '')}" loading="lazy" decoding="async" />` : ''}`;
     }
   }
 
@@ -177,17 +193,36 @@
       </div>`;
   }
 
+  // The gallery = the content.js `art` list merged with every file the build
+  // found in assets/art, in this order:
+  //   1. content.js entries marked  pin: true
+  //   2. files content.js doesn't mention, newest first (title from filename)
+  //   3. the rest of the content.js entries, in their order
+  // A piece's tag is its subfolder (assets/art/Poster/…) unless content.js
+  // gives one.
+  function artItems() {
+    const found = {};
+    (GEN.art || []).forEach((a) => { found[a.img] = a; });
+    const listed = (C.art || []).map((it) =>
+      Object.assign({}, it, { tag: it.tag != null ? it.tag : (found[assetKey(it.img)] || {}).tag || '' }));
+    const mentioned = {};
+    listed.forEach((it) => { mentioned[assetKey(it.img)] = mentioned[assetKey(it.full)] = true; });
+    const fresh = (GEN.art || []).filter((a) => !mentioned[a.img]);
+    return listed.filter((it) => it.pin).concat(fresh, listed.filter((it) => !it.pin));
+  }
+  const ART = artItems();
+
   function renderArt() {
     const grid = $('#art-grid');
     if (!grid) return;
-    const items = C.art || [];
+    const items = ART;
     if (!items.length) { grid.innerHTML = emptyState(doodleIcon('palette'), 'artwork', 'art'); return; }
 
     grid.innerHTML = items.map((it) => {
       const media = it.img
-        ? `<div class="gallery-item-img"><img src="${esc(it.img)}" alt="${esc(it.title || '')}" loading="lazy" decoding="async" /></div>`
+        ? `<div class="gallery-item-img"><img src="${esc(webSrc(it.img))}"${dims(it.img)} alt="${esc(it.title || '')}" loading="lazy" decoding="async" /></div>`
         : `<div class="gallery-item-img gallery-item-img--empty">${doodleIcon('palette')}</div>`;
-      const full = it.full || it.img; // optional hi-res original for the lightbox
+      const full = largeSrc(it.full || it.img); // optional hi-res original for the lightbox
       return `
         <figure class="gallery-item animate-on-scroll" data-tag="${esc(it.tag || '')}"${it.img ? ` data-full="${esc(full)}" tabindex="0" role="button" aria-label="View ${esc(it.title || 'artwork')} full size"` : ''}>
           ${media}
@@ -229,7 +264,7 @@
 
     grid.innerHTML = items.map((p) => {
       const img = p.img
-        ? `<img class="project-card-image" src="${esc(p.img)}" alt="${esc(p.title || '')}" loading="lazy" decoding="async" />`
+        ? `<img class="project-card-image" src="${esc(webSrc(p.img))}"${dims(p.img)} alt="${esc(p.title || '')}" loading="lazy" decoding="async" />`
         : `<div class="project-card-image">${doodleIcon('laptop')}</div>`;
       const tags = (p.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join('');
       const links = (p.links || [])
@@ -300,14 +335,14 @@
     // a dashed perforation with notches, and the details on the main part.
     grid.innerHTML = items.map((c) => {
       const stub = c.img
-        ? `<div class="cert-stub cert-stub--img"><img src="${esc(c.img)}" alt="${esc(c.title || 'Certificate')}" loading="lazy" decoding="async" /></div>`
+        ? `<div class="cert-stub cert-stub--img"><img src="${esc(webSrc(c.img))}"${dims(c.img)} alt="${esc(c.title || 'Certificate')}" loading="lazy" decoding="async" /></div>`
         : `<div class="cert-stub">${doodleIcon(c.icon || 'cap')}</div>`;
       const meta = [c.issuer, c.date].filter(Boolean).map(esc).join(' · ');
       const link = c.link
         ? `<a class="cert-link" href="${esc(c.link)}" target="_blank" rel="noopener">View credential ${ARROW}</a>`
         : '';
       return `
-        <figure class="cert-card ${accent(c.accent || 'pink')} animate-on-scroll"${c.img ? ` data-full="${esc(c.img)}" tabindex="0" role="button" aria-label="View ${esc(c.title || 'certificate')} full size"` : ''}>
+        <figure class="cert-card ${accent(c.accent || 'pink')} animate-on-scroll"${c.img ? ` data-full="${esc(largeSrc(c.img))}" tabindex="0" role="button" aria-label="View ${esc(c.title || 'certificate')} full size"` : ''}>
           ${stub}
           <figcaption class="cert-info">
             ${meta ? `<p class="cert-meta">${meta}</p>` : ''}
@@ -391,7 +426,9 @@
       box.setAttribute('aria-label', 'Image viewer');
       box.innerHTML =
         '<button class="lightbox-close" aria-label="Close">&times;</button>' +
-        '<img id="lightbox-img" src="" alt="" />' +
+        // No src yet: an empty src fires an error that would use up the
+        // broken-image fallback before a real image is ever shown.
+        '<img id="lightbox-img" alt="" />' +
         '<p class="lightbox-cap" id="lightbox-cap"></p>';
       document.body.appendChild(box);
     }
@@ -400,6 +437,7 @@
     const closeBtn = box.querySelector('.lightbox-close');
 
     const open = (src, alt) => {
+      delete img.dataset.fallback; // each image gets its own broken-file fallback
       img.src = src; img.alt = alt || '';
       cap.textContent = alt || '';
       box.showModal();
@@ -407,7 +445,7 @@
     };
 
     triggers.forEach((t) => {
-      t.style.cursor = "url('assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, zoom-in";
+      t.style.cursor = "url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, zoom-in";
       const fire = () => open(t.getAttribute('data-full'), t.querySelector('img')?.alt);
       t.addEventListener('click', fire);
       t.addEventListener('keydown', (e) => {
@@ -420,7 +458,7 @@
     // Single cleanup point — runs for Esc, close button and backdrop alike.
     box.addEventListener('close', () => {
       document.body.style.overflow = '';
-      img.src = '';
+      img.removeAttribute('src'); // so the next piece never opens showing this one
     });
   }
 
@@ -488,7 +526,7 @@
     const grid = $('#art-grid');
     if (!grid) return;
     const tags = [];
-    (C.art || []).forEach((it) => {
+    ART.forEach((it) => {
       if (it.tag && tags.indexOf(it.tag) === -1) tags.push(it.tag);
     });
     if (tags.length < 2) return; // no point filtering one category
@@ -583,17 +621,26 @@
   // When content.js provides a 5-frame expression set he blinks, beams when
   // petted, and dozes off; otherwise he falls back to the single CSS image.
   // ─────────────────────────────────────────────────────────────────────
+  // Phones and tablets don't get the wizard (same query as style.css), so
+  // they also skip downloading his five expression frames.
+  const WIZARD_HIDDEN_MQ = '(max-width: 1024px), (hover: none) and (pointer: coarse)';
+
   function wireWizard() {
     const W = C.wizard;
     if (!W || !W.enabled || !W.image) return;
+    if (window.matchMedia && window.matchMedia(WIZARD_HIDDEN_MQ).matches) return;
     const key = pageKey();
     const reduceMotion =
       window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // Five hand-drawn expressions (idle / mid-blink / blink / happy / asleep).
     // Absent or incomplete → he just uses the single fallback image.
-    const frames = (W.frames && W.frames.idle) ? W.frames : null;
-    const startSrc = frames ? frames.idle : W.image;
+    let frames = null;
+    if (W.frames && W.frames.idle) {
+      frames = {};
+      Object.keys(W.frames).forEach((k) => { frames[k] = webSrc(W.frames[k]); });
+    }
+    const startSrc = frames ? frames.idle : assetUrl(W.image);
 
     const buddy = document.createElement('div');
     buddy.className = 'wizard-buddy';

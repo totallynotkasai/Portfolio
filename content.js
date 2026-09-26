@@ -8,18 +8,25 @@
    this one file. The pages build themselves from what you put here, so you
    never have to touch the HTML or CSS.
 
-   TO ADD AN IMAGE / CERTIFICATE / PROJECT:
-     1. Drop the image file into the matching assets folder:
-          artwork → assets/art/     certificates → assets/certs/
-          photos  → assets/photos/  icons & logos → assets/ui/
-     2. Add ONE line to the matching list below (copy the line above it),
-        using the folder in the path, e.g.  img: 'assets/art/My Piece.png'
-     3. Save & refresh the page. Done.
+   TO ADD ARTWORK: just drop the file into a category folder and push —
+     assets/art/Poster/My Piece.png   →  appears on the Art page, tagged
+     "Poster", titled "My Piece". No need to touch this file. A new folder
+     makes a new category (and a new filter chip). Files loose in
+     assets/art/ appear with no category.
 
-   TIP — keep the site fast: resize images to ~1200px before adding them
-   (squoosh.app does this in the browser). For artwork you can also keep a
-   full-resolution file and add it as  full: 'assets/art/original.png'  —
-   the small one shows in the grid, the big one opens in the lightbox.
+   TO ADD A CERTIFICATE / PROJECT:
+     1. Drop the image file into the matching assets folder:
+          certificates → assets/certs/   photos → assets/photos/
+     2. Add ONE line to the matching list below (copy the line above it),
+        using the folder in the path, e.g.  img: 'assets/certs/My Cert.png'
+     3. Save & push. Done.
+
+   IMAGE SIZE: don't worry about it. Use your full-resolution files — every
+   deploy makes small, fast copies for the page automatically (the
+   original's detail is kept for the full-size lightbox view).
+
+   IF YOU MAKE A TYPO in this file, the deploy stops and the live site stays
+   as it was. Vercel's build log says which line to fix.
 
    A FEW RULES (so nothing breaks):
      • Keep each entry between { curly braces } and end the line with a comma.
@@ -76,10 +83,10 @@ window.CONTENT = {
     //   accent can be:  'blue'  'lavender'  'teal'  'yellow'  'pink'
     pagesHeading: 'Other Pages',
     pages: [
-      { label: 'Coding', url: 'coding_projects.html', accent: 'blue' },
-      { label: 'Art', url: 'illustrations_and_graphics.html', accent: 'lavender' },
-      { label: 'Writing', url: 'writing.html', accent: 'teal' },
-      { label: 'Certificates', url: 'certificates.html', accent: 'pink' },
+      { label: 'Coding', url: '/coding_projects', accent: 'blue' },
+      { label: 'Art', url: '/illustrations_and_graphics', accent: 'lavender' },
+      { label: 'Writing', url: '/writing', accent: 'teal' },
+      { label: 'Certificates', url: '/certificates', accent: 'pink' },
     ],
 
     // Casual Niv-style sign-off shown at the bottom of the About page.
@@ -89,48 +96,35 @@ window.CONTENT = {
   /* ──────────────────────────────────────────────────────────────────────
      2. ILLUSTRATIONS & GRAPHICS  (illustrations_and_graphics.html)
      ──────────────────────────────────────────────────────────────────────
-     One line per artwork. Click an image on the site to view it full-size.
-        { img: 'file.png', title: 'Name',  tag: 'Category' },
-     • "tag" powers the filter chips above the gallery — stick to a few
-       categories so the chip row stays tidy:
-         'Character Design'  'Poster'  'Fanart'  'Digital Art'
-     • "img" should be a web-sized file (~1200px); "full" is the optional
-       full-resolution original that opens in the lightbox.                 */
+     Every image in assets/art/ shows up automatically (see the top of this
+     file); its subfolder is its category. This list is OPTIONAL — only add a
+     line to change how a piece appears:
+        { img: 'assets/art/Poster/My Piece.png', title: 'A Nicer Title' },
+     ORDER on the page:
+       1. lines below marked  pin: true   (stay above everything)
+       2. new files with no line here     (newest first)
+       3. the other lines below, in this order
+     • "title" replaces the name taken from the filename.
+     • "tag" replaces the category taken from the subfolder (rarely needed).
+     • Deleting a line never removes the piece — delete the file for that. */
   art: [
-    {
-      img: 'assets/art/assisted-existence-web.jpg', full: 'assets/art/assisted existence.png',
-      title: 'Assisted Existence', tag: 'Digital Art'
-    },
-    { img: 'assets/art/Pet Wizard 2.png', title: 'Pet Wizard', tag: 'Character Design' },
-    {
-      img: 'assets/art/growth-is-good-web.jpg', full: 'assets/art/GROWTH is GOOD.png',
-      title: 'GROWTH is GOOD', tag: 'Poster'
-    },
-    { img: 'assets/art/Ellie fr fr fr.png', title: 'Ellie', tag: 'Character Design' },
-    {
-      img: 'assets/art/owl-house-poster-web.jpg', full: 'assets/art/House movie poster OWL HOUSE LONG.png',
-      title: 'Owl House — Movie Poster', tag: 'Poster'
-    },
-    { img: 'assets/art/Frieren Fr this time ACTUALLY THO FIXED EYES.png', title: 'Frieren', tag: 'Fanart' },
-    { img: 'assets/art/Mountain.png', title: 'Mountain', tag: 'Digital Art' },
-    {
-      img: 'assets/art/kurugaya-vaporwave-web.jpg', full: 'assets/art/Kurugaya vaporwave.png',
-      title: 'Kurugaya, Vaporwave', tag: 'Fanart'
-    },
-    {
-      img: 'assets/art/summoning-god-web.jpg', full: 'assets/art/Summoning God.png',
-      title: 'Summoning God', tag: 'Digital Art'
-    },
-    { img: 'assets/art/Horn guy.png', title: 'Horn Guy', tag: 'Character Design' },
-    { img: 'assets/art/Decay.png', title: 'Decay', tag: 'Digital Art' },
-    { img: 'assets/art/Dinosaur.png', title: 'Dinosaur', tag: 'Character Design' },
-    { img: 'assets/art/Outgoing personality.png', title: 'Outgoing Personality', tag: 'Poster' },
-    { img: 'assets/art/Filthy Habit.png', title: 'Filthy Habit', tag: 'Poster' },
-    { img: 'assets/art/Party bottle.png', title: 'Party Bottle', tag: 'Poster' },
-    { img: 'assets/art/Rakka.png', title: 'Rakka', tag: 'Fanart' },
-    { img: 'assets/art/My Pet Wizard.png', title: 'My Pet Wizard', tag: 'Character Design' },
-    // ↑ copy a line, change the filename/title/tag to add another piece.
-    //   "full" is optional — a high-res original that opens in the lightbox.
+    { img: 'assets/art/Digital Art/assisted existence.png', title: 'Assisted Existence' },
+    { img: 'assets/art/Character Design/Pet Wizard 2.png', title: 'Pet Wizard' },
+    { img: 'assets/art/Poster/GROWTH is GOOD.png', title: 'GROWTH is GOOD' },
+    { img: 'assets/art/Character Design/Ellie fr fr fr.png', title: 'Ellie' },
+    { img: 'assets/art/Poster/House movie poster OWL HOUSE LONG.png', title: 'Owl House — Movie Poster' },
+    { img: 'assets/art/Fanart/Frieren Fr this time ACTUALLY THO FIXED EYES.png', title: 'Frieren' },
+    { img: 'assets/art/Digital Art/Mountain.png', title: 'Mountain' },
+    { img: 'assets/art/Fanart/Kurugaya vaporwave.png', title: 'Kurugaya, Vaporwave' },
+    { img: 'assets/art/Digital Art/Summoning God.png', title: 'Summoning God' },
+    { img: 'assets/art/Character Design/Horn guy.png', title: 'Horn Guy' },
+    { img: 'assets/art/Digital Art/Decay.png', title: 'Decay' },
+    { img: 'assets/art/Character Design/Dinosaur.png', title: 'Dinosaur' },
+    { img: 'assets/art/Poster/Outgoing personality.png', title: 'Outgoing Personality' },
+    { img: 'assets/art/Poster/Filthy Habit.png', title: 'Filthy Habit' },
+    { img: 'assets/art/Poster/Party bottle.png', title: 'Party Bottle' },
+    { img: 'assets/art/Fanart/Rakka.png', title: 'Rakka' },
+    { img: 'assets/art/Character Design/My Pet Wizard.png', title: 'My Pet Wizard' },
   ],
 
   /* ──────────────────────────────────────────────────────────────────────

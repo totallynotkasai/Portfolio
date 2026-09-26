@@ -5,7 +5,8 @@
       "name": "portfolio",
       "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
       "runtimeArgs": ["C:\\Users\\andre\\My Files\\Projects\\Coding Projects\\Portfolio\\.claude\\devserver.mjs"],
-      "port": 4321
+      "port": 4321,
+      "autoPort": true
     }
   ]
 }

@@ -5,3 +5,7 @@ desktop.ini
 
 # Editor
 *.code-workspace
+
+# Build output and dependencies (Vercel rebuilds these on every deploy)
+dist/
+node_modules/

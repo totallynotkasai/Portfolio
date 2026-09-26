@@ -17,14 +17,14 @@
   <meta property="og:image" content="https://portfolio-psi-azure-29.vercel.app/assets/ui/Logo%20Coloured.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <link rel="icon" type="image/png" href="assets/ui/favicon.png" />
-  <link rel="apple-touch-icon" href="assets/ui/apple-touch-icon.png" />
-  <link rel="preload" href="fonts/ArialRoundedMTBold.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="fonts/Inter-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="icon" type="image/png" href="/assets/ui/favicon.png" />
+  <link rel="apple-touch-icon" href="/assets/ui/apple-touch-icon.png" />
+  <link rel="preload" href="/fonts/ArialRoundedMTBold.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/Inter-latin-var.woff2" as="font" type="font/woff2" crossorigin />
   <!-- Hold the first paint until the content script has built the page
        (#page-end sits right after it), so content never pops in late. -->
   <link rel="expect" href="#page-end" blocking="render" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/style.css" />
 </head>
 
 <body class="page-index">
@@ -39,13 +39,13 @@
   <!-- ========== HEADER ==========
        The current page's link is highlighted automatically (markActiveNav). -->
   <header class="site-header">
-    <a href="about.html" class="brand"><img class="brand-flame" src="assets/ui/favicon.png" alt="" />Andrew Worgan</a>
+    <a href="/" class="brand"><img class="brand-flame" src="/assets/ui/favicon.png" alt="" />Andrew Worgan</a>
     <nav class="nav-links" aria-label="Main navigation">
-      <a href="about.html">About</a>
-      <a href="coding_projects.html">Coding</a>
-      <a href="illustrations_and_graphics.html">Art</a>
-      <a href="writing.html">Writing</a>
-      <a href="certificates.html">Certificates</a>
+      <a href="/">About</a>
+      <a href="/coding_projects">Coding</a>
+      <a href="/illustrations_and_graphics">Art</a>
+      <a href="/writing">Writing</a>
+      <a href="/certificates">Certificates</a>
     </nav>
     <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="mobile-nav">
       <span></span><span></span><span></span>
@@ -53,11 +53,11 @@
   </header>
 
   <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
-    <a href="about.html">About</a>
-    <a href="coding_projects.html">Coding</a>
-    <a href="illustrations_and_graphics.html">Art</a>
-    <a href="writing.html">Writing</a>
-    <a href="certificates.html">Certificates</a>
+    <a href="/">About</a>
+    <a href="/coding_projects">Coding</a>
+    <a href="/illustrations_and_graphics">Art</a>
+    <a href="/writing">Writing</a>
+    <a href="/certificates">Certificates</a>
   </nav>
 
   <!-- ========== ROLLING MARQUEE ==========
@@ -114,18 +114,19 @@
         <p class="footer-text">&copy; 2026 Andrew Worgan (Kasai). All rights reserved.</p>
         <div class="footer-socials">
           <a href="https://www.linkedin.com/in/andrew-worgan-littlekasai/" target="_blank" rel="noopener"
-            class="social-link" aria-label="LinkedIn"><img src="assets/ui/linkedinY.png" alt="LinkedIn" /></a>
+            class="social-link" aria-label="LinkedIn"><img src="/assets/ui/linkedinY.png" alt="LinkedIn" /></a>
           <a href="https://github.com/totallynotkasai" target="_blank" rel="noopener" class="social-link"
-            aria-label="GitHub"><img src="assets/ui/githubY.png" alt="GitHub" /></a>
+            aria-label="GitHub"><img src="/assets/ui/githubY.png" alt="GitHub" /></a>
           <a href="https://www.instagram.com/totallynotkasai/" target="_blank" rel="noopener" class="social-link"
-            aria-label="Instagram"><img src="assets/ui/instagramY.png" alt="Instagram" /></a>
+            aria-label="Instagram"><img src="/assets/ui/instagramY.png" alt="Instagram" /></a>
         </div>
       </div>
     </div>
   </footer>
 
-  <script src="content.js"></script>
-  <script src="script.js"></script>
+  <script src="/generated/manifest.js"></script>
+  <script src="/content.js"></script>
+  <script src="/script.js"></script>
   <span id="page-end" hidden></span>
 </body>
 

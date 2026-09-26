@@ -1,0 +1,14 @@
+{
+  "name": "kasai-portfolio",
+  "private": true,
+  "description": "Andrew Worgan's portfolio. Vanilla HTML/CSS/JS; the build only prepares images and checks content.js.",
+  "type": "module",
+  "scripts": {
+    "build": "node build/build.mjs",
+    "dev": "node .claude/devserver.mjs",
+    "preview:dist": "node build/build.mjs && node .claude/devserver.mjs --dist"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.4"
+  }
+}
