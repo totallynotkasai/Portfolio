@@ -39,7 +39,7 @@ const VERSION = 'v1';
 
 // What gets deployed (everything else — build/, node_modules, .claude — doesn't).
 const SITE_DIRS = ['assets', 'fonts'];
-const SITE_FILE = /\.(html|css|js)$/i;
+const SITE_FILE = /\.(html|css|js|txt|xml)$/i;   // pages, code, robots.txt, sitemap.xml
 
 const exists = (p) => stat(p).then(() => true, () => false);
 const toPosix = (p) => p.split('\\').join('/');

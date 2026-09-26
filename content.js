@@ -61,7 +61,7 @@ window.CONTENT = {
 
     paragraphs: [
       "I currently work in the IT sector, doing a bit of everything from user support to QA testing.",
-      "I'm a massive creative at heart, I spend most of my time writing, creating character designs or building small tools and web apps to help me with my creative work. My main creative project at the moment is re-writing my web novel \"Dilettantes in the Interim\".",
+      "I'm a massive creative at heart and spend most of my time writing, creating character designs or building small tools and web apps to help me with my creative work. My main creative project at the moment is re-writing my web novel \"Dilettantes in the Interim\".",
       "My current goals are to finish my main side project, my PKM \"Filo\", and to keep progressing my career in IT.",
     ],
 
@@ -73,7 +73,7 @@ window.CONTENT = {
     currentlyHeading: 'Current Goals:',
     currently: [
       { icon: 'hammer', label: 'Building', value: 'Filo, my personal knowledge manager.' },
-      { icon: 'pencil', label: 'Drawing', value: 'Getting better everyday :)' },
+      { icon: 'pencil', label: 'Drawing', value: 'Getting better every day :)' },
       { icon: 'quill', label: 'Writing', value: '"Dilettantes in the Interim" An Isekai Web-Novel.' },
       { icon: 'sprout', label: 'Growing', value: 'My career in IT, one cert at a time.' },
     ],
@@ -251,7 +251,7 @@ window.CONTENT = {
     quietPages: ['coding'],       // pages where he won't speak unprompted
 
     lines: {
-      index: [
+      about: [
         'hello!',
         "Give me a click ;~;",
         'psst…',
@@ -280,7 +280,6 @@ window.CONTENT = {
 
     // What he says when you pet him (cycles in order, then repeats).
     petLines: ['!', '<3', 'Momentai', 'Good vibes only, gang.', 'again.', 'this is acceptable', 'magic +1', 'okay one more'],
-    sleepLine: 'zzz…',
   },
 
 };

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://portfolio-psi-azure-29.vercel.app/sitemap.xml

@@ -30,7 +30,7 @@
 
   // Placeholder shown if an image filename in content.js doesn't match a file,
   // so a typo gives a tidy graphic instead of a broken-image icon.
-  window.__imgPH = 'data:image/svg+xml,' + encodeURIComponent(
+  const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 18'>" +
     "<rect width='24' height='18' fill='#ECEEFC'/>" +
     "<rect x='3' y='3' width='18' height='12' rx='1.5' fill='none' stroke='#9DA5F3' stroke-width='1.2'/>" +
@@ -45,7 +45,7 @@
     const img = e.target;
     if (img.tagName === 'IMG' && !img.dataset.fallback) {
       img.dataset.fallback = '1';
-      img.src = window.__imgPH;
+      img.src = IMG_PLACEHOLDER;
     }
   }, true);
 
@@ -73,7 +73,7 @@
 
   // Which page are we on? Used for per-page wizard lines and empty-state copy.
   const PAGE_KEYS = {
-    about: 'index', index: 'index',
+    about: 'about',
     coding_projects: 'coding',
     illustrations_and_graphics: 'art',
     writing: 'writing',
@@ -137,13 +137,9 @@
         </div>`;
     }
 
-    // Sign-off (with an optional little wizard waving goodbye)
+    // Casual sign-off line at the bottom of the page
     const signoff = $('#about-signoff');
-    if (signoff && a.signoff) {
-      signoff.innerHTML = `<p>${esc(a.signoff)} ${a.signoffDoodle ? `<span class="doodle">${esc(a.signoffDoodle)}</span>` : ''
-        }</p>
-      ${a.signoffImg ? `<img class="signoff-wizard" src="${esc(assetUrl(a.signoffImg))}" alt="${esc(a.signoffImgAlt || '')}" loading="lazy" decoding="async" />` : ''}`;
-    }
+    if (signoff && a.signoff) signoff.innerHTML = `<p>${esc(a.signoff)}</p>`;
   }
 
   // Hand-drawn-style line icons used across the site (the "Currently…" card,
@@ -362,20 +358,36 @@
     const mobileNav = $('.mobile-nav');
     if (!hamburger || !mobileNav) return;
 
-    hamburger.addEventListener('click', () => {
-      const open = hamburger.classList.toggle('open');
+    // While the menu is open, everything behind it is inert (can't be
+    // tabbed to or clicked), so keyboard focus stays in the menu.
+    const behind = () => document.querySelectorAll(
+      '.marquee-container, main, .site-footer, .footer-tagline, .wizard-buddy, .brand');
+    const setOpen = (open, { returnFocus = true } = {}) => {
+      if (open === hamburger.classList.contains('open')) return;
+      hamburger.classList.toggle('open', open);
       hamburger.setAttribute('aria-expanded', String(open));
       mobileNav.classList.toggle('open', open);
       document.body.style.overflow = open ? 'hidden' : '';
-    });
+      behind().forEach((el) => { el.inert = open; });
+      if (open) {
+        const first = mobileNav.querySelector('a');
+        if (first) first.focus();
+      } else if (returnFocus) {
+        hamburger.focus();
+      }
+    };
+
+    hamburger.addEventListener('click', () => setOpen(!hamburger.classList.contains('open')));
     mobileNav.querySelectorAll('a').forEach((link) =>
-      link.addEventListener('click', () => {
-        hamburger.classList.remove('open');
-        hamburger.setAttribute('aria-expanded', 'false');
-        mobileNav.classList.remove('open');
-        document.body.style.overflow = '';
-      })
-    );
+      link.addEventListener('click', () => setOpen(false, { returnFocus: false })));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    });
+    // The hamburger disappears above 820px (style.css), so close the menu if
+    // the screen widens past that — e.g. a tablet rotated to landscape.
+    const wide = window.matchMedia('(min-width: 821px)');
+    const onWide = () => { if (wide.matches) setOpen(false, { returnFocus: false }); };
+    if (wide.addEventListener) wide.addEventListener('change', onWide);
   }
 
   function markActiveNav() {
@@ -533,6 +545,7 @@
 
     const bar = document.createElement('div');
     bar.className = 'gallery-filters';
+    bar.setAttribute('role', 'group');
     bar.setAttribute('aria-label', 'Filter artwork by category');
     // Art page leans periwinkle — its chips skip the blue accent.
     const chipAccents = ['lavender', 'pink', 'teal', 'yellow'];
@@ -783,10 +796,9 @@
   }
 
   /* ---------- boot ----------
-     Runs straight away rather than on DOMContentLoaded: this script sits at
-     the end of <body>, so the page's markup already exists, and building the
-     content now means it's there before the browser's first paint (each page
-     holds rendering until #page-end, just after this script — see <head>). */
+     Runs straight away: this script is loaded with `defer`, so the page's
+     markup already exists, and with blocking="render" the browser holds its
+     first paint until the content below has been built (see each page's <head>). */
   (() => {
     // 1) Build content from content.js
     renderAbout();

@@ -60,6 +60,21 @@ async function regenerate() {
   await generating;
 }
 
+// Send the same headers vercel.json does (security headers, so a Content
+// Security Policy problem shows up here first). Caching stays off locally.
+let headerRules = [];
+try {
+  headerRules = JSON.parse(await readFile(join(PROJECT, 'vercel.json'), 'utf8')).headers || [];
+} catch { /* no vercel.json — no extra headers */ }
+const vercelHeaders = (path) => {
+  const out = {};
+  for (const rule of headerRules) {
+    if (!new RegExp('^' + rule.source + '$').test(path)) continue;
+    for (const h of rule.headers) if (h.key.toLowerCase() !== 'cache-control') out[h.key] = h.value;
+  }
+  return out;
+};
+
 const isFile = (p) => stat(p).then((s) => s.isFile(), () => false);
 
 // Resolve a URL path inside `base`, refusing anything that escapes it.
@@ -68,10 +83,10 @@ const inside = (base, rel) => {
   return p === base || p.startsWith(base + sep) ? p : null;
 };
 
-async function send(res, status, filePath) {
+async function send(res, status, filePath, urlPath) {
   const body = await readFile(filePath);
   const type = MIME[extname(filePath).toLowerCase()] || 'application/octet-stream';
-  res.writeHead(status, { 'content-type': type, 'cache-control': 'no-store' }).end(body);
+  res.writeHead(status, { ...vercelHeaders(urlPath), 'content-type': type, 'cache-control': 'no-store' }).end(body);
 }
 
 const server = createServer(async (req, res) => {
@@ -91,16 +106,16 @@ const server = createServer(async (req, res) => {
     if (path.startsWith('/generated/') && !SERVE_DIST) {
       if (path === '/generated/manifest.js') await regenerate();
       const file = inside(GEN_DIR, path.slice('/generated/'.length));
-      if (file && (await isFile(file))) return send(res, 200, file);
+      if (file && (await isFile(file))) return send(res, 200, file, path);
     } else {
       const rel = path === '/' ? '/about' : path;
       const file = inside(ROOT, rel);
-      if (file && (await isFile(file))) return send(res, 200, file);
-      if (file && !extname(rel) && (await isFile(file + '.html'))) return send(res, 200, file + '.html');
+      if (file && (await isFile(file))) return send(res, 200, file, path);
+      if (file && !extname(rel) && (await isFile(file + '.html'))) return send(res, 200, file + '.html', path);
     }
 
     const notFound = join(ROOT, '404.html');
-    if (await isFile(notFound)) return send(res, 404, notFound);
+    if (await isFile(notFound)) return send(res, 404, notFound, path);
     res.writeHead(404, { 'content-type': 'text/plain' }).end('404');
   } catch (err) {
     res.writeHead(500, { 'content-type': 'text/plain' }).end(String(err));

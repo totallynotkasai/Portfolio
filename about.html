@@ -10,6 +10,8 @@
 
   <!-- Link previews (LinkedIn, Discord, iMessage…). og:image must be an
        ABSOLUTE url — change the domain below if the site moves. -->
+  <link rel="canonical" href="https://portfolio-psi-azure-29.vercel.app/" />
+  <meta property="og:url" content="https://portfolio-psi-azure-29.vercel.app/" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Andrew Worgan — Portfolio" />
   <meta property="og:description"
@@ -21,13 +23,16 @@
   <link rel="apple-touch-icon" href="/assets/ui/apple-touch-icon.png" />
   <link rel="preload" href="/fonts/ArialRoundedMTBold.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/Inter-latin-var.woff2" as="font" type="font/woff2" crossorigin />
-  <!-- Hold the first paint until the content script has built the page
-       (#page-end sits right after it), so content never pops in late. -->
-  <link rel="expect" href="#page-end" blocking="render" />
   <link rel="stylesheet" href="/style.css" />
+  <!-- The page is built from these scripts before its first paint
+       (blocking="render"), so content never pops in late. "defer" runs them
+       once the HTML below has been read, in this order. -->
+  <script src="/generated/manifest.js" defer blocking="render"></script>
+  <script src="/content.js" defer blocking="render"></script>
+  <script src="/script.js" defer blocking="render"></script>
 </head>
 
-<body class="page-index">
+<body class="page-about">
 
   <noscript>
     <p style="padding:2rem;text-align:center;">
@@ -63,7 +68,7 @@
   <!-- ========== ROLLING MARQUEE ==========
        To change this, just edit the <li> phrases below — one per item.
        The single wave between items and the seamless loop are handled for you. -->
-  <div class="marquee-container" aria-label="What I do">
+  <div class="marquee-container" role="marquee" aria-label="What I do">
     <div class="marquee-content">
       <ul class="marquee-group">
         <li>DIGITAL ILLUSTRATION</li>
@@ -124,10 +129,6 @@
     </div>
   </footer>
 
-  <script src="/generated/manifest.js"></script>
-  <script src="/content.js"></script>
-  <script src="/script.js"></script>
-  <span id="page-end" hidden></span>
 </body>
 
 </html>
