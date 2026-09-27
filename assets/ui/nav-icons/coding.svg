@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96" color="#161A2E">
+  <!-- Nav icon — Coding: little computer with </> on the screen.
+       The site uses the <symbol> below via <use href="/assets/ui/nav-icons/coding.svg#icon">;
+       the <use> at the bottom just draws it when you open this file on its own.
+       Outlines are currentColor (navy here; blush on the active nav pill). Fills are the
+       flat brand hexes from style.css — update both if the palette changes. -->
+  <symbol id="icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path fill="none" d="M12 17v3.5M8 21h8"/>
+    <rect fill="#65A1FB" x="2.5" y="3" width="19" height="14" rx="2.5"/>
+    <path fill="none" d="M9 7.5l-2.8 2.5L9 12.5M15 7.5l2.8 2.5-2.8 2.5M12.8 7l-1.6 6"/>
+  </symbol>
+  <use href="#icon"/>
+</svg>

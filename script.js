@@ -32,10 +32,10 @@
   // so a typo gives a tidy graphic instead of a broken-image icon.
   const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 18'>" +
-    "<rect width='24' height='18' fill='#ECEEFC'/>" +
-    "<rect x='3' y='3' width='18' height='12' rx='1.5' fill='none' stroke='#9DA5F3' stroke-width='1.2'/>" +
-    "<circle cx='8.5' cy='7.5' r='1.7' fill='#9DA5F3'/>" +
-    "<path d='M4.5 14.5 L10 8.5 L13 11.5 L16.5 7.5 L19.5 14.5 Z' fill='#9DA5F3'/>" +
+    "<rect width='24' height='18' fill='#F0ECFC'/>" +
+    "<rect x='3' y='3' width='18' height='12' rx='1.5' fill='none' stroke='#AE9DF3' stroke-width='1.2'/>" +
+    "<circle cx='8.5' cy='7.5' r='1.7' fill='#AE9DF3'/>" +
+    "<path d='M4.5 14.5 L10 8.5 L13 11.5 L16.5 7.5 L19.5 14.5 Z' fill='#AE9DF3'/>" +
     "</svg>"
   );
   // Swap any broken image for the placeholder above. One capture-phase listener
