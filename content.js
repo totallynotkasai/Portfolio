@@ -182,8 +182,8 @@ window.CONTENT = {
       desc: 'My own build of Anthony La\'s open-source Android wallpaper changer. I fixed bugs in scheduling, live wallpapers and settings, and added set times of day, night albums, favourites, home-screen widgets and live auto-pan.',
       tags: ['Kotlin', 'Jetpack Compose', 'Room'],
       links: [
-        { label: 'GitHub', url: 'https://github.com/totallynotkasai/Paperize/tree/phase-7/hardening-release' },
-        { label: 'What I changed', url: 'https://github.com/totallynotkasai/Paperize/blob/phase-7/hardening-release/CHANGELOG.md' },
+        { label: 'GitHub', url: 'https://github.com/totallynotkasai/Paperize' },
+        { label: 'What I changed', url: 'https://github.com/totallynotkasai/Paperize/blob/master/CHANGELOG.md' },
       ],
     },
     {
