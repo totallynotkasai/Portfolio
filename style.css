@@ -588,6 +588,20 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   color: var(--ink);
   margin-bottom: var(--space-xs);
 }
+.project-card-fork {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -2px 0 var(--space-xs);
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.project-card-fork svg { width: 1.1em; height: 1.1em; flex-shrink: 0; color: var(--ink); }
+.project-card-fork a {
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom: 2px solid var(--acc);
+}
 .project-card-desc {
   font-size: var(--fs-small);
   color: var(--ink-soft);

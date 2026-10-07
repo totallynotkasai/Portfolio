@@ -30,6 +30,7 @@ const IMAGE_SETS = [
   { dir: 'assets/art', web: 800, large: 2000 },
   { dir: 'assets/certs', web: 480, large: 2000 },
   { dir: 'assets/photos', web: 800 },
+  { dir: 'assets/projects', web: 640 },
   { dir: 'assets/Wizard Sprite', web: 240 },
 ];
 const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;

@@ -159,6 +159,7 @@
     ribbon: '<circle cx="12" cy="9" r="5.5"/><path d="M8.5 13.5 7 21l5-2.5 5 2.5-1.5-7.5"/>',
     dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/>',
     folder: '<path d="M3 7h6l2 2h10v10H3z"/>',
+    fork: '<circle cx="6" cy="5" r="2.2"/><circle cx="18" cy="5" r="2.2"/><circle cx="12" cy="19" r="2.2"/><path d="M6 7.2v1.3a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V7.2M12 11.5v5.3"/>',
   };
   // Link arrow, nudges right on hover (see .card-arrow in style.css).
   const ARROW =
@@ -267,6 +268,12 @@
         .filter((l) => l && l.label)
         .map((l) => `<a href="${esc(l.url || '#')}" target="_blank" rel="noopener">${esc(l.label)} ${ARROW}</a>`)
         .join('');
+      // Someone else's project I've built on: a GitHub-style "Forked from" line.
+      const fork = p.forkOf && p.forkOf.label
+        ? `<p class="project-card-fork">${doodleIcon('fork')}Forked from ${p.forkOf.url
+          ? `<a href="${esc(p.forkOf.url)}" target="_blank" rel="noopener">${esc(p.forkOf.label)}</a>`
+          : esc(p.forkOf.label)}</p>`
+        : '';
       return `
         <article class="project-card ${accent(p.accent || 'blue')} animate-on-scroll">
           <div class="project-card-top">
@@ -275,6 +282,7 @@
           </div>
           <div class="project-card-body">
             <h3 class="project-card-title">${esc(p.title || 'Untitled project')}</h3>
+            ${fork}
             <p class="project-card-desc">${esc(p.desc || '')}</p>
             ${tags ? `<div class="project-card-tags">${tags}</div>` : ''}
             ${links ? `<div class="project-card-links">${links}</div>` : ''}

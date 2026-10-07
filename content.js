@@ -130,20 +130,60 @@ window.CONTENT = {
   /* ──────────────────────────────────────────────────────────────────────
      3. CODING PROJECTS  (coding_projects.html)
      ──────────────────────────────────────────────────────────────────────
-     • "img" is an optional screenshot ('' shows a coloured block).
+     • "img" is an optional screenshot in assets/projects/ ('' shows a
+       coloured block). It's cropped to 16:10, so landscape shots work best.
      • "tags" is a list of technologies.
      • "links" is a list of buttons — give each a label and url.
      • Each project shows as a file folder. The tab reads the title up to any
        " — " (e.g. "filo/"); set  tab: "my-name"  to choose it yourself.
-     • "accent" colours the folder (default blue).                         */
+     • "accent" colours the folder (default blue).
+     • Built on someone else's project? Add
+         forkOf: { label: 'owner/repo', url: 'https://github.com/owner/repo' }
+       and a "Forked from owner/repo" line appears under the title.       */
   coding: [
     {
       img: '',
       title: 'Filo — Personal Knowledge Manager',
-      desc: 'My main side project: a personal knowledge-management app for organising notes, ideas and worldbuilding.',
-      tags: ['JavaScript', 'In Progress'],
+      desc: 'My main side project: a local-first desktop app for notes, ideas and worldbuilding. Mind maps, kanban boards, task lists and documents, all saved as plain Markdown files on your own disk.',
+      tags: ['TypeScript', 'Svelte', 'Electron', 'In Progress'],
       links: [
         { label: 'GitHub', url: 'https://github.com/totallynotkasai' },
+      ],
+    },
+    {
+      img: 'assets/projects/Mi Back Screen.png',
+      title: 'Mi Back Screen — Rear Display App',
+      accent: 'lavender',
+      desc: 'An Android app for the Xiaomi 17 Pro Max that puts your own images, GIFs, a clock, notifications and a charging animation on the phone\'s rear display, and can move any app or the camera there with a tap.',
+      tags: ['Kotlin', 'Android', 'Shizuku'],
+      links: [
+        { label: 'GitHub', url: 'https://github.com/totallynotkasai/mi-back-screen' },
+        { label: 'Website', url: 'https://totallynotkasai.github.io/mi-back-screen/' },
+        { label: 'Download APK', url: 'https://github.com/totallynotkasai/mi-back-screen/releases/latest/download/MiBackScreen.apk' },
+      ],
+    },
+    {
+      img: '',
+      title: 'Toolbox — Tools & Mini-Games',
+      accent: 'yellow',
+      desc: 'An Android app of 40-odd everyday tools, fidget toys and mini-games, from a tuner and compass to Connect Four against the computer. The physics, audio and game AIs are all built in, with no third-party libraries.',
+      tags: ['Kotlin', 'Jetpack Compose', 'Material 3'],
+      links: [
+        { label: 'GitHub', url: 'https://github.com/totallynotkasai/Toolbox' },
+        { label: 'Website', url: 'https://totallynotkasai.github.io/Toolbox/' },
+        { label: 'Download APK', url: 'https://github.com/totallynotkasai/Toolbox/releases/latest/download/Toolbox.apk' },
+      ],
+    },
+    {
+      img: '',
+      title: 'Paperized — Paperize Fork',
+      accent: 'pink',
+      forkOf: { label: 'Anthonyy232/Paperize', url: 'https://github.com/Anthonyy232/Paperize' },
+      desc: 'My own build of Anthony La\'s open-source Android wallpaper changer. I fixed bugs in scheduling, live wallpapers and settings, and added set times of day, night albums, favourites, home-screen widgets and live auto-pan.',
+      tags: ['Kotlin', 'Jetpack Compose', 'Room'],
+      links: [
+        { label: 'GitHub', url: 'https://github.com/totallynotkasai/Paperize/tree/phase-7/hardening-release' },
+        { label: 'What I changed', url: 'https://github.com/totallynotkasai/Paperize/blob/phase-7/hardening-release/CHANGELOG.md' },
       ],
     },
     {
@@ -154,7 +194,7 @@ window.CONTENT = {
       desc: 'The site you are looking at — a hand-built static portfolio with a one-file content system.',
       tags: ['HTML', 'CSS', 'JavaScript'],
       links: [
-        { label: 'GitHub', url: 'https://github.com/totallynotkasai' },
+        { label: 'GitHub', url: 'https://github.com/totallynotkasai/Portfolio' },
       ],
     },
     // ↑ copy a whole { ... }, block to add another project.
