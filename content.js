@@ -153,7 +153,8 @@ window.CONTENT = {
       desc: 'My main side project: a local-first desktop app for notes, ideas and worldbuilding. Mind maps, kanban boards, task lists and documents, all saved as plain Markdown files on your own disk.',
       tags: ['TypeScript', 'Svelte', 'Electron', 'In Progress'],
       links: [
-        { label: 'GitHub', url: 'https://github.com/totallynotkasai' },
+        { label: 'GitHub', url: 'https://github.com/totallynotkasai/filo' },
+        { label: 'Download for Windows', url: 'https://github.com/totallynotkasai/filo/releases/latest' },
       ],
     },
     {
