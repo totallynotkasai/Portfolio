@@ -15,6 +15,20 @@
   // the site just uses the original files and the content.js art list.
   const GEN = window.GENERATED || {};
   const ACCENTS = ['lavender', 'blue', 'teal', 'yellow', 'pink'];
+  const REDUCE_MOTION =
+    !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Flat doodle shapes (sparkle, star, heart, flower, outline star), shared by
+  // the wizard's doodle rain and the doodle trail.
+  const DOODLES = [
+    '<path d="M12 2c.8 5.2 4.8 9.2 10 10-5.2.8-9.2 4.8-10 10-.8-5.2-4.8-9.2-10-10 5.2-.8 9.2-4.8 10-10z"/>',
+    '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z"/>',
+    '<path d="M12 20.5S3 15 3 8.8A4.8 4.8 0 0 1 12 6.5a4.8 4.8 0 0 1 9 2.3C21 15 12 20.5 12 20.5z"/>',
+    '<circle cx="12" cy="6.5" r="4"/><circle cx="17.5" cy="10.5" r="4"/><circle cx="15.4" cy="17" r="4"/><circle cx="8.6" cy="17" r="4"/><circle cx="6.5" cy="10.5" r="4"/>',
+    '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>',
+  ];
+  const doodleSvg = (i) =>
+    `<svg viewBox="0 0 24 24" fill="currentColor">${DOODLES[i % DOODLES.length]}</svg>`;
 
   /* ---------- image paths ----------
      content.js paths look like 'assets/art/x.png'. Pages are served from
@@ -490,7 +504,28 @@
     const cap = box.querySelector('#lightbox-cap');
     const closeBtn = box.querySelector('.lightbox-close');
 
-    const open = (src, alt) => {
+    // The morph: the clicked thumbnail grows into the lightbox picture and
+    // shrinks back on close (a same-page view transition - browsers without
+    // one just open and close as before). The `lb-art` name marks the one
+    // picture that moves; everything else stays put.
+    const canMorph = () => !REDUCE_MOTION && !!document.startViewTransition;
+    const morph = (update, closing) => {
+      const root = document.documentElement;
+      root.classList.add('lb-morph');
+      root.classList.toggle('lb-closing', !!closing);
+      const vt = document.startViewTransition(update);
+      vt.ready.catch(() => {}); // a skipped morph (tab hidden, etc.) still opens/closes
+      vt.finished.catch(() => {}).then(() => root.classList.remove('lb-morph', 'lb-closing'));
+      return vt;
+    };
+    const fullCache = new Map(); // full-size images fetched on hover, ready for the click
+    const warm = (src) => {
+      if (!fullCache.has(src)) { const pre = new Image(); pre.src = src; fullCache.set(src, pre); }
+      return fullCache.get(src);
+    };
+    let thumb = null; // the thumbnail the open picture came from
+
+    const show = (src, alt) => {
       delete img.dataset.fallback; // each image gets its own broken-file fallback
       img.src = src; img.alt = alt || '';
       cap.textContent = alt || '';
@@ -498,22 +533,108 @@
       document.body.style.overflow = 'hidden';
     };
 
+    const open = (t) => {
+      const src = t.getAttribute('data-full');
+      thumb = t.querySelector('img');
+      const alt = thumb && thumb.alt;
+      if (!canMorph() || !thumb || !thumb.complete) { show(src, alt); return; }
+      // Give the full-size picture a moment to arrive so the morph lands on
+      // it; if it's slow, grow the thumbnail and swap the big one in later.
+      const pre = warm(src);
+      const ready = pre.complete ? Promise.resolve()
+        : Promise.race([pre.decode().catch(() => {}), new Promise((r) => setTimeout(r, 160))]);
+      ready.then(() => {
+        const loaded = pre.complete && pre.naturalWidth > 0;
+        thumb.style.viewTransitionName = 'lb-art';
+        morph(() => {
+          thumb.style.viewTransitionName = '';
+          thumb.style.opacity = '0'; // lifted out of its frame while it's open
+          img.style.viewTransitionName = 'lb-art';
+          if (loaded) { show(src, alt); return; }
+          // Hold the box at the size the big picture will fill, then swap.
+          const ratio = thumb.naturalWidth / thumb.naturalHeight;
+          img.style.width = Math.min(innerWidth * 0.9, innerHeight * 0.8 * ratio) + 'px';
+          show(thumb.currentSrc || thumb.src, alt);
+          pre.decode().catch(() => {}).then(() => {
+            if (box.open && img.style.width) img.src = src;
+          });
+        }).finished.catch(() => {}).then(() => { img.style.viewTransitionName = ''; });
+      });
+    };
+
+    const close = () => {
+      if (!box.open) return;
+      if (!canMorph() || !thumb) { box.close(); return; }
+      img.style.viewTransitionName = 'lb-art';
+      const back = thumb;
+      morph(() => {
+        img.style.viewTransitionName = '';
+        box.close();
+        back.style.opacity = '';
+        back.style.viewTransitionName = 'lb-art';
+      }, true).finished.catch(() => {}).then(() => { back.style.viewTransitionName = ''; });
+    };
+
     triggers.forEach((t) => {
       t.style.cursor = "url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, zoom-in";
-      const fire = () => open(t.getAttribute('data-full'), t.querySelector('img')?.alt);
+      const fire = () => open(t);
       t.addEventListener('click', fire);
       t.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
       });
+      t.addEventListener('pointerenter', () => { if (canMorph()) warm(t.getAttribute('data-full')); }, { once: true });
     });
-    closeBtn.addEventListener('click', () => box.close());
+    closeBtn.addEventListener('click', close);
     // Click on the backdrop (outside the image/caption) closes too.
-    box.addEventListener('click', (e) => { if (e.target === box) box.close(); });
+    box.addEventListener('click', (e) => { if (e.target === box) close(); });
+    // Escape: run the same closing morph instead of the instant close.
+    box.addEventListener('cancel', (e) => {
+      if (e.cancelable && canMorph() && thumb) { e.preventDefault(); close(); }
+    });
     // Single cleanup point - runs for Esc, close button and backdrop alike.
     box.addEventListener('close', () => {
       document.body.style.overflow = '';
       img.removeAttribute('src'); // so the next piece never opens showing this one
+      img.style.width = '';
+      if (thumb) thumb.style.opacity = '';
     });
+  }
+
+  // The doodle trail: earned with the wizard's doodle rain, then the cursor
+  // sheds little flat doodles for the rest of the visit (sessionStorage, so
+  // it follows you between pages). Mouse only; off under reduced motion.
+  const TRAIL_KEY = 'doodle-trail';
+  let trailWired = false;
+  function unlockTrail() {
+    try { sessionStorage.setItem(TRAIL_KEY, '1'); } catch (e) { /* private mode */ }
+    wireTrail();
+  }
+  function wireTrail() {
+    let unlocked = false;
+    try { unlocked = sessionStorage.getItem(TRAIL_KEY) === '1'; } catch (e) { /* private mode */ }
+    if (trailWired || !unlocked || REDUCE_MOTION) return;
+    if (!window.matchMedia || !window.matchMedia('(pointer: fine)').matches) return;
+    trailWired = true;
+    const colours = ['var(--periwinkle)', 'var(--pink)', 'var(--teal)', 'var(--yellow)'];
+    let lastX = -99, lastY = -99, count = 0, live = 0;
+    document.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' || live >= 24) return;
+      if (Math.hypot(e.clientX - lastX, e.clientY - lastY) < 28) return;
+      lastX = e.clientX; lastY = e.clientY;
+      const d = document.createElement('span');
+      d.className = 'doodle-trail';
+      d.setAttribute('aria-hidden', 'true');
+      d.innerHTML = doodleSvg(count);
+      const size = 12 + Math.random() * 8;
+      d.style.cssText =
+        `translate:${e.clientX - size / 2}px ${e.clientY - size / 2}px;width:${size}px;height:${size}px;` +
+        `color:${colours[count % colours.length]};` +
+        `--dx:${(Math.random() * 20 - 10).toFixed(1)}px;--dy:${(10 + Math.random() * 18).toFixed(1)}px;` +
+        `--rot:${Math.round(Math.random() * 240 - 120)}deg`;
+      count++; live++;
+      d.addEventListener('animationend', () => { d.remove(); live--; });
+      document.body.appendChild(d);
+    }, { passive: true });
   }
 
   // Seamless rolling marquee: clone the authored group enough times to fill
@@ -612,7 +733,7 @@
           const j = Math.floor(Math.random() * (i + 1));
           const tmp = items[i]; items[i] = items[j]; items[j] = tmp;
         }
-        items.forEach((el) => grid.append(el));
+        glide(grid, { order: items });
         status.textContent = 'Artwork shuffled';
         return;
       }
@@ -622,14 +743,72 @@
       bar.querySelectorAll('[data-tag]').forEach((b) =>
         b.setAttribute('aria-pressed', String(b === btn))
       );
-      let shown = 0;
-      Array.prototype.forEach.call(grid.children, (fig) => {
-        const match = tag === '*' || fig.getAttribute('data-tag') === tag;
-        fig.classList.toggle('filtered-out', !match);
-        if (match) { shown++; fig.classList.add('visible'); }
-      });
+      const match = (fig) => tag === '*' || fig.getAttribute('data-tag') === tag;
+      glide(grid, { show: match });
+      const shown = Array.prototype.filter.call(grid.children, match).length;
       status.textContent = 'Showing ' + shown + ' of ' + grid.children.length + ' pieces';
     });
+  }
+
+  // Filter/shuffle change for the gallery: `order` re-appends the cards in a
+  // new order, `show(card)` decides which stay visible. With motion on, cards
+  // that are leaving shrink away first, then the rest glide from their old
+  // spot to their new one ("FLIP": measure, change, animate the difference)
+  // and newcomers pop in. Without it, the change just happens.
+  let glideRun = 0;
+  const glideAnims = new Set();
+  function glide(grid, { order, show }) {
+    const run = ++glideRun;
+    glideAnims.forEach((a) => a.cancel()); // a fast second click starts clean
+    glideAnims.clear();
+    const kids = Array.prototype.slice.call(grid.children);
+    const isShown = (el) => !el.classList.contains('filtered-out');
+    const apply = () => {
+      if (order) order.forEach((el) => grid.append(el));
+      if (show) kids.forEach((el) => {
+        const on = show(el);
+        el.classList.toggle('filtered-out', !on);
+        if (on) el.classList.add('visible');
+      });
+    };
+    if (REDUCE_MOTION || !grid.animate) { apply(); return; }
+
+    const track = (a) => { glideAnims.add(a); a.finished.catch(() => {}).then(() => glideAnims.delete(a)); return a; };
+    const leaving = show ? kids.filter((el) => isShown(el) && !show(el)) : [];
+    const outs = leaving.map((el) => track(el.animate(
+      [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.8)' }],
+      { duration: 180, easing: 'ease-in', fill: 'forwards' }
+    )));
+
+    Promise.all(outs.map((a) => a.finished)).then(() => {
+      if (run !== glideRun) return;
+      const before = new Map();
+      kids.forEach((el) => {
+        if (isShown(el) && leaving.indexOf(el) === -1) before.set(el, el.getBoundingClientRect());
+      });
+      apply();
+      outs.forEach((a) => a.cancel()); // they're display:none now
+      let fresh = 0;
+      kids.forEach((el) => {
+        if (!isShown(el)) return;
+        const was = before.get(el);
+        if (!was) {
+          track(el.animate(
+            [{ opacity: 0, transform: 'scale(0.8)' }, { opacity: 1, transform: 'none' }],
+            { duration: 320, delay: 40 * Math.min(fresh++, 8), easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'backwards' }
+          ));
+          return;
+        }
+        const now = el.getBoundingClientRect();
+        const dx = was.left - now.left;
+        const dy = was.top - now.top;
+        if (!dx && !dy) return;
+        track(el.animate(
+          [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }],
+          { duration: 480, easing: 'cubic-bezier(0.3, 1.25, 0.5, 1)' }
+        ));
+      });
+    }).catch(() => {}); // cancelled by a newer click
   }
 
   // Small voice line under the footer (site.footerTagline in content.js).
@@ -811,20 +990,13 @@
     // motion it becomes a simple <3 in the bubble instead.
     const rain = () => {
       if (reduceMotion) { say('<3', 2000); return; }
-      // Filled flat shapes (sparkle, star, heart, flower, outline star).
-      const shapes = [
-        '<path d="M12 2c.8 5.2 4.8 9.2 10 10-5.2.8-9.2 4.8-10 10-.8-5.2-4.8-9.2-10-10 5.2-.8 9.2-4.8 10-10z"/>',
-        '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z"/>',
-        '<path d="M12 20.5S3 15 3 8.8A4.8 4.8 0 0 1 12 6.5a4.8 4.8 0 0 1 9 2.3C21 15 12 20.5 12 20.5z"/>',
-        '<circle cx="12" cy="6.5" r="4"/><circle cx="17.5" cy="10.5" r="4"/><circle cx="15.4" cy="17" r="4"/><circle cx="8.6" cy="17" r="4"/><circle cx="6.5" cy="10.5" r="4"/>',
-        '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>',
-      ];
+      unlockTrail();
       const layer = document.createElement('div');
       layer.className = 'doodle-rain';
       layer.setAttribute('aria-hidden', 'true');
       for (let i = 0; i < 22; i++) {
         const d = document.createElement('span');
-        d.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor">${shapes[i % shapes.length]}</svg>`;
+        d.innerHTML = doodleSvg(i);
         d.style.left = (Math.random() * 100) + 'vw';
         d.style.animationDelay = (Math.random() * 0.9) + 's';
         d.style.animationDuration = (2 + Math.random() * 1.6) + 's';
@@ -888,6 +1060,7 @@
     setupMarquee();
     colorizeSocials();
     wireWizard();
+    wireTrail();
     wireAwayTitle();
     consoleEgg();
   })();
