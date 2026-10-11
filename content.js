@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   YOUR PORTFOLIO CONTENT  —  THIS IS THE ONLY FILE YOU NEED TO EDIT
+   YOUR PORTFOLIO CONTENT  -  THIS IS THE ONLY FILE YOU NEED TO EDIT
    ════════════════════════════════════════════════════════════════════════
 
    HOW IT WORKS
@@ -8,7 +8,7 @@
    this one file. The pages build themselves from what you put here, so you
    never have to touch the HTML or CSS.
 
-   TO ADD ARTWORK: just drop the file into a category folder and push —
+   TO ADD ARTWORK: just drop the file into a category folder and push:
      assets/art/Poster/My Piece.png   →  appears on the Art page, tagged
      "Poster", titled "My Piece". No need to touch this file. A new folder
      makes a new category (and a new filter chip). Files loose in
@@ -21,7 +21,7 @@
         using the folder in the path, e.g.  img: 'assets/certs/My Cert.png'
      3. Save & push. Done.
 
-   IMAGE SIZE: don't worry about it. Use your full-resolution files — every
+   IMAGE SIZE: don't worry about it. Use your full-resolution files. Every
    deploy makes small, fast copies for the page automatically (the
    original's detail is kept for the full-size lightbox view).
 
@@ -67,15 +67,17 @@ window.CONTENT = {
 
     email: 'andrew.worgan.enquiry@gmail.com',
 
-    // "Currently" card — a little life-status block under the bio.
-    // Keep it fresh: update me monthly, or delete every line to hide the card.
-    // icon can be: 'pencil' 'quill' 'hammer' 'book' 'sprout' 'controller'
-    currentlyHeading: 'Current Goals:',
+    // "Current Goals": a row of pinned sticky notes under the bio, one per goal.
+    // Keep it fresh: update me monthly, or delete every line to hide them.
+    // • icon can be: 'pencil' 'quill' 'hammer' 'book' 'sprout' 'controller'
+    // • accent is the note's colour (match the page it links to).
+    // • url (optional) makes the note a link; "link" is the text at its foot.
+    currentlyHeading: 'Current Goals',
     currently: [
-      { icon: 'hammer', label: 'Building', value: 'Filo, my personal knowledge manager.' },
-      { icon: 'pencil', label: 'Drawing', value: 'Getting better every day :)' },
-      { icon: 'quill', label: 'Writing', value: '"Dilettantes in the Interim" An Isekai Web-Novel.' },
-      { icon: 'sprout', label: 'Growing', value: 'My career in IT, one cert at a time.' },
+      { icon: 'hammer', label: 'Building', value: 'Filo, my personal knowledge manager.', accent: 'blue', url: '/coding_projects', link: 'See projects' },
+      { icon: 'pencil', label: 'Drawing', value: 'Getting better every day :)', accent: 'lavender', url: '/illustrations_and_graphics', link: 'See art' },
+      { icon: 'quill', label: 'Drafting', value: '"Dilettantes in the Interim" An Isekai Web-Novel.', accent: 'teal', url: '/writing', link: 'See writing' },
+      { icon: 'sprout', label: 'Growing', value: 'My career in IT, one cert at a time.', accent: 'pink', url: '/certificates', link: 'See certificates' },
     ],
 
     // The "Other Pages" chips on the About page link to the rest of the site.
@@ -97,7 +99,7 @@ window.CONTENT = {
      2. ILLUSTRATIONS & GRAPHICS  (illustrations_and_graphics.html)
      ──────────────────────────────────────────────────────────────────────
      Every image in assets/art/ shows up automatically (see the top of this
-     file); its subfolder is its category. This list is OPTIONAL — only add a
+     file); its subfolder is its category. This list is OPTIONAL. Only add a
      line to change how a piece appears:
         { img: 'assets/art/Poster/My Piece.png', title: 'A Nicer Title' },
      ORDER on the page:
@@ -106,13 +108,17 @@ window.CONTENT = {
        3. the other lines below, in this order
      • "title" replaces the name taken from the filename.
      • "tag" replaces the category taken from the subfolder (rarely needed).
-     • Deleting a line never removes the piece — delete the file for that. */
+     • Each frame is painted with the piece's most visible colour and its
+       category chip with the second, picked automatically. Don't like a
+       pick? Set your own with  frame: '#F7216B', chip: '#17C38C'  (either
+       one on its own works too).
+     • Deleting a line never removes the piece; delete the file for that. */
   art: [
     { img: 'assets/art/Digital Art/assisted existence.png', title: 'Assisted Existence' },
     { img: 'assets/art/Character Design/Pet Wizard 2.png', title: 'Pet Wizard' },
     { img: 'assets/art/Poster/GROWTH is GOOD.png', title: 'GROWTH is GOOD' },
     { img: 'assets/art/Character Design/Ellie fr fr fr.png', title: 'Ellie' },
-    { img: 'assets/art/Poster/House movie poster OWL HOUSE LONG.png', title: 'Owl House — Movie Poster' },
+    { img: 'assets/art/Poster/House movie poster OWL HOUSE LONG.png', title: 'Owl House - Movie Poster' },
     { img: 'assets/art/Fanart/Frieren Fr this time ACTUALLY THO FIXED EYES.png', title: 'Frieren' },
     { img: 'assets/art/Digital Art/Mountain.png', title: 'Mountain' },
     { img: 'assets/art/Fanart/Kurugaya vaporwave.png', title: 'Kurugaya, Vaporwave' },
@@ -133,17 +139,17 @@ window.CONTENT = {
      • "img" is an optional screenshot in assets/projects/ ('' shows a
        coloured block). It's cropped to 16:10, so landscape shots work best.
      • "tags" is a list of technologies.
-     • "links" is a list of buttons — give each a label and url.
-     • Each project shows as a file folder. The tab reads the title up to any
-       " — " (e.g. "filo/"); set  tab: "my-name"  to choose it yourself.
+     • "links" is a list of buttons. Give each a label and url.
+     • Each project shows as a file folder. The tab reads the title up to
+       any " - " (e.g. "/filo"); set  tab: "my-name"  to choose it yourself.
      • "accent" colours the folder (default blue).
      • Built on someone else's project? Add
          forkOf: { label: 'owner/repo', url: 'https://github.com/owner/repo' }
        and a "Forked from owner/repo" line appears under the title.       */
   coding: [
     {
-      img: '',
-      title: 'Filo — Personal Knowledge Manager',
+      img: 'assets/projects/Filo.png',
+      title: 'Filo - Personal Knowledge Manager',
       desc: 'My main side project: a local-first desktop app for notes, ideas and worldbuilding. Mind maps, kanban boards, task lists and documents, all saved as plain Markdown files on your own disk.',
       tags: ['TypeScript', 'Svelte', 'Electron', 'In Progress'],
       links: [
@@ -152,7 +158,7 @@ window.CONTENT = {
     },
     {
       img: 'assets/projects/Mi Back Screen.png',
-      title: 'Mi Back Screen — Rear Display App',
+      title: 'Mi Back Screen - Rear Display App',
       accent: 'lavender',
       desc: 'An Android app for the Xiaomi 17 Pro Max that puts your own images, GIFs, a clock, notifications and a charging animation on the phone\'s rear display, and can move any app or the camera there with a tap.',
       tags: ['Kotlin', 'Android', 'Shizuku'],
@@ -163,8 +169,8 @@ window.CONTENT = {
       ],
     },
     {
-      img: '',
-      title: 'Toolbox — Tools & Mini-Games',
+      img: 'assets/projects/Toolbox.png',
+      title: 'Toolbox - Tools & Mini-Games',
       accent: 'yellow',
       desc: 'An Android app of 40-odd everyday tools, fidget toys and mini-games, from a tuner and compass to Connect Four against the computer. The physics, audio and game AIs are all built in, with no third-party libraries.',
       tags: ['Kotlin', 'Jetpack Compose', 'Material 3'],
@@ -175,8 +181,8 @@ window.CONTENT = {
       ],
     },
     {
-      img: '',
-      title: 'Paperized — Paperize Fork',
+      img: 'assets/projects/Paperized.png',
+      title: 'Paperized - Paperize Fork',
       accent: 'pink',
       forkOf: { label: 'Anthonyy232/Paperize', url: 'https://github.com/Anthonyy232/Paperize' },
       desc: 'My own build of Anthony La\'s open-source Android wallpaper changer. I fixed bugs in scheduling, live wallpapers and settings, and added set times of day, night albums, favourites, home-screen widgets and live auto-pan.',
@@ -187,11 +193,11 @@ window.CONTENT = {
       ],
     },
     {
-      img: '',
+      img: 'assets/projects/Portfolio.png',
       title: 'This Portfolio',
       tab: 'portfolio',                     // folder tab label (optional)
       accent: 'teal',
-      desc: 'The site you are looking at — a hand-built static portfolio with a one-file content system.',
+      desc: 'The site you are looking at: a hand-built static portfolio with a one-file content system.',
       tags: ['HTML', 'CSS', 'JavaScript'],
       links: [
         { label: 'GitHub', url: 'https://github.com/totallynotkasai/Portfolio' },
@@ -225,7 +231,7 @@ window.CONTENT = {
      5. CERTIFICATES  (certificates.html)
      ──────────────────────────────────────────────────────────────────────
      EASIEST WAY: drop a photo/scan of the certificate into assets/certs/
-     and put its path in "img" — it fills the stub of the ticket and opens
+     and put its path in "img". It fills the stub of the ticket and opens
      full size when clicked. No image? Leave img:'' and the stub shows
      an icon on its accent colour (default pink).
 
@@ -235,7 +241,7 @@ window.CONTENT = {
           accent: 'yellow', icon: 'cap' },
      • "icon" (badge only) can be:  'cap'  'ribbon'  'book'  'laptop'      */
   certificates: [
-    // Empty on purpose — the page shows a tidy "nothing here yet" state,
+    // Empty on purpose: the page shows a tidy "nothing here yet" state,
     // which looks better to a recruiter than placeholder data ever would.
     // Add your first real one by copying the template from the comment above.
   ],
@@ -246,20 +252,20 @@ window.CONTENT = {
      Small bits of voice that live around the edges of the site.           */
   site: {
     // Shown under the copyright line in the footer. '' hides it.
-    footerTagline: 'Hand-coded, hand-drawn — no frameworks were harmed.',
+    footerTagline: '',
 
     // Per-page "nothing here yet" jokes. Keys match each page's section.
-    // The coding one stays straight on purpose — recruiters read that page.
+    // The coding one stays straight on purpose because recruiters read that page.
     emptyStates: {
-      art: 'The easel is warming up — art arriving soon.',
-      coding: 'Projects are being tidied up — check back soon.',
+      art: 'The easel is warming up. Art arriving soon.',
+      coding: 'Projects are being tidied up. Check back soon.',
       writing: 'The ink is still drying on this page.',
       certificates: "The certificate goblin hasn't delivered yet. Soon.",
     },
 
     // Printed in the browser dev console for nosy developers (hi!).
-    consoleMsg: 'Oh hi — you opened the console. The wizard sees you.\n' +
-      'Yes, this site is hand-built vanilla HTML/CSS/JS. View source away —\n' +
+    consoleMsg: 'Oh hi, you opened the console. The wizard sees you.\n' +
+      'Yes, this site is hand-built vanilla HTML/CSS/JS. View source away:\n' +
       'all the content lives in one friendly file: content.js',
 
     // Tab title when you wander off to another tab. '' disables it.
@@ -273,14 +279,14 @@ window.CONTENT = {
        something nice happens.
      • "lines" = speech-bubble greetings per page; one is picked at random
        a moment after the page loads. Pages listed in "quietPages" never
-       speak first — the wizard only talks there if clicked.
-     • FRAMES: he now blinks on his own, beams when petted, and dozes off —
+       speak first; the wizard only talks there if clicked.
+     • FRAMES: he now blinks on his own, beams when petted, and dozes off,
        driven by five hand-drawn 960×960 PNGs below. Blank out any one of
        them (or remove `frames`) and he falls back to the single `image`.   */
   wizard: {
     enabled: true,                // set false to retire him (he'll understand)
     image: 'assets/ui/Pet Wizard Cursor default Not rotated.png', // fallback frame
-    frames: {                     // 5 expressions — see assets/Wizard Sprite/
+    frames: {                     // 5 expressions, see assets/Wizard Sprite/
       idle: 'assets/Wizard Sprite/Idle Wizard.png',            // eyes open, resting
       half: 'assets/Wizard Sprite/Inbetween Frame Wizard.png', // mid-blink (eyes half)
       blink: 'assets/Wizard Sprite/Blink Wizard.png',           // eyes shut
@@ -320,6 +326,10 @@ window.CONTENT = {
 
     // What he says when you pet him (cycles in order, then repeats).
     petLines: ['!', '<3', 'Momentai', 'Good vibes only, gang.', 'again.', 'this is acceptable', 'magic +1', 'okay one more'],
+
+    // What he says when you scroll down and he ends up over the dark footer
+    // (cycles in order if you add more). Delete every line to keep him quiet.
+    footerLines: ["Oooh it's dark down here"],
   },
 
 };

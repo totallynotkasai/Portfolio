@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   Andrew Worgan PORTFOLIO — RENDERER + BEHAVIOURS
+   Andrew Worgan PORTFOLIO - RENDERER + BEHAVIOURS
    ════════════════════════════════════════════════════════════════════════
    You do NOT need to edit this file. It reads everything from content.js and
    builds the pages, then wires up the menu, animations and image lightbox.
@@ -66,7 +66,7 @@
 
   const accent = (a) => (ACCENTS.indexOf(a) !== -1 ? a : 'lavender');
 
-  // Current page name without ".html" — Vercel serves clean URLs (/about),
+  // Current page name without ".html" - Vercel serves clean URLs (/about),
   // local previews use the file name (about.html); the site root is About.
   const pageName = (path) =>
     (String(path).replace(/\/+$/, '').split('/').pop() || 'about').toLowerCase().replace(/\.html$/, '');
@@ -124,7 +124,7 @@
       </div>
       <div class="about-photo-wrapper">${photo}</div>`;
 
-    // "Other Pages" — chips that link to the rest of the site, each tinted
+    // "Other Pages" - chips that link to the rest of the site, each tinted
     // with its destination page's accent colour on hover.
     const pagesBox = $('#about-skills');
     if (pagesBox && (a.pages || []).length) {
@@ -142,7 +142,7 @@
     if (signoff && a.signoff) signoff.innerHTML = `<p>${esc(a.signoff)}</p>`;
   }
 
-  // Hand-drawn-style line icons used across the site (the "Currently…" card,
+  // Hand-drawn-style line icons used across the site (the Current Goals notes,
   // placeholders, empty states, cert badges, the shuffle chip). Single colour
   // (currentColor) and chunky round strokes to match the 2.5px ink borders.
   const DOODLE_ICONS = {
@@ -170,22 +170,30 @@
           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DOODLE_ICONS[name] || DOODLE_ICONS.pencil
     }</svg>`;
 
-  // "Currently…" life-status card on the About page (about.currently).
+  // "Current Goals" on the About page (about.currently): a row of pinned
+  // sticky notes, each in its page's colour. A note with a `url` is a link.
   function renderCurrently() {
     const box = $('#about-currently');
     if (!box || !C.about) return;
     const items = C.about.currently || [];
     if (!items.length) return;
+    const fallback = ['blue', 'lavender', 'teal', 'pink'];
     box.innerHTML = `
-      <div class="currently-card animate-on-scroll">
-        <h2 class="currently-heading">${esc(C.about.currentlyHeading || 'Currently…')}</h2>
-        <ul class="currently-list">
-          ${items.map((it) => `
-            <li>
-              <span class="currently-icon">${doodleIcon(it.icon)}</span>
-              <span class="currently-label">${esc(it.label || '')}</span>
-              <span class="currently-value">${esc(it.value || '')}</span>
-            </li>`).join('')}
+      <div class="goals animate-on-scroll">
+        <h2 class="goals-heading">${esc(C.about.currentlyHeading || 'Current Goals')}</h2>
+        <ul class="goals-board">
+          ${items.map((it, i) => {
+            const inner = `
+              <span class="goal-pin" aria-hidden="true"></span>
+              <span class="goal-icon">${doodleIcon(it.icon)}</span>
+              <span class="goal-label">${esc(it.label || '')}</span>
+              <span class="goal-value">${esc(it.value || '')}</span>
+              ${it.url ? `<span class="goal-link">${esc(it.link || 'Take a look')} ${ARROW}</span>` : ''}`;
+            const cls = `goal-note ${accent(it.accent || fallback[i % fallback.length])}`;
+            return `<li>${it.url
+              ? `<a class="${cls}" href="${esc(it.url)}">${inner}</a>`
+              : `<div class="${cls}">${inner}</div>`}</li>`;
+          }).join('')}
         </ul>
       </div>`;
   }
@@ -209,6 +217,32 @@
   }
   const ART = artItems();
 
+  // Ink or white text, whichever has more contrast on a background colour.
+  const HEX = /^#[0-9a-f]{6}$/i;
+  const luminance = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return [n >> 16, (n >> 8) & 255, n & 255]
+      .map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+      .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+  };
+  const INK_L = luminance('#161A2E');
+  const textOn = (hex) => {
+    const l = luminance(hex);
+    return (l + 0.05) / (INK_L + 0.05) >= 1.05 / (l + 0.05) ? 'var(--ink)' : 'var(--white)';
+  };
+
+  // Each polaroid's frame takes the artwork's most visible colour and its tag
+  // chip the second (picked by the build, or `frame:` / `chip:` in content.js).
+  const frameStyle = (it) => {
+    const picked = (imgInfo(it.img) || {}).colors || [];
+    const frame = HEX.test(it.frame) ? it.frame : picked[0];
+    const chip = HEX.test(it.chip) ? it.chip : picked[1];
+    let css = '';
+    if (frame) css += `--frame:${frame};--frame-ink:${textOn(frame)};`;
+    if (chip) css += `--chip:${chip};--chip-ink:${textOn(chip)};`;
+    return css ? ` style="${css}"` : '';
+  };
+
   function renderArt() {
     const grid = $('#art-grid');
     if (!grid) return;
@@ -221,7 +255,7 @@
         : `<div class="gallery-item-img gallery-item-img--empty">${doodleIcon('palette')}</div>`;
       const full = largeSrc(it.full || it.img); // optional hi-res original for the lightbox
       return `
-        <figure class="gallery-item animate-on-scroll" data-tag="${esc(it.tag || '')}"${it.img ? ` data-full="${esc(full)}" tabindex="0" role="button" aria-label="View ${esc(it.title || 'artwork')} full size"` : ''}>
+        <figure class="gallery-item animate-on-scroll"${frameStyle(it)} data-tag="${esc(it.tag || '')}"${it.img ? ` data-full="${esc(full)}" tabindex="0" role="button" aria-label="View ${esc(it.title || 'artwork')} full size"` : ''}>
           ${media}
           <figcaption class="gallery-item-cap">
             <h3>${esc(it.title || 'Untitled')}</h3>
@@ -237,9 +271,9 @@
     const items = C.coding || [];
     if (!items.length) { grid.innerHTML = emptyState(doodleIcon('laptop'), 'project', 'coding'); return; }
 
-    // Each project is a file folder: the tab shows a short folder name (from
-    // `tab` in content.js, or the title up to any " — "), and the screenshot
-    // is a sheet of paper tucked inside that rises out on hover.
+    // Each project is a file folder: the tab shows a short folder name like
+    // "/filo" (from `tab` in content.js, or the title up to any " - "), and
+    // the screenshot is a sheet of paper tucked inside that rises out on hover.
     // Concave curve where the tab's right border meets the folder's top
     // border, in a 14px box. The stroke is centred on both CSS borders it
     // joins; the fill covers the straight border ends inside the curve.
@@ -256,8 +290,8 @@
     const TAB_CAP = `<svg class="tab-cap" aria-hidden="true">${capSvg(2.5)}</svg>`;
 
     const folderName = (p) =>
-      (p.tab || String(p.title || 'project').split(' — ')[0])
-        .trim().toLowerCase().replace(/\s+/g, '-').replace(/\/+$/, '') + '/';
+      '/' + (p.tab || String(p.title || 'project').split(/\s+-\s+/)[0])
+        .trim().toLowerCase().replace(/\s+/g, '-').replace(/^\/+|\/+$/g, '');
 
     grid.innerHTML = items.map((p) => {
       const img = p.img
@@ -310,7 +344,7 @@
 
     // Each piece is a ruled library index card: punched hole, a margin line in
     // its accent colour and an optional rubber stamp (`stamp` in content.js).
-    // A card is only a link when it has a real destination — '#' or an empty
+    // A card is only a link when it has a real destination - '#' or an empty
     // url renders as a plain card with a "coming soon" note instead of a dead click.
     list.innerHTML = items.map((w) => {
       const hasLink = w.url && w.url !== '#';
@@ -392,7 +426,7 @@
       if (e.key === 'Escape') setOpen(false);
     });
     // The hamburger disappears above 820px (style.css), so close the menu if
-    // the screen widens past that — e.g. a tablet rotated to landscape.
+    // the screen widens past that - e.g. a tablet rotated to landscape.
     const wide = window.matchMedia('(min-width: 821px)');
     const onWide = () => { if (wide.matches) setOpen(false, { returnFocus: false }); };
     if (wide.addEventListener) wide.addEventListener('change', onWide);
@@ -475,7 +509,7 @@
     closeBtn.addEventListener('click', () => box.close());
     // Click on the backdrop (outside the image/caption) closes too.
     box.addEventListener('click', (e) => { if (e.target === box) box.close(); });
-    // Single cleanup point — runs for Esc, close button and backdrop alike.
+    // Single cleanup point - runs for Esc, close button and backdrop alike.
     box.addEventListener('close', () => {
       document.body.style.overflow = '';
       img.removeAttribute('src'); // so the next piece never opens showing this one
@@ -491,7 +525,7 @@
       if (!content || !firstGroup) return;
 
       const groupHTML = firstGroup.outerHTML; // the phrases you authored
-      const SPEED = 70; // pixels per second — lower is slower
+      const SPEED = 70; // pixels per second - lower is slower
 
       const build = () => {
         content.innerHTML = groupHTML; // one copy, to measure
@@ -555,7 +589,7 @@
     bar.className = 'gallery-filters';
     bar.setAttribute('role', 'group');
     bar.setAttribute('aria-label', 'Filter artwork by category');
-    // Art page leans periwinkle — its chips skip the blue accent.
+    // Art page leans periwinkle - its chips skip the blue accent.
     const chipAccents = ['lavender', 'pink', 'teal', 'yellow'];
     bar.innerHTML =
       `<button class="skill-tag filter-chip lavender" data-tag="*" aria-pressed="true">All</button>` +
@@ -571,7 +605,7 @@
       const btn = e.target.closest('button');
       if (!btn) return;
 
-      // Shuffle — reorder the existing DOM nodes (listeners survive).
+      // Shuffle - reorder the existing DOM nodes (listeners survive).
       if (btn.hasAttribute('data-shuffle')) {
         const items = Array.prototype.slice.call(grid.children);
         for (let i = items.length - 1; i > 0; i--) {
@@ -637,7 +671,7 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // THE PET WIZARD — resident mascot, bottom-right. Pet him. Go on.
+  // THE PET WIZARD - resident mascot, bottom-right. Pet him. Go on.
   // All of his data (lines, frames, sleep timing) lives in content.js.
   // When content.js provides a 5-frame expression set he blinks, beams when
   // petted, and dozes off; otherwise he falls back to the single CSS image.
@@ -698,7 +732,7 @@
     // ── Expression state: 'idle' (may blink), 'happy' (just petted), 'asleep'.
     let mood = 'idle';
 
-    // Idle blink — half-close → shut → half-open → open, on a loose timer.
+    // Idle blink - half-close → shut → half-open → open, on a loose timer.
     // Skipped under reduced motion (he simply keeps his eyes open).
     let blinkTimer = null;
     const stopBlink = () => { clearTimeout(blinkTimer); blinkTimer = null; };
@@ -737,11 +771,40 @@
     rest();
     scheduleBlink();
 
-    // Per-page greeting — except on "quiet" pages, where he waits to be asked.
+    // Per-page greeting - except on "quiet" pages, where he waits to be asked.
     const lines = (W.lines || {})[key] || [];
     const quiet = (W.quietPages || []).indexOf(key) !== -1;
     if (lines.length && !quiet) {
       setTimeout(() => say(lines[Math.floor(Math.random() * lines.length)], 4000), 1200);
+    }
+
+    // Scrolled down far enough that he's sitting over the dark footer? He
+    // remarks on it (wizard.footerLines), at most once every 20 seconds and
+    // never in his sleep.
+    const footerLines = W.footerLines || [];
+    const footer = $('.site-footer');
+    if (footerLines.length && footer) {
+      const overFooter = () => {
+        const s = btn.getBoundingClientRect();
+        return footer.getBoundingClientRect().top < s.top + s.height / 2;
+      };
+      let wasOver = overFooter();
+      let lastSaid = 0;
+      let said = 0;
+      let ticking = false;
+      window.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          ticking = false;
+          const over = overFooter();
+          if (over && !wasOver && mood !== 'asleep' && Date.now() - lastSaid > 20000) {
+            say(footerLines[said++ % footerLines.length], 3000);
+            lastSaid = Date.now();
+          }
+          wasOver = over;
+        });
+      }, { passive: true });
     }
 
     // The 10-pet reward: a brief flat-colour doodle rain. Under reduced

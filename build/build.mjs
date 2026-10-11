@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   BUILD STEP — Vercel runs this (`npm run build`) on every push to main.
+   BUILD STEP - Vercel runs this (`npm run build`) on every push to main.
    ════════════════════════════════════════════════════════════════════════
    The site itself stays hand-written vanilla HTML/CSS/JS. This only:
      1. Checks content.js and script.js. A typo fails the build, and Vercel
@@ -9,7 +9,8 @@
         only what they show and don't jump about while images load.
      3. Lists every artwork in assets/art, so dropping a file in there puts
         it on the site. A subfolder name becomes its tag (assets/art/Poster/).
-   Output: dist/ — the deployed site — with everything new in dist/generated/.
+        It also picks each artwork's two most visible colours for its frame.
+   Output: dist/ - the deployed site - with everything new in dist/generated/.
    The local preview server (.claude/devserver.mjs) reuses generate() below.
    ════════════════════════════════════════════════════════════════════════ */
 
@@ -38,7 +39,7 @@ const WEBP = { quality: 82, effort: 5 };
 // Bump when the settings above change, so every copy is remade.
 const VERSION = 'v1';
 
-// What gets deployed (everything else — build/, node_modules, .claude — doesn't).
+// What gets deployed (everything else - build/, node_modules, .claude - doesn't).
 const SITE_DIRS = ['assets', 'fonts'];
 const SITE_FILE = /\.(html|css|js|txt|xml)$/i;   // pages, code, robots.txt, sitemap.xml
 
@@ -86,8 +87,58 @@ function commitDates(root) {
       // git log runs newest -> oldest, so the last write is the first add.
       for (const f of files) if (f) dates[f.trim()] = Number(time);
     }
-  } catch { /* no git — every file falls back to its modified time */ }
+  } catch { /* no git - every file falls back to its modified time */ }
   return dates;
+}
+
+// An artwork's two most visible colours: the Art page paints its frame with
+// the first and its tag chip with the second. The pixels of a small copy are
+// grouped into colour clusters (k-means, seeded from the busiest colour
+// bins so it gives the same answer every build). Each cluster scores by how
+// much of the picture it covers, nudged towards vivid colours so a plain
+// white or grey background doesn't always win. The chip takes the best
+// cluster that differs clearly from the frame.
+const colourCache = new Map();
+async function artColours(sharp, file) {
+  const { data } = await sharp(file).resize(48, 48, { fit: 'inside' }).ensureAlpha().raw()
+    .toBuffer({ resolveWithObject: true });
+  const px = [];
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] >= 128) px.push([data[i], data[i + 1], data[i + 2]]);   // skip see-through pixels
+  }
+  if (!px.length) return null;
+
+  const bins = new Map();
+  for (const p of px) {
+    const k = (p[0] >> 6) * 16 + (p[1] >> 6) * 4 + (p[2] >> 6);
+    const b = bins.get(k) || { n: 0, sum: [0, 0, 0] };
+    b.n++; p.forEach((v, i) => { b.sum[i] += v; });
+    bins.set(k, b);
+  }
+  let centres = [...bins.values()].sort((a, b) => b.n - a.n).slice(0, 8)
+    .map((b) => b.sum.map((v) => v / b.n));
+  const dist2 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+  let counts = [];
+  for (let round = 0; round < 8; round++) {
+    const sums = centres.map(() => [0, 0, 0]);
+    counts = centres.map(() => 0);
+    for (const p of px) {
+      let best = 0;
+      centres.forEach((c, i) => { if (dist2(p, c) < dist2(p, centres[best])) best = i; });
+      counts[best]++; p.forEach((v, i) => { sums[best][i] += v; });
+    }
+    centres = centres.map((c, i) => (counts[i] ? sums[i].map((v) => v / counts[i]) : c));
+  }
+
+  const vivid = (c) => (Math.max(...c) - Math.min(...c)) / 255;
+  const ranked = centres
+    .map((c, i) => ({ c, score: (counts[i] / px.length) * (0.5 + vivid(c)) }))
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score);
+  const frame = ranked[0].c;
+  const chip = (ranked.find((r) => dist2(r.c, frame) > 90 ** 2) || ranked[1] || ranked[0]).c;
+  const hex = (c) => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+  return [hex(frame), hex(chip)];
 }
 
 /* ---------- 1. Check content.js / script.js ---------- */
@@ -165,6 +216,11 @@ export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), 
         const large = await makeWebp(buf, `${base}-l${set.large}.webp`,
           { width: set.large, height: set.large, fit: 'inside', withoutEnlargement: true });
         info.large = large.url;
+      }
+      if (set.dir === 'assets/art') {
+        // Worked out from the small copy, once per version of the file.
+        if (!colourCache.has(base)) colourCache.set(base, await artColours(sharp, join(outDir, `${base}-w${set.web}.webp`)));
+        if (colourCache.get(base)) info.colors = colourCache.get(base);
       }
       images[rel] = info;
     }

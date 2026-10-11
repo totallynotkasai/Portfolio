@@ -49,7 +49,7 @@ async function regenerate() {
   try {
     build = build || (await import('../build/build.mjs'));
   } catch (err) {
-    console.warn('Could not load the build step (run `npm install`?) — serving without WebP copies.\n ', err.message);
+    console.warn('Could not load the build step (run `npm install`?) - serving without WebP copies.\n ', err.message);
     return;
   }
   generating = generating || (async () => {
@@ -65,7 +65,7 @@ async function regenerate() {
 let headerRules = [];
 try {
   headerRules = JSON.parse(await readFile(join(PROJECT, 'vercel.json'), 'utf8')).headers || [];
-} catch { /* no vercel.json — no extra headers */ }
+} catch { /* no vercel.json - no extra headers */ }
 const vercelHeaders = (path) => {
   const out = {};
   for (const rule of headerRules) {

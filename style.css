@@ -1,7 +1,7 @@
 /* ============================================================
-   Andrew Worgan PORTFOLIO — DESIGN SYSTEM (flat / playful)
+   Andrew Worgan PORTFOLIO - DESIGN SYSTEM (flat / playful)
    ============================================================
-   Flat colour palette — NO gradients:
+   Flat colour palette - NO gradients:
      --blush:      #FEF6FE   (page background)
      --ink:        #161A2E   (text, borders, dark footer)
      --periwinkle: #AE9DF3
@@ -22,7 +22,7 @@
   font-display: swap;
 }
 
-/* Body text: Inter, self-hosted (one variable file covers weights 300–700,
+/* Body text: Inter, self-hosted (one variable file covers weights 300-700,
    Latin only) so pages don't wait on Google Fonts. Both fonts are also
    preloaded in each page's <head>. */
 @font-face {
@@ -55,7 +55,7 @@ body {
   color: var(--ink);
   line-height: 1.7;
   overflow-x: hidden;
-  /* The "6 4" is the hotspot — the actual click point inside the 48px image. */
+  /* The "6 4" is the hotspot - the actual click point inside the 48px image. */
   cursor: url('assets/ui/Pet Wizard Cursor OwO.png') 6 4, auto;
 }
 
@@ -80,13 +80,13 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   --periwinkle: #AE9DF3;
   --yellow:     #FEDA74;
   --blue:       #65A1FB;
-  --teal:       #5AC8B6;   /* 4th flat accent — gives the Writing page its own colour */
-  --pink:       #FB9DC4;   /* 5th flat accent — Certificates page chip/badge */
+  --teal:       #5AC8B6;   /* 4th flat accent - gives the Writing page its own colour */
+  --pink:       #FB9DC4;   /* 5th flat accent - Certificates page chip/badge */
   --white:      #FFFFFF;
 
   /* Derived */
   --ink-soft:   #4A4E63;   /* secondary text */
-  --ink-muted:  #5E6175;   /* tertiary text — ≥4.5:1 on white (WCAG AA) */
+  --ink-muted:  #5E6175;   /* tertiary text - ≥4.5:1 on white (WCAG AA) */
   --overlay:    rgba(22, 26, 46, 0.78);
 
   /* Soft accent tints (still flat) */
@@ -96,7 +96,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   --teal-tint:       #E0F5F1;
   --pink-tint:       #FEEAF3;
 
-  /* Deep accent inks — accent-coloured text on white (stamps, icons) */
+  /* Deep accent inks - accent-coloured text on white (stamps, icons) */
   --periwinkle-ink:  #5E46B8;
   --yellow-ink:      #8A6400;
   --blue-ink:        #1F5FC0;
@@ -127,7 +127,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   --max-width:  1180px;
   --header-h:   78px;
 
-  /* Radii — chunky/rounded */
+  /* Radii - chunky/rounded */
   --radius-sm:  10px;
   --radius-md:  16px;
   --radius-lg:  22px;
@@ -179,7 +179,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   gap: 0.5rem;
   flex-shrink: 0;
 }
-/* Kasai flame beside the name — flickers gently, burns faster on hover. */
+/* Kasai flame beside the name - flickers gently, burns faster on hover. */
 .brand .brand-flame {
   height: 26px;
   width: auto;
@@ -321,7 +321,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   will-change: transform;
 }
 /* One authored group of phrases (a <ul>). Each <li> gets a single wave after
-   it with equal spacing, so every seam looks identical — no double-wave gap. */
+   it with equal spacing, so every seam looks identical - no double-wave gap. */
 .marquee-group {
   display: flex;
   flex-shrink: 0;
@@ -451,13 +451,13 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   box-shadow: var(--pop-lg);
 }
 .page-banner.lavender .banner-chip { background: var(--periwinkle); }
-.page-banner.blue     .banner-chip { background: var(--blue); }  /* ink text — white fails contrast on this blue */
+.page-banner.blue     .banner-chip { background: var(--blue); }  /* ink text - white fails contrast on this blue */
 .page-banner.teal     .banner-chip { background: var(--teal); }
 .page-banner.yellow   .banner-chip { background: var(--yellow); }
 .page-banner.pink     .banner-chip { background: var(--pink); }
 
 /* ============================================================
-   PROJECT CARDS (Coding) — file folders
+   PROJECT CARDS (Coding) - file folders
    ============================================================
    One fill (the accent tint) for tab + folder. The tab is a normal
    CSS-bordered box (both top corners rounded the same way); only the
@@ -549,7 +549,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 }
 .project-card:hover .project-card-paper,
 .project-card:focus-within .project-card-paper { rotate: 2deg; translate: 0 -85%; }
-/* No hover on touch screens — show the preview peeking out instead. */
+/* No hover on touch screens - show the preview peeking out instead. */
 @media (hover: none) {
   .project-card-paper { translate: 0 -60%; }
 }
@@ -632,7 +632,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   border-bottom: 2.5px solid var(--acc);
 }
 
-/* Shared link arrow on cards — nudges right on hover. */
+/* Shared link arrow on cards - nudges right on hover. */
 .card-arrow {
   width: 1em;
   height: 1em;
@@ -644,10 +644,13 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .cert-link:hover .card-arrow { translate: 4px 0; }
 
 /* ============================================================
-   GALLERY GRID (Illustrations) — polaroids
+   GALLERY GRID (Illustrations) - polaroids
    ============================================================
-   White mat, thin edge, a slight tilt that varies card to card;
-   straightens and lifts on hover. Art keeps its natural ratio. */
+   Colour-pop frames: each frame is painted with its artwork's most
+   visible colour and the tag chip with the second (set per card by
+   script.js as --frame / --chip). Chunky ink outline, a slight tilt that
+   varies card to card; on hover the frame straightens and lifts, and the
+   artwork jumps a little way out of it. Art keeps its natural ratio. */
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -656,29 +659,46 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 }
 
 .gallery-item {
+  --frame: var(--white);
+  --frame-ink: var(--ink);
+  --chip: var(--periwinkle-tint);
+  --chip-ink: var(--ink);
   position: relative;
   display: flex;
   flex-direction: column;
   padding: 12px 12px 0;
-  background: var(--white);
-  border: 1.5px solid rgba(22, 26, 46, 0.14);
-  border-radius: 4px;
-  rotate: -1.5deg;
+  background: var(--frame);
+  border: var(--border);
+  border-radius: 6px;
+  box-shadow: var(--pop);
+  rotate: -1.5deg;   /* hover bounce comes from .animate-on-scroll's transition */
 }
 .gallery-item:nth-child(3n+2) { rotate: 1.8deg; }
 .gallery-item:nth-child(3n)   { rotate: -0.6deg; }
 .gallery-item:hover {
   z-index: 1;
   rotate: 0deg;
-  translate: 0 -6px;
-  scale: 1.02;
+  translate: -3px -6px;
+  box-shadow: var(--pop-lg);
 }
-/* No forced aspect ratio — artwork keeps its own proportions, never cropped. */
+/* No forced aspect ratio - artwork keeps its own proportions, never cropped. */
 .gallery-item-img {
   width: 100%;
   overflow: hidden;
   background: var(--periwinkle-tint);
-  border-radius: 2px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  transition: scale 0.3s var(--ease-bounce), translate 0.3s var(--ease-bounce),
+              rotate 0.3s var(--ease-bounce), box-shadow 0.3s;
+}
+.gallery-item:hover .gallery-item-img {
+  scale: 1.05;
+  translate: 0 -10px;
+  rotate: -1.5deg;
+  box-shadow: 5px 5px 0 var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gallery-item:hover .gallery-item-img { scale: none; translate: none; rotate: none; box-shadow: none; }
 }
 .gallery-item-img--empty {
   display: flex;
@@ -691,30 +711,35 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .gallery-item-img img { width: 100%; height: auto; }
 
 .gallery-item-cap {
-  padding: 14px 4px 18px;
+  padding: 14px 4px 16px;
   display: flex;
-  align-items: baseline;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: 8px var(--space-sm);
 }
 .gallery-item-cap h3 {
   font-family: var(--font-display);
   font-size: var(--fs-h3);
   font-weight: 600;
-  color: var(--ink);
+  color: var(--frame-ink);
   line-height: 1.25;
 }
 .gallery-item-cap p {
   font-size: var(--fs-tiny);
   font-weight: 600;
-  color: var(--ink-muted);
+  color: var(--chip-ink);
+  background: var(--chip);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-full);
+  padding: 2px 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
 
 /* ============================================================
-   LIGHTBOX  (native <dialog> — focus trap, Esc and aria-modal for free)
+   LIGHTBOX  (native <dialog> - focus trap, Esc and aria-modal for free)
    ============================================================ */
 .lightbox {
   margin: auto;          /* restores <dialog> centring (the * reset zeroes it) */
@@ -758,7 +783,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .lightbox-close:hover { transform: rotate(90deg); }
 
 /* ============================================================
-   WRITING — library index cards
+   WRITING - library index cards
    ============================================================
    Every line of text sits on a 28px ruled grid (--rule), so keep
    margins inside the card at 0 or a multiple of it. */
@@ -849,7 +874,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .read-more svg { width: 1.05em; height: 1.05em; vertical-align: -0.15em; }
 
 /* ============================================================
-   CERTIFICATES — ticket stubs
+   CERTIFICATES - ticket stubs
    ============================================================
    Coloured stub (scan or icon) | dashed perforation with notches | details. */
 .cert-grid {
@@ -939,8 +964,9 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   padding: 0 0 var(--space-lg);
 }
 
-/* The About page opens straight after the marquee — keep the gap tight. */
-.page-about .section:first-of-type { padding-top: var(--space-md); }
+/* The About page opens straight after the marquee - keep the gap tight,
+   and the Current Goals notes follow close behind the bio. */
+.page-about .section:first-of-type { padding: var(--space-md) 0; }
 
 /* Full-width hero header: eyebrow + one-line greeting + subheading. */
 .about-head { grid-column: 1 / -1; }
@@ -1033,7 +1059,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 }
 
 /* Skills / "Other Pages" pills (centred row of links to the other pages) */
-.skills-section { padding: var(--space-lg) 0; }
+.skills-section { padding: var(--space-md) 0 0; }
 .skills-heading {
   font-family: var(--font-display);
   font-size: var(--fs-h3);
@@ -1056,9 +1082,9 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   transition: transform var(--transition), box-shadow var(--transition),
               background var(--transition), color var(--transition);
 }
-/* Accent hover — each "Other Pages" chip previews its page's own colour. */
+/* Accent hover - each "Other Pages" chip previews its page's own colour. */
 .skill-tag.lavender:hover { background: var(--periwinkle); color: var(--ink); }
-.skill-tag.blue:hover     { background: var(--blue);       color: var(--ink); }  /* ink — white fails contrast */
+.skill-tag.blue:hover     { background: var(--blue);       color: var(--ink); }  /* ink - white fails contrast */
 .skill-tag.teal:hover     { background: var(--teal);       color: var(--ink); }
 .skill-tag.yellow:hover   { background: var(--yellow);     color: var(--ink); }
 .skill-tag.pink:hover     { background: var(--pink);       color: var(--ink); }
@@ -1067,8 +1093,12 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 /* Casual sign-off (Niv-style "Thanks for looking ;)") */
 .signoff {
   text-align: center;
-  padding: var(--space-xl) 0 var(--space-lg);
+  padding: var(--space-lg) 0 0;
 }
+/* The About page runs Current Goals -> Other Pages -> sign-off -> footer
+   as one short stack, so its gaps are tighter than the other pages'. */
+.page-about .wave-divider { margin: var(--space-md) 0; }
+.page-about .site-footer { margin-top: var(--space-xl); }
 .signoff p {
   font-family: var(--font-display);
   font-size: var(--fs-h2);
@@ -1222,14 +1252,14 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
    ============================================================ */
 
 /* Text selection matches each page's accent colour (ink text on every
-   flat accent passes AA — same combos as the chips/buttons). */
+   flat accent passes AA - same combos as the chips/buttons). */
 ::selection { background: var(--yellow); color: var(--ink); }
 .page-coding ::selection { background: var(--blue); color: var(--ink); }
 .page-art ::selection { background: var(--periwinkle); color: var(--ink); }
 .page-writing ::selection { background: var(--teal); color: var(--ink); }
 .page-certs ::selection { background: var(--pink); color: var(--ink); }
 
-/* Art page leans periwinkle, not blue — its focus rings follow. */
+/* Art page leans periwinkle, not blue - its focus rings follow. */
 .page-art :focus-visible { outline-color: var(--periwinkle); }
 
 /* Visually-hidden utility (screen-reader announcements). */
@@ -1242,25 +1272,19 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   white-space: nowrap;
 }
 
-/* "About me" chip lifts on hover — same playful swing as the banner chips. */
+/* "About me" chip lifts on hover - same playful swing as the banner chips. */
 .about-eyebrow { transition: transform var(--transition), box-shadow var(--transition); }
 .about-eyebrow:hover {
   transform: rotate(2deg) translateY(-3px) scale(1.05);
   box-shadow: var(--pop-lg);
 }
 
-/* ---------- "CURRENTLY…" CARD (About page) ---------- */
+/* ---------- "CURRENT GOALS" STICKY NOTES (About page) ----------
+   One pinned note per goal in its page's colour, each at its own slight
+   tilt. Notes that link somewhere straighten and lift on hover. */
 .currently-section { padding: 0 0 var(--space-md); }
-.currently-card {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: var(--space-md) var(--space-lg);
-  background: var(--white);
-  border: var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--pop);
-}
-.currently-heading {
+.goals { text-align: center; }
+.goals-heading {
   display: inline-block;
   font-family: var(--font-display);
   font-size: var(--fs-h3);
@@ -1270,26 +1294,74 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   padding: 0 0.3em;
   border-radius: 6px;
   transform: rotate(-1.5deg);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
-.currently-list { display: grid; gap: 10px; }
-.currently-list li {
+.goals-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  max-width: 980px;
+  margin: 0 auto;
+  padding-top: 10px;              /* room for the pins */
+  text-align: left;
+}
+.goal-note {
+  position: relative;
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: var(--fs-small);
-  color: var(--ink-soft);
-}
-.currently-icon { align-self: center; display: inline-flex; flex-shrink: 0; }
-.currently-icon svg { width: 20px; height: 20px; }
-.currently-list li:nth-child(4n+1) .currently-icon { color: var(--periwinkle); }
-.currently-list li:nth-child(4n+2) .currently-icon { color: var(--blue); }
-.currently-list li:nth-child(4n+3) .currently-icon { color: var(--teal); }
-.currently-list li:nth-child(4n)   .currently-icon { color: var(--pink); }
-.currently-label {
-  font-family: var(--font-display);
-  font-weight: 600;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 190px;
+  padding: 26px 18px 18px;
+  background: var(--periwinkle);
+  border: var(--border);
+  border-radius: 4px;
+  box-shadow: var(--pop);
   color: var(--ink);
+  transition: rotate var(--transition), translate var(--transition), box-shadow var(--transition);
+}
+.goal-note.blue { background: var(--blue); }
+.goal-note.teal { background: var(--teal); }
+.goal-note.yellow { background: var(--yellow); }
+.goal-note.pink { background: var(--pink); }
+.goals-board li:nth-child(4n+1) .goal-note { rotate: -2.5deg; }
+.goals-board li:nth-child(4n+2) .goal-note { rotate: 1.5deg; translate: 0 8px; }
+.goals-board li:nth-child(4n+3) .goal-note { rotate: -1deg; }
+.goals-board li:nth-child(4n)   .goal-note { rotate: 2.5deg; translate: 0 6px; }
+.goals-board li a.goal-note:hover { rotate: 0deg; translate: -2px -4px; box-shadow: var(--pop-lg); }
+.goal-pin {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  margin-left: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2.5px solid var(--ink);
+  box-shadow: inset 4px 4px 0 -1px var(--white);
+}
+.goal-icon { display: inline-flex; }
+.goal-icon svg { width: 22px; height: 22px; }
+.goal-label {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+.goal-value { font-size: 0.92rem; line-height: 1.5; }
+.goal-link {
+  margin-top: auto;
+  padding-top: var(--space-xs);
+  font-family: var(--font-display);
+  font-size: var(--fs-small);
+}
+.goal-note:hover .card-arrow { translate: 4px 0; }
+
+@media (max-width: 820px) {
+  .goals-board { grid-template-columns: repeat(2, 1fr); gap: var(--space-md) var(--space-sm); }
+  .goal-note { min-height: 170px; padding: 24px 14px 14px; }
+  .goal-link { font-size: 0.8rem; }
 }
 
 /* ---------- GALLERY FILTER CHIPS + SHUFFLE ---------- */
@@ -1331,7 +1403,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   height: 100%;
   object-fit: contain;
   transform-origin: bottom center;
-  /* hard offset, zero blur — stays flat */
+  /* hard offset, zero blur - stays flat */
   filter: drop-shadow(3px 3px 0 rgba(22, 26, 46, 0.22));
 }
 .wizard-sprite.asleep img {
@@ -1392,7 +1464,7 @@ body:has(dialog[open]) .wizard-buddy { display: none; }
   .wizard-buddy { display: none; }
 }
 
-/* Doodle rain — the 10-pet reward. Flat glyphs in brand colours. */
+/* Doodle rain - the 10-pet reward. Flat glyphs in brand colours. */
 .doodle-rain {
   position: fixed;
   inset: 0;
@@ -1416,7 +1488,7 @@ body:has(dialog[open]) .wizard-buddy { display: none; }
   to { transform: translateY(112vh) rotate(310deg); }
 }
 
-/* Wizard motion (idle breathing + pet squish) — only when motion is welcome. */
+/* Wizard motion (idle breathing + pet squish) - only when motion is welcome. */
 @media (prefers-reduced-motion: no-preference) {
   .wizard-sprite img { animation: wizard-breathe 3.6s ease-in-out infinite; }
   .wizard-sprite.petted img { animation: wizard-squish 0.45s ease; }
@@ -1452,7 +1524,7 @@ body:has(dialog[open]) .wizard-buddy { display: none; }
 }
 
 /* ============================================================
-   VIEW TRANSITIONS (cross-page morphs — progressive enhancement;
+   VIEW TRANSITIONS (cross-page morphs - progressive enhancement;
    browsers without support simply navigate as normal)
    ============================================================ */
 @media (prefers-reduced-motion: no-preference) {
@@ -1460,7 +1532,7 @@ body:has(dialog[open]) .wizard-buddy { display: none; }
 
   /* The header persists untouched. The old page is dropped at once (fading
      it out would leave its pieces floating over the new page), and the new
-     page's own page-enter fade (below) is the only fade — everything arrives
+     page's own page-enter fade (below) is the only fade - everything arrives
      together. */
   .site-header { view-transition-name: site-header; }
   ::view-transition-old(root) { display: none; }
