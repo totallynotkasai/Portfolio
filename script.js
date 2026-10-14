@@ -122,8 +122,9 @@
       : `<div class="about-photo-placeholder">${doodleIcon('camera')}</div>`;
 
     const paras = (a.paragraphs || []).map((p) => `<p>${esc(p)}</p>`).join('');
+    // <wbr> lets a narrow phone wrap the address before the "@" instead of mid-word.
     const emailLine = a.email
-      ? `<p>For inquiries: <a class="about-email" href="mailto:${esc(a.email)}">${esc(a.email)}</a></p>`
+      ? `<p>For inquiries: <a class="about-email" href="mailto:${esc(a.email)}">${esc(a.email).replace('@', '<wbr>@')}</a></p>`
       : '';
 
     hero.innerHTML = `

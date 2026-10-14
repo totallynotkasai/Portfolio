@@ -1099,7 +1099,11 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 }
 
 @media (max-width: 820px) {
-  .about-hero { grid-template-columns: 1fr; gap: var(--space-lg); text-align: center; }
+  /* minmax(0, 1fr), not 1fr: a plain 1fr column grows to fit its widest
+     child, and Firefox sizes the photo at its 380px max, which pushed the
+     column past the screen edge and everything centred in it off to the right. */
+  .about-hero { grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); text-align: center; }
+  .about-email { overflow-wrap: anywhere; }   /* last resort if even half the address won't fit */
   .about-head { order: 1; }
   .about-photo-wrapper { order: 2; }
   .about-text { order: 3; }
@@ -1351,7 +1355,7 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .goal-note:hover .card-arrow { translate: 4px 0; }
 
 @media (max-width: 820px) {
-  .goals-board { grid-template-columns: repeat(2, 1fr); gap: var(--space-md) var(--space-sm); }
+  .goals-board { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md) var(--space-sm); }
   .goal-note { min-height: 170px; padding: 24px 14px 14px; }
   .goal-link { font-size: 0.8rem; }
 }
