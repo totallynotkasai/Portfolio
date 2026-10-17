@@ -7,6 +7,14 @@
       "runtimeArgs": ["C:\\Users\\andre\\My Files\\Projects\\Coding Projects\\Portfolio\\.claude\\devserver.mjs"],
       "port": 4321,
       "autoPort": true
+    },
+    {
+      "name": "portfolio-dist",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["C:\\Users\\andre\\My Files\\Projects\\Coding Projects\\Portfolio\\.claude\\devserver.mjs", "--dist"],
+      "env": { "PORT": "4322" },
+      "port": 4322,
+      "autoPort": true
     }
   ]
 }

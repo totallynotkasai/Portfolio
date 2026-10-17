@@ -4,15 +4,15 @@
 
    HOW IT WORKS
    ------------
-   Every image, certificate, project and bit of text on the site lives in
-   this one file. The pages build themselves from what you put here, so you
-   never have to touch the HTML or CSS.
+   The site is Kasai OS: one page that's a little desktop. Every image,
+   certificate, project and bit of text in its windows lives in this one
+   file, so you never have to touch the HTML, CSS or JS.
 
    TO ADD ARTWORK: just drop the file into a category folder and push:
-     assets/art/Poster/My Piece.png   →  appears on the Art page, tagged
-     "Poster", titled "My Piece". No need to touch this file. A new folder
-     makes a new category (and a new filter chip). Files loose in
-     assets/art/ appear with no category.
+     assets/art/Poster/My Piece.png   →  appears in the Art window as a
+     card, tagged "Poster", titled "My Piece". No need to touch this file.
+     A new folder makes a new category (and a new menu item). Files loose
+     in assets/art/ appear with no category.
 
    TO ADD A CERTIFICATE / PROJECT:
      1. Drop the image file into the matching assets folder:
@@ -21,9 +21,13 @@
         using the folder in the path, e.g.  img: 'assets/certs/My Cert.png'
      3. Save & push. Done.
 
+   TO PUT AN OLD DESIGN IN THE TRASH: drop a screenshot into assets/recycle/
+     and it appears in the Recycle Bin, named after the file. A date in
+     brackets, like "My Old Look (May 2027).png", puts them in order.
+
    IMAGE SIZE: don't worry about it. Use your full-resolution files. Every
    deploy makes small, fast copies for the page automatically (the
-   original's detail is kept for the full-size lightbox view).
+   original's detail is kept for the full-size image viewer).
 
    IF YOU MAKE A TYPO in this file, the deploy stops and the live site stays
    as it was. Vercel's build log says which line to fix.
@@ -42,19 +46,21 @@
 window.CONTENT = {
 
   /* ──────────────────────────────────────────────────────────────────────
-     1. ABOUT PAGE  (about.html)
+     1. ABOUT  (the about_me.txt window, open when someone first arrives)
      ──────────────────────────────────────────────────────────────────────
-     • Put *asterisks* around words you want highlighted in yellow.
+     • In the heading and subheading, put *asterisks* around words you
+       want highlighted in yellow (it only works in those two).
      • Each string in "paragraphs" becomes one paragraph. Add/remove freely.
      • Set  photo: ''  to show a placeholder instead of a photo. */
   about: {
-    eyebrow: 'About me',
-
-    // Big one-line greeting at the top. Wrap any part in *asterisks* to highlight.
+    // The big greeting at the top of the window. Wrap any part in *asterisks* to highlight.
     heading: "Hi I'm *Andrew Worgan*",
 
-    // Shown as a subheading just under the greeting.
+    // Shown just under the greeting (and in the Start menu, under your name).
     subheading: "IT professional and hobbyist artist living around Bristol, UK",
+
+    // The rolling strip across the top of the About window. One phrase per line.
+    ticker: ['Digital illustration', 'Graphic design', 'Web design', 'Creative writing', 'IT', 'QA', 'Automation'],
 
     photo: 'assets/photos/About Me Photo.png',
     photoAlt: 'Photo of Andrew',
@@ -67,11 +73,12 @@ window.CONTENT = {
 
     email: 'andrew.worgan.enquiry@gmail.com',
 
-    // "Current Goals": a row of pinned sticky notes under the bio, one per goal.
-    // Keep it fresh: update me monthly, or delete every line to hide them.
-    // • icon can be: 'pencil' 'quill' 'hammer' 'book' 'sprout' 'controller'
-    // • accent is the note's colour (match the page it links to).
-    // • url (optional) makes the note a link; "link" is the text at its foot.
+    // "Current Goals": sticky notes pinned to the desktop, one per goal.
+    // Visitors can drag them about. Keep them fresh: update me monthly, or
+    // delete every line to hide them.
+    // • icon: any doodle name, e.g. 'pencil' 'quill' 'hammer' 'book' 'sprout' 'controller'
+    // • accent is the note's colour (match the window it opens).
+    // • url (optional) makes the note open that window; "link" is the text at its foot.
     currentlyHeading: 'Current Goals',
     currently: [
       { icon: 'hammer', label: 'Building', value: 'Filo, my personal knowledge manager.', accent: 'blue', url: '/coding_projects', link: 'See projects' },
@@ -80,29 +87,18 @@ window.CONTENT = {
       { icon: 'sprout', label: 'Growing', value: 'My career in IT, one cert at a time.', accent: 'pink', url: '/certificates', link: 'See certificates' },
     ],
 
-    // The "Other Pages" chips on the About page link to the rest of the site.
-    // Each chip lights up in its own page's colour on hover (set by "accent").
-    //   accent can be:  'blue'  'lavender'  'teal'  'yellow'  'pink'
-    pagesHeading: 'Other Pages',
-    pages: [
-      { label: 'Coding', url: '/coding_projects', accent: 'blue' },
-      { label: 'Art', url: '/illustrations_and_graphics', accent: 'lavender' },
-      { label: 'Writing', url: '/writing', accent: 'teal' },
-      { label: 'Certificates', url: '/certificates', accent: 'pink' },
-    ],
-
-    // Casual Niv-style sign-off shown at the bottom of the About page.
+    // Casual sign-off, shown in the About window's status bar.
     signoff: 'Thanks for stopping by :)',
   },
 
   /* ──────────────────────────────────────────────────────────────────────
-     2. ILLUSTRATIONS & GRAPHICS  (illustrations_and_graphics.html)
+     2. ART  (the binder.exe window: every piece is a collectible card)
      ──────────────────────────────────────────────────────────────────────
      Every image in assets/art/ shows up automatically (see the top of this
      file); its subfolder is its category. This list is OPTIONAL. Only add a
      line to change how a piece appears:
         { img: 'assets/art/Poster/My Piece.png', title: 'A Nicer Title' },
-     ORDER on the page:
+     ORDER in the binder:
        1. lines below marked  pin: true   (stay above everything)
        2. new files with no line here     (newest first)
        3. the other lines below, in this order
@@ -135,18 +131,18 @@ window.CONTENT = {
   ],
 
   /* ──────────────────────────────────────────────────────────────────────
-     3. CODING PROJECTS  (coding_projects.html)
+     3. CODING  (the projects folder; each project opens as its own window)
      ──────────────────────────────────────────────────────────────────────
-     • "img" is an optional screenshot in assets/projects/ ('' shows a
-       coloured block). It's cropped to 16:10, so landscape shots work best.
+     • "img" is an optional screenshot in assets/projects/ ('' shows an
+       icon). It's cropped to 16:10, so landscape shots work best.
      • "tags" is a list of technologies (they become the window's menu bar).
        A tag of 'In Progress' shows in the status bar instead.
      • "links" is a list of buttons. Give each a label and url.
-     • Each project shows as an app window. Its title bar reads the title
-       up to any " - " as a file name, with an extension that fits its tags
-       (e.g. "filo.exe", "toolbox.apk"); set  window: 'name.ext'  to choose
-       it yourself.
-     • "accent" colours the window's title bar (default blue).
+     • Each project is a file in the folder and opens as an app window. Its
+       name reads the title up to any " - ", with an extension that fits its
+       tags (e.g. "filo.exe", "toolbox.apk"); set  window: 'name.ext'  to
+       choose it yourself.
+     • "accent" colours the project's window (default blue).
      • Built on someone else's project? Add
          forkOf: { label: 'owner/repo', url: 'https://github.com/owner/repo' }
        and a "Forked from owner/repo" line appears under the title.       */
@@ -212,55 +208,56 @@ window.CONTENT = {
   ],
 
   /* ──────────────────────────────────────────────────────────────────────
-     4. WRITING  (writing.html)
+     4. WRITING  (the documents window; each piece opens on an index card)
      ──────────────────────────────────────────────────────────────────────
         { date: 'Month Year', title: 'Title', excerpt: 'Teaser…',
-          url: 'https://…', accent: 'blue', stamp: 'Short' },
-     • Each piece shows as a library index card. "accent" colours the
-       margin line; "stamp" (optional) is the little rubber stamp.        */
+          url: 'https://…', status: 'Finished', accent: 'blue', stamp: 'Short' },
+     • Each piece is a document in the list (title, status, date). Opening
+       it shows the excerpt on a ruled index card. "accent" colours the
+       card's margin line; "stamp" (optional) is the little rubber stamp.
+     • Give it a real url and a "Read it" button appears.                 */
   writing: [
     {
       date: '2026',
       title: 'Dilettantes in the Interim',
       excerpt: 'My web novel, currently being re-written. A character-driven story I keep coming back to.',
       url: '',                              // no url = no dead link; shows the status text instead
-      status: 'Re-write in progress',    // shown in place of "Read more →"
+      status: 'Re-write in progress',    // shown in the list and on the card
       stamp: 'Re-write',                  // rubber stamp in the top corner (optional)
       accent: 'lavender',
     },
     // ↑ copy a whole { ... }, block to add another piece of writing.
-    //   Give it a real  url: 'https://…'  and it becomes a clickable card again.
   ],
 
   /* ──────────────────────────────────────────────────────────────────────
-     5. CERTIFICATES  (certificates.html)
+     5. CERTIFICATES  (a folder of certificate files)
      ──────────────────────────────────────────────────────────────────────
      EASIEST WAY: drop a photo/scan of the certificate into assets/certs/
-     and put its path in "img". It fills the stub of the ticket and opens
-     full size when clicked. No image? Leave img:'' and the stub shows
-     an icon on its accent colour (default pink).
+     and put its path in "img". It becomes the file's thumbnail and opens
+     full size in the image viewer. No image? Leave img:'' and the file
+     shows an icon instead.
 
         { img: 'assets/certs/my-cert.png', title: 'Certificate Name',
           issuer: 'Who issued it', date: 'Month Year',
           link: 'https://credential-url',     // optional 'View credential'
           accent: 'yellow', icon: 'cap' },
-     • "icon" (badge only) can be:  'cap'  'ribbon'  'book'  'laptop'      */
+     • "icon" (no image only): any doodle name, e.g. 'cap' 'ribbon' 'book' 'laptop' */
   certificates: [
-    // Empty on purpose: the page shows a tidy "nothing here yet" state,
+    // Empty on purpose: the folder shows a tidy "This folder is empty",
     // which looks better to a recruiter than placeholder data ever would.
     // Add your first real one by copying the template from the comment above.
   ],
 
   /* ──────────────────────────────────────────────────────────────────────
-     6. SITE PERSONALITY  (every page)
+     6. SITE PERSONALITY  (all around Kasai OS)
      ──────────────────────────────────────────────────────────────────────
      Small bits of voice that live around the edges of the site.           */
   site: {
-    // Shown under the copyright line in the footer. '' hides it.
-    footerTagline: '',
+    // The last line of the Start menu.
+    copyright: '© 2026 Andrew Worgan (Kasai). All rights reserved.',
 
-    // Per-page "nothing here yet" jokes. Keys match each page's section.
-    // The coding one stays straight on purpose because recruiters read that page.
+    // What an empty folder says under "This folder is empty". Keys match
+    // each window. The coding one stays straight because recruiters read it.
     emptyStates: {
       art: 'The easel is warming up. Art arriving soon.',
       coding: 'Projects are being tidied up. Check back soon.',
@@ -278,16 +275,31 @@ window.CONTENT = {
   },
 
   /* ──────────────────────────────────────────────────────────────────────
-     7. THE PET WIZARD  (your interactive mascot, bottom-right of every page)
+     7. KASAI OS  (window headings; all optional)
      ──────────────────────────────────────────────────────────────────────
-     • Click him (or Tab to him + Enter) to pet him. Pet him a LOT and
-       something nice happens.
-     • "lines" = speech-bubble greetings per page; one is picked at random
-       a moment after the page loads. Pages listed in "quietPages" never
-       speak first; the wizard only talks there if clicked.
-     • FRAMES: he now blinks on his own, beams when petted, and dozes off,
-       driven by five hand-drawn 960×960 PNGs below. Blank out any one of
-       them (or remove `frames`) and he falls back to the single `image`.   */
+     Each window's big heading, the line under it and its folder path.
+     Delete a line to go back to the built-in wording.                    */
+  os: {
+    windows: {
+      coding: { heading: 'Projects', sub: "Apps, experiments & tools I've built." },
+      art: { heading: 'Illustration & Design', sub: 'Drawings, characters & design work. Pick a card to see it full size.' },
+      writing: { heading: 'Drafts & Complete Works', sub: 'Web novels, stories & creative writing.' },
+      certificates: { heading: 'Certificates', sub: 'Courses, certifications & professional development.' },
+      games: { heading: 'Games', sub: 'Things to play when you should be working.' },
+      trash: { heading: 'Recycle Bin', sub: "Old designs I couldn't bring myself to delete." },
+    },
+  },
+
+  /* ──────────────────────────────────────────────────────────────────────
+     8. THE PET WIZARD  (your virtual pet, living on the desktop)
+     ──────────────────────────────────────────────────────────────────────
+     • He lives on the desktop behind the windows. Click him (or Tab to him
+       + Enter) to pet him. Pet him a LOT and something nice happens.
+     • "lines" = what he says when a window opens (one at random). Windows
+       listed in "quietPages" never get a line; he only talks there if clicked.
+     • FRAMES: he blinks on his own, beams when petted and dozes off, driven
+       by five hand-drawn 960×960 PNGs below. A missing frame falls back to
+       "idle"; with no frames at all he uses the single `image`.            */
   wizard: {
     enabled: true,                // set false to retire him (he'll understand)
     image: 'assets/ui/Pet Wizard Cursor default Not rotated.png', // fallback frame
@@ -298,8 +310,8 @@ window.CONTENT = {
       happy: 'assets/Wizard Sprite/Happy Wizard.png',           // when you pet him
       asleep: 'assets/Wizard Sprite/Sleepy Wizard.png',          // napping (zzz drawn in)
     },
-    sleepAfter: 60,               // seconds of being ignored before he naps
-    quietPages: ['coding'],       // pages where he won't speak unprompted
+    sleepAfter: 60,               // seconds of being ignored before he naps (half that at night)
+    quietPages: ['coding'],       // windows where he won't speak unprompted
 
     lines: {
       about: [
@@ -313,7 +325,7 @@ window.CONTENT = {
       art: [
         'Hey nice Cursor :3',
         "Is that me or my twin?",
-        'click a piece, the lightbox is cosy.',
+        'click a card, the viewer is cosy.',
       ],
       writing: [
         'shhhhhhh... novel in progress.',
@@ -331,10 +343,6 @@ window.CONTENT = {
 
     // What he says when you pet him (cycles in order, then repeats).
     petLines: ['!', '<3', 'Momentai', 'Good vibes only, gang.', 'again.', 'this is acceptable', 'magic +1', 'okay one more'],
-
-    // What he says when you scroll down and he ends up over the dark footer
-    // (cycles in order if you add more). Delete every line to keep him quiet.
-    footerLines: ["Oooh it's dark down here"],
   },
 
 };

@@ -7,6 +7,10 @@
     {
       "source": "/",
       "destination": "/about"
+    },
+    {
+      "source": "/(coding_projects|illustrations_and_graphics|writing|certificates|games|trash)",
+      "destination": "/about"
     }
   ],
   "headers": [

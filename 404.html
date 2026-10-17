@@ -3,110 +3,90 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>404 - Andrew Worgan Portfolio</title>
-  <meta name="description" content="Page not found - Andrew Worgan (Kasai)." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Page not found - Kasai OS</title>
   <meta name="robots" content="noindex" />
+  <!-- Vercel shows this page for any address that does not exist, at any
+       depth (e.g. /old/page/here), so every link and file path below starts
+       with / . It is the same Kasai OS as about.html, opening an error
+       dialog instead of a window. Keep the two in step if one changes. -->
 
   <link rel="icon" type="image/png" href="/assets/ui/favicon.png" />
   <link rel="apple-touch-icon" href="/assets/ui/apple-touch-icon.png" />
   <link rel="preload" href="/fonts/ArialRoundedMTBold.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/Inter-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- Runs before anything is drawn: the visitor's saved wallpaper. -->
+  <script src="/head.js"></script>
   <link rel="stylesheet" href="/style.css" />
-  <!-- The page is built from these scripts before its first paint
-       (blocking="render"), so content never pops in late. "defer" runs them
-       once the HTML below has been read, in this order. -->
+  <!-- Kasai OS is built from these before its first paint (blocking="render"),
+       in this order: the words, shared helpers, the apps, the pet, the OS. -->
   <script src="/generated/manifest.js" defer blocking="render"></script>
   <script src="/content.js" defer blocking="render"></script>
-  <script src="/script.js" defer blocking="render"></script>
+  <script src="/kasai-core.js" defer blocking="render"></script>
+  <script src="/apps.js" defer blocking="render"></script>
+  <script src="/pet.js" defer blocking="render"></script>
+  <script src="/kasai-os.js" defer blocking="render"></script>
 </head>
 
-<body class="page-notfound">
+<body data-page="notfound">
+
+  <a class="skip-link" href="#windows">Skip to the open window</a>
 
   <noscript>
-    <p style="padding:2rem;text-align:center;">
-      This site needs JavaScript to show its content, or just email me:
+    <p class="noscript">
+      Kasai OS needs JavaScript to run, or just email me:
       <a href="mailto:andrew.worgan.enquiry@gmail.com">andrew.worgan.enquiry@gmail.com</a>
     </p>
   </noscript>
 
-  <!-- ========== HEADER ==========
-       The current page's link is highlighted automatically (markActiveNav). -->
-  <header class="site-header">
-    <a href="/" class="brand"><img class="brand-flame" src="/assets/ui/favicon.png" alt="" />Andrew Worgan</a>
-    <nav class="nav-links" aria-label="Main navigation">
-      <a href="/"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/about.svg#icon"/></svg>About</a>
-      <a href="/coding_projects"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/coding.svg#icon"/></svg>Coding</a>
-      <a href="/illustrations_and_graphics"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/art.svg#icon"/></svg>Art</a>
-      <a href="/writing"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/writing.svg#icon"/></svg>Writing</a>
-      <a href="/certificates"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/certificates.svg#icon"/></svg>Certificates</a>
-    </nav>
-    <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="mobile-nav">
-      <span></span><span></span><span></span>
-    </button>
-  </header>
-
-  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
-    <a href="/"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/about.svg#icon"/></svg>About</a>
-    <a href="/coding_projects"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/coding.svg#icon"/></svg>Coding</a>
-    <a href="/illustrations_and_graphics"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/art.svg#icon"/></svg>Art</a>
-    <a href="/writing"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/writing.svg#icon"/></svg>Writing</a>
-    <a href="/certificates"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/certificates.svg#icon"/></svg>Certificates</a>
-  </nav>
-
-  <!-- ========== MAIN ==========
-       The lost-page page. Vercel serves this automatically for any
-       URL that doesn't exist. Its links must stay root-absolute (/style.css)
-       because it can be shown at any depth, e.g. /old/page/here.
-       UPGRADE: swap the image below for a drawn "lost wizard holding a map
-       upside down" (~800×800 transparent PNG) when you make one. -->
-  <main class="page-content">
-
-    <section class="page-banner yellow">
-      <div class="container">
-        <span class="banner-chip">Lost?</span>
-        <h1>404</h1>
-        <p>The wizard ate this page. He says sorry. (He is not sorry.)</p>
-      </div>
-    </section>
-
-    <div class="container">
-      <div class="wave-divider yellow"></div>
+  <!-- ========== THE DESKTOP ==========
+       You don't edit anything here: the windows, sticky notes and the pet
+       all come from content.js. The icons are real links so search engines
+       can follow them; the OS opens them as windows. -->
+  <main class="os" id="os">
+    <div class="desktop" id="desktop">
+      <h1 class="vh">Andrew Worgan: IT professional and hobbyist artist. Kasai OS portfolio.</h1>
+      <nav aria-label="Desktop">
+        <ul class="desk-icons" id="desk-icons">
+          <li><a class="desk-icon" href="/" data-app="about" draggable="false"><span class="desk-ico"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/about.svg#icon"/></svg></span><span class="desk-label">About</span></a></li>
+          <li><a class="desk-icon" href="/coding_projects" data-app="coding" draggable="false"><span class="desk-ico"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/coding.svg#icon"/></svg></span><span class="desk-label">Coding</span></a></li>
+          <li><a class="desk-icon" href="/illustrations_and_graphics" data-app="art" draggable="false"><span class="desk-ico"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/art.svg#icon"/></svg></span><span class="desk-label">Art</span></a></li>
+          <li><a class="desk-icon" href="/writing" data-app="writing" draggable="false"><span class="desk-ico"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/writing.svg#icon"/></svg></span><span class="desk-label">Writing</span></a></li>
+          <li><a class="desk-icon" href="/certificates" data-app="certificates" draggable="false"><span class="desk-ico"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/certificates.svg#icon"/></svg></span><span class="desk-label">Certificates</span></a></li>
+          <li><a class="desk-icon" href="/games" data-app="games" draggable="false"><span class="desk-ico"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/games.svg#icon"/></svg></span><span class="desk-label">Games</span></a></li>
+          <li><a class="desk-icon" href="/trash" data-app="trash" draggable="false"><span class="desk-ico"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/trash.svg#icon"/></svg></span><span class="desk-label">Trash</span></a></li>
+        </ul>
+      </nav>
+      <div class="desk-notes" id="desk-notes"></div>
+      <div class="desk-pet" id="desk-pet"></div>
     </div>
-
-    <section class="section section--tight">
-      <div class="container notfound-box">
-        <img class="notfound-wizard" src="/assets/ui/Pet Wizard Cursor default Not rotated.png"
-          alt="The Pet Wizard, looking suspiciously full" />
-        <p class="notfound-text">Whatever lived at this address is gone, but everything else is still here:</p>
-        <div class="skills-grid">
-          <a class="skill-tag yellow" href="/">About</a>
-          <a class="skill-tag blue" href="/coding_projects">Coding</a>
-          <a class="skill-tag lavender" href="/illustrations_and_graphics">Art</a>
-          <a class="skill-tag teal" href="/writing">Writing</a>
-          <a class="skill-tag pink" href="/certificates">Certificates</a>
-        </div>
-      </div>
-    </section>
-
+    <div class="windows" id="windows"></div>
   </main>
 
-  <!-- ========== FOOTER ========== -->
-  <footer class="site-footer">
-    <div class="container">
-      <div class="footer-inner">
-        <p class="footer-text">&copy; 2026 Andrew Worgan (Kasai). All rights reserved.</p>
-        <div class="footer-socials">
-          <a href="https://www.linkedin.com/in/andrew-worgan/" target="_blank" rel="noopener"
-            class="social-link" aria-label="LinkedIn"><img src="/assets/ui/linkedinY.png" alt="LinkedIn" /></a>
-          <a href="https://github.com/totallynotkasai" target="_blank" rel="noopener" class="social-link"
-            aria-label="GitHub"><img src="/assets/ui/githubY.png" alt="GitHub" /></a>
-          <a href="https://www.instagram.com/totallynotkasai/" target="_blank" rel="noopener" class="social-link"
-            aria-label="Instagram"><img src="/assets/ui/instagramY.png" alt="Instagram" /></a>
-        </div>
-      </div>
-    </div>
-  </footer>
+  <!-- ========== THE TASKBAR ========== -->
+  <nav class="taskbar" aria-label="Taskbar">
+    <button class="start-btn" type="button" popovertarget="start-menu">
+      <img src="/assets/ui/favicon.png" alt="" /><span class="start-name">Andrew Worgan</span><span class="vh"> start menu</span>
+    </button>
+    <div class="start-menu" id="start-menu" popover></div>
+    <ul class="task-apps">
+      <li><a class="task-btn yellow" href="/" data-app="about"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/about.svg#icon"/></svg><span class="task-label">About</span></a></li>
+      <li><a class="task-btn blue" href="/coding_projects" data-app="coding"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/coding.svg#icon"/></svg><span class="task-label">Coding</span></a></li>
+      <li><a class="task-btn lavender" href="/illustrations_and_graphics" data-app="art"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/art.svg#icon"/></svg><span class="task-label">Art</span></a></li>
+      <li><a class="task-btn teal" href="/writing" data-app="writing"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/writing.svg#icon"/></svg><span class="task-label">Writing</span></a></li>
+      <li><a class="task-btn pink" href="/certificates" data-app="certificates"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/certificates.svg#icon"/></svg><span class="task-label">Certificates</span></a></li>
+      <li><a class="task-btn ink" href="/games" data-app="games"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/games.svg#icon"/></svg><span class="task-label">Games</span></a></li>
+    </ul>
+    <ul class="task-windows" id="task-windows" aria-label="Other open windows"></ul>
+    <ul class="tray" aria-label="Find me elsewhere">
+      <li><a href="https://www.linkedin.com/in/andrew-worgan/" target="_blank" rel="noopener" class="social-link" aria-label="LinkedIn"><img src="/assets/ui/linkedinY.png" alt="LinkedIn" /></a></li>
+      <li><a href="https://github.com/totallynotkasai" target="_blank" rel="noopener" class="social-link" aria-label="GitHub"><img src="/assets/ui/githubY.png" alt="GitHub" /></a></li>
+      <li><a href="https://www.instagram.com/totallynotkasai/" target="_blank" rel="noopener" class="social-link" aria-label="Instagram"><img src="/assets/ui/instagramY.png" alt="Instagram" /></a></li>
+    </ul>
+    <time class="tray-clock" id="tray-clock"></time>
+  </nav>
+
+  <p class="vh" id="os-live" role="status" aria-live="polite"></p>
 
 </body>
 

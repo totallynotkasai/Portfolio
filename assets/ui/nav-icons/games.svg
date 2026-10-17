@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96" color="#161A2E" stroke-width="1.8">
+  <!-- Nav icon - Games: a chunky game controller.
+       The site uses the <symbol> below via <use href="/assets/ui/nav-icons/games.svg#icon">;
+       the <use> at the bottom just draws it when you open this file on its own.
+       Two colours only: outlines and details are currentColor (navy), the fill
+       is a flat brand colour from style.css. Update both if the palette changes.
+       Line thickness comes from the page (style.css), so it matches the windows. -->
+  <symbol id="icon" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <path fill="#FEDA74" vector-effect="non-scaling-stroke"
+          d="M7.5 7h9a5 5 0 0 1 5 5v.5a4.5 4.5 0 0 1-8.2 2.6h-2.6A4.5 4.5 0 0 1 2.5 12.5V12a5 5 0 0 1 5-5z"/>
+    <path fill="none" vector-effect="non-scaling-stroke" d="M7.5 9.6v4.2M5.4 11.7h4.2"/>
+    <circle cx="15.6" cy="10.6" r="1.25" fill="currentColor" stroke="none"/>
+    <circle cx="18" cy="13" r="1.25" fill="currentColor" stroke="none"/>
+  </symbol>
+  <use href="#icon"/>
+</svg>

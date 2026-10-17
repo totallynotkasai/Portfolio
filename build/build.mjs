@@ -2,14 +2,16 @@
    BUILD STEP - Vercel runs this (`npm run build`) on every push to main.
    ════════════════════════════════════════════════════════════════════════
    The site itself stays hand-written vanilla HTML/CSS/JS. This only:
-     1. Checks content.js and script.js. A typo fails the build, and Vercel
-        then keeps the previous version of the site live.
+     1. Checks content.js and every script file. A typo fails the build, and
+        Vercel then keeps the previous version of the site live.
      2. Makes small WebP copies of every image in IMAGE_SETS (plus a large
-        one for the lightbox) and records their sizes, so pages download
-        only what they show and don't jump about while images load.
+        one for the image viewer) and records their sizes, so the page
+        downloads only what it shows and doesn't jump about while loading.
      3. Lists every artwork in assets/art, so dropping a file in there puts
         it on the site. A subfolder name becomes its tag (assets/art/Poster/).
         It also picks each artwork's two most visible colours for its frame.
+     4. Stamps a version onto the page's CSS and JS links, so a returning
+        visitor never gets new HTML with yesterday's cached code.
    Output: dist/ - the deployed site - with everything new in dist/generated/.
    The local preview server (.claude/devserver.mjs) reuses generate() below.
    ════════════════════════════════════════════════════════════════════════ */
@@ -33,6 +35,7 @@ const IMAGE_SETS = [
   { dir: 'assets/photos', web: 800 },
   { dir: 'assets/projects', web: 640 },
   { dir: 'assets/Wizard Sprite', web: 240 },
+  { dir: 'assets/recycle', web: 480, large: 1600 },   // retired designs in the Trash
 ];
 const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
 const WEBP = { quality: 82, effort: 5 };
@@ -141,17 +144,24 @@ async function artColours(sharp, file) {
   return [hex(frame), hex(chip)];
 }
 
-/* ---------- 1. Check content.js / script.js ---------- */
+/* ---------- 1. Check content.js and the scripts ---------- */
 export async function checkContent(root = ROOT) {
   const errors = [];
   const warnings = [];
   const firstLines = (e) => String(e && e.stack || e).split('\n').slice(0, 5).join('\n    ');
 
-  for (const file of ['content.js', 'script.js']) {
+  // Every .js file at the top level is deployed, so every one is checked.
+  const scripts = (await readdir(root)).filter((f) => /\.js$/i.test(f)).sort();
+  for (const file of scripts) {
     try { new vm.Script(await readFile(join(root, file), 'utf8'), { filename: file }); }
     catch (e) { errors.push(`${file} has a syntax error:\n    ${firstLines(e)}`); }
   }
   if (errors.length) return { errors, warnings };
+
+  // House style: no long dashes in the site's words.
+  (await readFile(join(root, 'content.js'), 'utf8')).split('\n').forEach((line, i) => {
+    if (line.includes('\u2014')) warnings.push(`content.js line ${i + 1} has a long dash; use " - " or reword`);
+  });
 
   // Run content.js the way a browser would and check it made window.CONTENT.
   const sandbox = { window: {} };
@@ -248,6 +258,36 @@ export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), 
   return { images, art };
 }
 
+/* ---------- 4. Version the CSS/JS links in the built pages ---------- */
+// CSS and JS are cached for a week while revalidating (vercel.json), so after
+// a deploy a returning visitor's first load could pair the new HTML with the
+// old code. Adding ?v=<hash of the file> to each link makes every change a
+// fresh URL. Only dist/ is touched; the source HTML stays clean.
+export async function stampAssetUrls(dist = DIST) {
+  const versions = new Map();
+  const version = async (url) => {
+    if (!versions.has(url)) {
+      let v = '';
+      try { v = createHash('sha1').update(await readFile(join(dist, url))).digest('hex').slice(0, 8); }
+      catch { /* not in dist (shouldn't happen): leave the link alone */ }
+      versions.set(url, v);
+    }
+    return versions.get(url);
+  };
+  for (const f of await readdir(dist)) {
+    if (!/\.html$/i.test(f)) continue;
+    const file = join(dist, f);
+    const html = await readFile(file, 'utf8');
+    const urls = [...html.matchAll(/(?:src|href)="(\/[^"?#]+\.(?:css|js))"/g)].map((m) => m[1]);
+    let out = html;
+    for (const url of new Set(urls)) {
+      const v = await version(url);
+      if (v) out = out.split(`"${url}"`).join(`"${url}?v=${v}"`);
+    }
+    if (out !== html) await writeFile(file, out);
+  }
+}
+
 /* ---------- Full build (what Vercel runs) ---------- */
 async function build() {
   const t0 = Date.now();
@@ -270,6 +310,8 @@ async function build() {
 
   console.log('Making WebP copies and the art list…');
   await generate({ root: ROOT, outDir: join(DIST, 'generated') });
+  console.log('Versioning CSS and JS links…');
+  await stampAssetUrls(DIST);
   console.log(`Done in ${((Date.now() - t0) / 1000).toFixed(1)}s → dist/`);
 }
 

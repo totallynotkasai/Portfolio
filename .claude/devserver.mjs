@@ -62,10 +62,21 @@ async function regenerate() {
 
 // Send the same headers vercel.json does (security headers, so a Content
 // Security Policy problem shows up here first). Caching stays off locally.
+// Its rewrites apply too: a path with no file of its own (like
+// /coding_projects) is served the rewrite's destination instead.
 let headerRules = [];
+let rewriteRules = [];
 try {
-  headerRules = JSON.parse(await readFile(join(PROJECT, 'vercel.json'), 'utf8')).headers || [];
-} catch { /* no vercel.json - no extra headers */ }
+  const vercel = JSON.parse(await readFile(join(PROJECT, 'vercel.json'), 'utf8'));
+  headerRules = vercel.headers || [];
+  rewriteRules = vercel.rewrites || [];
+} catch { /* no vercel.json - no extra headers or rewrites */ }
+const rewrite = (path) => {
+  for (const rule of rewriteRules) {
+    if (new RegExp('^' + rule.source + '$').test(path)) return rule.destination;
+  }
+  return null;
+};
 const vercelHeaders = (path) => {
   const out = {};
   for (const rule of headerRules) {
@@ -108,10 +119,13 @@ const server = createServer(async (req, res) => {
       const file = inside(GEN_DIR, path.slice('/generated/'.length));
       if (file && (await isFile(file))) return send(res, 200, file, path);
     } else {
-      const rel = path === '/' ? '/about' : path;
-      const file = inside(ROOT, rel);
-      if (file && (await isFile(file))) return send(res, 200, file, path);
-      if (file && !extname(rel) && (await isFile(file + '.html'))) return send(res, 200, file + '.html', path);
+      // A real file wins (as on Vercel); otherwise try the rewrites.
+      for (const rel of [path, rewrite(path)]) {
+        if (!rel) continue;
+        const file = inside(ROOT, rel);
+        if (file && (await isFile(file))) return send(res, 200, file, path);
+        if (file && !extname(rel) && (await isFile(file + '.html'))) return send(res, 200, file + '.html', path);
+      }
     }
 
     const notFound = join(ROOT, '404.html');
