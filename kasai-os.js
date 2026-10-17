@@ -461,7 +461,9 @@
   function syncRoute(push) {
     const f = front();
     if (notFound && (!f || f.id === 'error')) return; // keep the unknown address until something opens
-    const path = routeOf(f) || (isPhone() && !f ? '/' : null);
+    // A window with no address of its own (pet.exe) keeps the current one;
+    // on phones it still gets a step in the history, so Back closes it.
+    const path = routeOf(f) || (isPhone() ? (f ? window.location.pathname : '/') : null);
     if (!path) return; // just the desktop: leave the address alone
     notFound = false;
     const state = { app: f ? appOf(f) : null, win: f ? f.id : null, n: depth };
@@ -564,6 +566,9 @@
           ${a.email ? `<li><a href="mailto:${esc(a.email)}">${doodleIcon('mail')}Email me</a></li>` : ''}
           ${socials}
         </ul>
+        ${K.pet && C.wizard && C.wizard.enabled ? `<ul class="start-system">
+          <li><button type="button" data-pet-exe>${doodleIcon('hat')}pet.exe</button></li>
+        </ul>` : ''}
         <p class="start-foot">${esc((C.site && C.site.copyright) || '© 2026 Andrew Worgan (Kasai). All rights reserved.')}</p>
       </div>`;
     if (!hasPopover) {
@@ -581,6 +586,12 @@
     }
     // Restored from the back/forward cache: never come back with it open.
     window.addEventListener('pageshow', (e) => { if (e.persisted) hideStart(); });
+    // pet.exe: the wizard's own little window (pet.js).
+    startMenu.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-pet-exe]')) return;
+      hideStart();
+      K.pet.openExe({ from: startBtn });
+    });
   }
 
   // Links that open windows (the Start menu, buttons inside windows).

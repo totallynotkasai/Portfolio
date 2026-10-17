@@ -279,22 +279,44 @@ window.CONTENT = {
   /* ──────────────────────────────────────────────────────────────────────
      8. THE PET WIZARD  (your virtual pet, living on the desktop)
      ──────────────────────────────────────────────────────────────────────
-     • He lives on the desktop behind the windows. Click him (or Tab to him
-       + Enter) to pet him. Pet him a LOT and something nice happens.
+     • He lives on the desktop, always behind the windows, and wanders the
+       free bits with a little hop. If a window lands on him he pops out
+       from behind it. Ignore him and he naps.
+     • Click him (or Tab to him + Enter) to pet him. Pet him a LOT and
+       something nice happens.
+     • Drag him with the mouse to carry him somewhere (on a phone, press and
+       hold him first). He dangles, then grumbles or dozes off where you put
+       him down. Try dropping him on the Trash.
+     • He remembers where you left him, and remembers people who petted
+       him: they get a "welcomeBack" line when they come back.
+     • pet.exe in the Start menu shows him, his mood and how many pets he's had.
      • "lines" = what he says when a window opens (one at random). Windows
-       listed in "quietPages" never get a line; he only talks there if clicked.
-     • FRAMES: he blinks on his own, beams when petted and dozes off, driven
-       by five hand-drawn 960×960 PNGs below. A missing frame falls back to
-       "idle"; with no frames at all he uses the single `image`.            */
+       listed in "quietPages" never get a line unprompted; pet him while one
+       is in front and he says it then.
+     • Any list of lines can be emptied, e.g.  dropLines: [],  to keep him quiet.
+     • FRAMES: his drawings, 960×960 transparent PNGs in assets/Wizard
+       Sprite/. The first five are drawn. The rest are optional: until one
+       exists he borrows another drawing (noted beside each), so nothing
+       ever looks broken. With no frames at all he uses the single `image`. */
   wizard: {
     enabled: true,                // set false to retire him (he'll understand)
     image: 'assets/ui/Pet Wizard Cursor default Not rotated.png', // fallback frame
-    frames: {                     // 5 expressions, see assets/Wizard Sprite/
+    frames: {                     // his expressions, see assets/Wizard Sprite/
       idle: 'assets/Wizard Sprite/Idle Wizard.png',            // eyes open, resting
       half: 'assets/Wizard Sprite/Inbetween Frame Wizard.png', // mid-blink (eyes half)
       blink: 'assets/Wizard Sprite/Blink Wizard.png',           // eyes shut
       happy: 'assets/Wizard Sprite/Happy Wizard.png',           // when you pet him
       asleep: 'assets/Wizard Sprite/Sleepy Wizard.png',          // napping (zzz drawn in)
+
+      // Optional extras: draw one, drop it in the folder, put its path between
+      // the quotes. Walking frames face RIGHT (he's flipped to walk left).
+      walk1: '',     // walking, step one                 (until drawn: idle)
+      walk2: '',     // walking, step two                 (until drawn: walk1)
+      held: '',      // dangling when picked up           (until drawn: startled)
+      dizzy: '',     // just been put down                (until drawn: half)
+      startled: '',  // surprised (dropped in the Trash)  (until drawn: idle)
+      wave: '',      // waving hello to old friends       (until drawn: happy)
+      party: '',     // in a party hat, for a secret      (until drawn: happy)
     },
     sleepAfter: 60,               // seconds of being ignored before he naps (half that at night)
     quietPages: ['coding'],       // windows where he won't speak unprompted
@@ -329,6 +351,15 @@ window.CONTENT = {
 
     // What he says when you pet him (cycles in order, then repeats).
     petLines: ['!', '<3', 'Momentai', 'Good vibes only, gang.', 'again.', 'this is acceptable', 'magic +1', 'okay one more'],
+
+    // Carrying him about (one at random each time).
+    heldLines: ['wheee!', 'put me down!!', 'i can see my house from here', 'careful, the hat.'],   // when picked up
+    dropLines: ['oof.', 'rude.', 'the room is spinning', 'i meant to land like that.'],          // when put down
+    trashLines: ["i'm NOT rubbish!", 'hey! not recyclable.', 'it smells like old designs in here.'], // dropped on the Trash
+
+    // Said to someone who petted him before, when they come back later
+    // (after half an hour or more away).
+    welcomeBack: ['welcome back!', 'oh hi, you again :)', 'i kept your spot warm.'],
   },
 
 };
