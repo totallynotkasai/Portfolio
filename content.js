@@ -261,10 +261,23 @@ window.CONTENT = {
   },
 
   /* ──────────────────────────────────────────────────────────────────────
-     7. KASAI OS  (window headings; all optional)
+     7. KASAI OS  (the OS itself; every line here is optional)
      ──────────────────────────────────────────────────────────────────────
-     Each window's big heading, the line under it and its folder path.
-     Delete a line to go back to the built-in wording.                    */
+     Delete a line to go back to the built-in wording.
+     • "windows": each window's big heading, the line under it and its
+       folder path.
+     • "bootLines": the boot screen, shown on a visitor's first page, on
+       Start > Restart and after Shut down. It's over in under a second, so
+       keep them short; four or five is plenty. Empty the list,
+       bootLines: [],  for none.
+     • "version" and "credits": the About Kasai OS box (right-click the
+       desktop, or the button at the bottom of the Start menu).
+     • "newFolder": the joke when someone picks New folder on the desktop menu.
+     • Secret codes (just so you know them): typing "wizard" throws the
+       wizard a party, "kasai" makes it rain doodles and "sweep" opens
+       Wizard Sweeper; the Konami code (up up down down left right left
+       right B A) gets the party and the rain together. On a phone, swipe
+       the arrows part of the Konami code on the home screen.             */
   os: {
     windows: {
       coding: { heading: 'Projects', sub: "Apps, experiments & tools I've built." },
@@ -274,6 +287,27 @@ window.CONTENT = {
       games: { heading: 'Games', sub: 'Things to play when you should be working.' },
       trash: { heading: 'Recycle Bin', sub: "Old designs I couldn't bring myself to delete." },
     },
+
+    // The boot screen's lines, in order (each gets a little "[ OK ]").
+    bootLines: [
+      'Loading doodles...',
+      'Waking the wizard...',
+      'Shuffling the spell cards...',
+      'Tucking wizards into the minefield...',
+      'Kasai OS is ready.',
+    ],
+
+    // About Kasai OS. Each credit is one line.
+    version: '1.0',
+    credits: [
+      'Made by Andrew Worgan (Kasai).',
+      'Pet wizard drawn by Andrew, petted by you.',
+      'Hand-built in vanilla HTML, CSS and JavaScript.',
+      'Fonts: Arial Rounded MT Bold and Inter.',
+    ],
+
+    // Right-click the desktop > New folder.
+    newFolder: 'New folder (2) already exists. So does New folder (3). Kasai OS is staging an intervention.',
   },
 
   /* ──────────────────────────────────────────────────────────────────────
@@ -317,7 +351,7 @@ window.CONTENT = {
       dizzy: '',     // just been put down                (until drawn: half)
       startled: '',  // surprised: dropped in the Trash, or woken in Wizard Sweeper (until drawn: idle)
       wave: '',      // waving hello to old friends       (until drawn: happy)
-      party: '',     // in a party hat, for a secret      (until drawn: happy)
+      party: '',     // in a party hat, for the secret codes (until drawn: happy)
 
       // A tiny sleeping wizard for Wizard Sweeper's board. Bold, simple
       // shapes read best: it shows at about 32px.  (until drawn: asleep, shrunk)
@@ -365,6 +399,12 @@ window.CONTENT = {
     // Said to someone who petted him before, when they come back later
     // (after half an hour or more away).
     welcomeBack: ['welcome back!', 'oh hi, you again :)', 'i kept your spot warm.'],
+
+    // Right-click the desktop > Refresh: he does a flip, then says one of these.
+    trickLines: ['ta-da!', 'did you see that?!', 'fresh as a daisy.'],
+
+    // A secret code (section 7) throws him a party, party hat and all.
+    partyLines: ["it's a party!", 'nobody said there was a dress code', 'secret code accepted. party mode: on.'],
   },
 
   /* ──────────────────────────────────────────────────────────────────────

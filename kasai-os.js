@@ -2,9 +2,10 @@
    KASAI OS - THE DESKTOP  (windows, icons, taskbar and Start menu)
    ════════════════════════════════════════════════════════════════════════
    You do NOT need to edit this file. It builds the OS from the apps in
-   apps.js and the words in content.js, then starts everything. Each start-
-   up step runs on its own, so one hiccup can't take the rest of the site
-   down with it.
+   apps.js and the words in content.js, then starts everything: the boot
+   and shut down screens, the right-click desktop menu, the wallpaper
+   picker and the secret codes live here too. Each start-up step runs on
+   its own, so one hiccup can't take the rest of the site down with it.
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -34,6 +35,12 @@
     live.textContent = '';
     setTimeout(() => { live.textContent = text; }, 40);
   };
+  const copyright = () => (C.site && C.site.copyright) || '© 2026 Andrew Worgan (Kasai). All rights reserved.';
+  // A list of lines from content.js: a missing one uses the built-in lines,
+  // an empty one means none.
+  const textList = (v, fallback) => (Array.isArray(v)
+    ? v.filter((s) => typeof s === 'string' && s.trim())
+    : typeof v === 'string' ? (v.trim() ? [v] : []) : fallback);
 
   /* ══════════════════════════════════════════════════════════════════════
      ROUTES  (old page links still work: they open their window)
@@ -272,9 +279,10 @@
     });
   }
 
-  function close(win) {
+  // `quick` skips the little animation (Restart closes everything at once).
+  function close(win, quick) {
     if (!win.open) return;
-    hideWin(win, () => {
+    const done = () => {
       win.open = false;
       win.minimised = false;
       win.el.hidden = true;
@@ -288,7 +296,9 @@
       // Projects, documents and pictures are made fresh next time.
       if (!APPS[win.id]) { win.el.remove(); wins.delete(win.id); }
       announce(win.spec.label + ' closed');
-    });
+    };
+    if (quick) done();
+    else hideWin(win, done);
   }
 
   function toggleMax(win, force) {
@@ -566,10 +576,16 @@
           ${a.email ? `<li><a href="mailto:${esc(a.email)}">${doodleIcon('mail')}Email me</a></li>` : ''}
           ${socials}
         </ul>
-        ${K.pet && C.wizard && C.wizard.enabled ? `<ul class="start-system">
-          <li><button type="button" data-pet-exe>${doodleIcon('hat')}pet.exe</button></li>
-        </ul>` : ''}
-        <p class="start-foot">${esc((C.site && C.site.copyright) || '© 2026 Andrew Worgan (Kasai). All rights reserved.')}</p>
+        <ul class="start-system" aria-label="System">
+          ${K.pet && C.wizard && C.wizard.enabled ? `<li><button type="button" data-pet-exe>${doodleIcon('hat')}pet.exe</button></li>` : ''}
+          <li><button type="button" data-sys="wallpaper">${doodleIcon('palette')}Wallpaper</button></li>
+          <li><button type="button" data-sys="restart">${doodleIcon('refresh')}Restart</button></li>
+          <li><button type="button" data-sys="shutdown">${doodleIcon('power')}Shut down</button></li>
+        </ul>
+        <div class="start-foot">
+          <p>${esc(copyright())}</p>
+          <button type="button" data-sys="about">${doodleIcon('info')}About Kasai OS</button>
+        </div>
       </div>`;
     if (!hasPopover) {
       // Older browsers: a plain toggle instead of the popover.
@@ -586,11 +602,18 @@
     }
     // Restored from the back/forward cache: never come back with it open.
     window.addEventListener('pageshow', (e) => { if (e.persisted) hideStart(); });
-    // pet.exe: the wizard's own little window (pet.js).
+    // pet.exe (the wizard's own little window, pet.js), Wallpaper, Restart,
+    // Shut down and About Kasai OS.
     startMenu.addEventListener('click', (e) => {
-      if (!e.target.closest('[data-pet-exe]')) return;
+      const b = e.target.closest('[data-pet-exe], [data-sys]');
+      if (!b) return;
       hideStart();
-      K.pet.openExe({ from: startBtn });
+      const act = b.dataset.sys;
+      if (!act) K.pet.openExe({ from: startBtn });
+      else if (act === 'wallpaper') openWallpaper({ from: startBtn });
+      else if (act === 'restart') restart();
+      else if (act === 'shutdown') shutDown();
+      else if (act === 'about') aboutKasaiOS();
     });
   }
 
@@ -681,15 +704,16 @@
     }, true);
   }
 
+  let deskSel = null; // which icon is selected (the desktop menu uses it too)
   function wireDesktop() {
     const icons = $('#desk-icons');
     if (icons) {
       $$('#desk-icons > li').forEach((li) => {
         li.dataset.dragId = 'icon-' + $('.desk-icon', li).dataset.app;
       });
-      const sel = K.openable(icons, '.desk-icon', (el) => open(el.dataset.app, { from: el }));
+      deskSel = K.openable(icons, '.desk-icon', (el) => open(el.dataset.app, { from: el }));
       desktop.addEventListener('pointerdown', (e) => {
-        if (!e.target.closest('.desk-icon')) sel.clear();
+        if (!e.target.closest('.desk-icon')) deskSel.clear();
       });
     }
     $$('#desk-icons > li').forEach(draggable);
@@ -756,11 +780,12 @@
   }
 
   // A small Kasai OS dialog (native <dialog>: focus trap and Escape for free).
-  // Resolves with the index of the button pressed.
-  K.dialog = ({ title, icon, message, buttons, colour }) => new Promise((resolve) => {
+  // Resolves with the index of the button pressed. `body` (markup made here,
+  // already escaped) replaces the usual icon and message.
+  K.dialog = ({ title, icon, message, body, buttons, colour, role }) => new Promise((resolve) => {
     const d = document.createElement('dialog');
     d.className = 'os-dialog ' + (colour || 'yellow');
-    d.setAttribute('role', 'alertdialog');
+    d.setAttribute('role', role || 'alertdialog');
     d.setAttribute('aria-labelledby', 'os-dialog-title');
     d.setAttribute('aria-describedby', 'os-dialog-msg');
     d.innerHTML = `
@@ -768,10 +793,10 @@
       <div class="os-dialog-frame">
         <div class="os-bar"><span class="os-app" aria-hidden="true">${doodleIcon(icon || 'alert')}</span>
           <span class="os-title" id="os-dialog-title">${esc(title || 'Kasai OS')}</span><span class="os-stripes" aria-hidden="true"></span></div>
-        <div class="os-dialog-body">
+        ${body ? `<div id="os-dialog-msg">${body}</div>` : `<div class="os-dialog-body">
           <span class="os-dialog-icon" aria-hidden="true">${doodleIcon(icon || 'alert')}</span>
           <p id="os-dialog-msg">${esc(message || '')}</p>
-        </div>
+        </div>`}
         <p class="os-dialog-buttons">${(buttons || ['OK']).map((b, i) => `<button class="os-button" type="button" value="${i}">${esc(b)}</button>`).join('')}</p>
       </div>`;
     document.body.appendChild(d);
@@ -821,6 +846,570 @@
   }
 
   /* ══════════════════════════════════════════════════════════════════════
+     BOOT, RESTART AND SHUT DOWN
+     ══════════════════════════════════════════════════════════════════════
+     The boot screen plays on the first page of a visit (head.js decides
+     that before anything is drawn), on Start > Restart and when the power
+     comes back on after Shut down. It takes under a second; any key or
+     click skips it, and with reduced motion it never plays. Its lines come
+     from os.bootLines in content.js. */
+  const root = document.documentElement;
+  const BOOT_LINES = ['Loading doodles...', 'Waking the wizard...', 'Shuffling the spell cards...', 'Kasai OS is ready.'];
+  const BOOT_MS = 700; // the bar fills and the lines appear, then it fades away
+  let bootRun = null; // the boot screen, while it's up
+
+  // o.fadeIn: fade in first (Restart). o.behind: set the desktop up while
+  // it's hidden. o.done: once the boot screen has gone.
+  function playBoot(o) {
+    o = o || {};
+    if (bootRun) return;
+    const el = document.createElement('div');
+    el.className = 'boot';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = `
+      <div class="boot-inner">
+        <img class="boot-logo" src="/assets/ui/favicon.png" alt="" />
+        <p class="boot-name">Kasai OS</p>
+        <span class="boot-bar"><span class="boot-fill"></span></span>
+        <ul class="boot-lines"></ul>
+      </div>`;
+    document.body.appendChild(el);
+    const fill = $('.boot-fill', el);
+    const list = $('.boot-lines', el);
+    const lines = textList(C.os && C.os.bootLines, BOOT_LINES);
+    const timers = [];
+    let setUp = false;
+    let ended = false;
+    const behind = () => {
+      if (setUp) return;
+      setUp = true;
+      if (o.behind) o.behind();
+    };
+    const end = (quick) => {
+      if (ended) return;
+      ended = true;
+      timers.forEach(clearTimeout);
+      window.removeEventListener('keydown', skip, true);
+      window.removeEventListener('pointerdown', skip, true);
+      behind();
+      root.classList.remove('booting');
+      const gone = () => { el.remove(); bootRun = null; if (o.done) o.done(); };
+      if (!el.animate) { gone(); return; }
+      el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: quick ? 120 : 180, easing: 'ease-out', fill: 'forwards' })
+        .finished.then(gone, gone);
+    };
+    // Any key (not Shift, Ctrl and friends on their own) or click skips it.
+    const skip = (e) => {
+      if (e.type === 'keydown' && /^(Shift|Control|Alt|AltGraph|Meta|CapsLock|Fn)$/.test(e.key)) return;
+      end(true);
+    };
+    const run = () => {
+      if (ended) return;
+      behind();
+      if (fill.animate) fill.animate([{ width: '0%' }, { width: '100%' }], { duration: BOOT_MS - 40, easing: 'steps(12, end)', fill: 'forwards' });
+      const gap = lines.length > 1 ? (BOOT_MS - 120) / (lines.length - 1) : 0;
+      lines.forEach((text, i) => timers.push(setTimeout(() => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="boot-ok">OK</span>${esc(text)}`;
+        list.appendChild(li);
+        if (list.children.length > 5) list.firstElementChild.remove();
+      }, 40 + i * gap)));
+      timers.push(setTimeout(() => end(false), BOOT_MS));
+    };
+    window.addEventListener('keydown', skip, true);
+    window.addEventListener('pointerdown', skip, true);
+    bootRun = { end };
+    if (o.fadeIn && el.animate) {
+      el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'ease-out' }).finished.then(run, run);
+    } else run();
+  }
+
+  // Behind the boot screen, every window closes and the desktop starts the
+  // way a visit does: About open (phones: the home screen).
+  function freshStart() {
+    order.slice().reverse().forEach((id) => { const w = wins.get(id); if (w) close(w, true); });
+    notFound = false;
+    if (isPhone()) {
+      history.replaceState({ app: null, win: null, n: depth }, '', '/');
+      sync(false);
+    } else open('about', { push: false, focus: false });
+  }
+  // Then focus lands where a visitor starts: the window in front, or the
+  // first icon.
+  function settle() {
+    const f = front();
+    const target = f ? ($('#' + f.headingId, f.el) || f.el) : $('.desk-icon');
+    if (target) target.focus({ preventScroll: true });
+    announce('Kasai OS restarted');
+  }
+
+  function restart() {
+    hideStart();
+    closeMenu();
+    if (bootRun) return;
+    if (REDUCE_MOTION) { freshStart(); settle(); return; }
+    playBoot({ fadeIn: true, behind: freshStart, done: settle });
+  }
+
+  // Shut down: the screen fades to navy, the wizard sleeps, and the power
+  // button (or Escape) boots it back up.
+  function shutDown() {
+    hideStart();
+    closeMenu();
+    if (bootRun || $('dialog.shutdown')) return;
+    const asleep = K.pet && K.pet.frame ? K.pet.frame('asleep') : '';
+    const d = document.createElement('dialog');
+    d.className = 'shutdown';
+    d.setAttribute('aria-labelledby', 'shutdown-msg');
+    d.innerHTML = `
+      <img class="shutdown-pic${asleep ? '' : ' is-logo'}" src="${esc(asleep || '/assets/ui/favicon.png')}" alt="" />
+      <p class="shutdown-msg" id="shutdown-msg">It's now safe to turn off your computer.</p>
+      <button class="shutdown-power" type="button">${doodleIcon('power')}<span>Power on</span></button>`;
+    document.body.appendChild(d);
+    const power = $('.shutdown-power', d);
+    let on = false;
+    const powerOn = () => {
+      if (on) return;
+      on = true;
+      if (REDUCE_MOTION) { d.close(); freshStart(); settle(); return; }
+      playBoot({ behind: freshStart, done: settle }); // waits under the shutdown screen until it closes
+      d.close();
+    };
+    power.addEventListener('click', powerOn);
+    d.addEventListener('cancel', (e) => { e.preventDefault(); powerOn(); });
+    // Some browsers close it on Escape without asking: that powers on too.
+    d.addEventListener('close', () => { powerOn(); d.remove(); });
+    d.showModal();
+    power.focus();
+    if (!REDUCE_MOTION && d.animate) d.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-in-out' });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     WALLPAPER  (Start > Wallpaper, or Change wallpaper on the desktop menu)
+     ══════════════════════════════════════════════════════════════════════
+     Saved in kasai:wallpaper; head.js puts it back before anything is
+     drawn, so it never flashes. Lavender dots is the default. */
+  const WALL_COLOURS = [['lavender', 'Lavender', 'periwinkle'], ['blue', 'Blue'], ['yellow', 'Yellow'], ['teal', 'Teal'],
+    ['pink', 'Pink'], ['navy', 'Navy', 'ink'], ['blush', 'Blush']];
+  const WALL_PATTERNS = [['dots', 'Dots'], ['grid', 'Grid'], ['plain', 'Plain']];
+  const wallNow = () => ({ colour: root.getAttribute('data-wall') || 'lavender', pattern: root.getAttribute('data-pattern') || 'dots' });
+  const wallName = (w) => `${(WALL_COLOURS.find((c) => c[0] === w.colour) || [0, w.colour])[1]}, ${w.pattern}`;
+
+  function openWallpaper(opts) {
+    open({
+      id: 'wallpaper',
+      label: 'Wallpaper',
+      file: 'wallpaper.exe',
+      colour: 'blue',
+      doodle: 'palette',
+      size: [480, 640],
+      minSize: [320, 420],
+      render(win) {
+        const now = wallNow();
+        const choice = (name, id, label, look) => `
+          <label class="wall-choice">
+            <input class="vh" type="radio" name="${name}" value="${id}"${now[name] === id ? ' checked' : ''} />
+            ${look}<span class="wall-label">${esc(label)}</span>
+          </label>`;
+        win.body.innerHTML = `
+          <form class="wall" action="#">
+            <h2 class="vh" id="${win.headingId}" tabindex="-1">Wallpaper</h2>
+            <div class="wall-monitor" aria-hidden="true">
+              <div class="wall-screen"><span class="wall-icons"><i></i><i></i><i></i></span><span class="wall-window"></span></div>
+              <span class="wall-stand"></span>
+            </div>
+            <fieldset class="wall-set">
+              <legend>Colour</legend>
+              <div class="wall-options">${WALL_COLOURS.map(([id, label, token]) =>
+                choice('colour', id, label, `<span class="wall-chip${id === 'navy' ? ' is-dark' : ''}" style="--chip: var(--${token || id})">${doodleIcon('check')}</span>`)).join('')}</div>
+            </fieldset>
+            <fieldset class="wall-set">
+              <legend>Pattern</legend>
+              <div class="wall-options">${WALL_PATTERNS.map(([id, label]) =>
+                choice('pattern', id, label, `<span class="wall-chip wall-tile is-${id}">${doodleIcon('check')}</span>`)).join('')}</div>
+            </fieldset>
+            <p class="wall-actions"><button class="os-button" type="button" data-reset>${doodleIcon('refresh')}Back to lavender dots</button></p>
+          </form>`;
+        const form = $('form', win.body);
+        const status = () => win.setStatus(`<span>${esc(wallName(wallNow()))}</span><span class="status-hint">Remembered in this browser</span>`);
+        form.addEventListener('submit', (e) => e.preventDefault());
+        form.addEventListener('change', () => {
+          const colour = (form.querySelector('[name="colour"]:checked') || {}).value || 'lavender';
+          const pattern = (form.querySelector('[name="pattern"]:checked') || {}).value || 'dots';
+          root.setAttribute('data-wall', colour);
+          root.setAttribute('data-pattern', pattern);
+          K.store.set('kasai:wallpaper', { colour, pattern });
+          status();
+        });
+        $('[data-reset]', form).addEventListener('click', () => {
+          root.removeAttribute('data-wall');
+          root.removeAttribute('data-pattern');
+          K.store.del('kasai:wallpaper');
+          form.querySelector('[name="colour"][value="lavender"]').checked = true;
+          form.querySelector('[name="pattern"][value="dots"]').checked = true;
+          status();
+          announce('Wallpaper back to lavender dots');
+        });
+        status();
+      },
+    }, { from: opts && opts.from });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     THE DESKTOP MENU  (right-click the desktop, Shift+F10 or the menu key;
+     a long press on a phone's home screen)
+     ══════════════════════════════════════════════════════════════════════
+     Arrow keys, Home and End move about it, a letter jumps to its item,
+     Enter picks one, Escape or Tab closes it. On an icon it starts with
+     Open. Windows keep the browser's own menu (for copying and links). */
+  const MENU_ITEMS = [
+    ['open', 'Open'], ['-', 'open'],
+    ['refresh', 'Refresh', 'refresh'], ['folder', 'New folder', 'folder'], ['-'],
+    ['wallpaper', 'Change wallpaper', 'palette'], ['sort', 'Sort icons', 'sort'], ['-'],
+    ['about', 'About Kasai OS', 'info'],
+  ];
+  const hasPopoverApi = typeof HTMLElement !== 'undefined' && Object.prototype.hasOwnProperty.call(HTMLElement.prototype, 'popover');
+  let menu = null; // { el, panel, icon, back } once it's been opened
+  const menuOpen = () => !!menu && (hasPopoverApi ? menu.el.matches(':popover-open') : !menu.el.hidden);
+  const menuItems = () => $$('[role="menuitem"]', menu.panel).filter((b) => !b.hidden);
+
+  function buildMenu() {
+    const el = document.createElement('div');
+    el.className = 'desk-menu';
+    // A "manual" popover (on top of everything) that closes itself: the
+    // browser's own light dismiss would shut it as a long press lifts.
+    if (hasPopoverApi) el.setAttribute('popover', 'manual');
+    else el.hidden = true;
+    el.innerHTML = `
+      <span class="os-shadow" aria-hidden="true"></span>
+      <div class="desk-menu-panel" role="menu" aria-label="Desktop" tabindex="-1">
+        ${MENU_ITEMS.map(([act, label, icon]) => (act === '-'
+          ? `<div class="desk-menu-sep" role="separator"${label ? ` data-sep="${label}"` : ''}></div>`
+          : `<button type="button" role="menuitem" tabindex="-1" data-act="${act}">${icon ? doodleIcon(icon) : ''}<span>${esc(label)}</span></button>`)).join('')}
+      </div>`;
+    document.body.appendChild(el);
+    const panel = $('.desk-menu-panel', el);
+    const m = { el, panel, icon: null, back: null };
+
+    panel.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      const icon = m.icon;
+      const back = m.back;
+      closeMenu(true);
+      runMenu(b.dataset.act, icon, back);
+    });
+    // The mouse and the keyboard share one highlight.
+    panel.addEventListener('pointermove', (e) => {
+      const b = e.target.closest('[role="menuitem"]');
+      if (b && document.activeElement !== b) b.focus({ preventScroll: true });
+    });
+    panel.addEventListener('keydown', (e) => {
+      const items = menuItems();
+      const i = items.indexOf(document.activeElement);
+      let to = null;
+      if (e.key === 'ArrowDown') to = items[i < 0 ? 0 : (i + 1) % items.length];
+      else if (e.key === 'ArrowUp') to = items[i < 0 ? items.length - 1 : (i - 1 + items.length) % items.length];
+      else if (e.key === 'Home') to = items[0];
+      else if (e.key === 'End') to = items[items.length - 1];
+      else if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); closeMenu(true); return; }
+      else if (e.key.length === 1 && /\S/.test(e.key)) {
+        // A letter jumps to the next item starting with it.
+        const k = e.key.toLowerCase();
+        const from = i < 0 ? -1 : i;
+        to = items.slice(from + 1).concat(items.slice(0, from + 1)).find((b) => b.textContent.trim().toLowerCase().startsWith(k)) || null;
+        if (!to) return;
+      } else return;
+      e.preventDefault();
+      if (to) to.focus({ preventScroll: true });
+    });
+    // A press anywhere else, or the browser window losing focus or changing
+    // size, closes it.
+    document.addEventListener('pointerdown', (e) => { if (menuOpen() && !el.contains(e.target)) closeMenu(false); }, true);
+    window.addEventListener('blur', () => closeMenu(false));
+    window.addEventListener('resize', () => closeMenu(false));
+    return m;
+  }
+
+  function refocus(m) {
+    const back = m.back;
+    if (back && document.contains(back) && back.getClientRects().length) back.focus({ preventScroll: true });
+    else if (m.el.contains(document.activeElement)) document.activeElement.blur();
+  }
+
+  function openMenu(x, y, o) {
+    menu = menu || buildMenu();
+    const { el, panel } = menu;
+    menu.icon = o.icon || null;
+    const active = document.activeElement;
+    menu.back = active && active !== document.body && !el.contains(active) ? active : null;
+    const openItem = $('[data-act="open"]', panel);
+    openItem.hidden = $('[data-sep="open"]', panel).hidden = !menu.icon;
+    if (menu.icon) {
+      const app = APPS[menu.icon.dataset.app];
+      openItem.innerHTML = `${navIcon(app.icon)}<span>Open ${esc(app.label)}</span>`;
+    }
+    $('[data-act="sort"]', panel).hidden = isPhone(); // a phone's home screen is always in order
+    el.style.left = '0px';
+    el.style.top = '0px';
+    if (hasPopoverApi) { if (!el.matches(':popover-open')) el.showPopover(); } else el.hidden = false;
+    // Keep it on screen: it opens left of the pointer or above it if it must.
+    const r = panel.getBoundingClientRect();
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const left = x + r.width > W - 8 ? Math.max(8, x - r.width) : x;
+    const top = y + r.height > H - 8 ? Math.max(8, (y - r.height >= 8 ? y - r.height : H - 8 - r.height)) : y;
+    el.style.left = Math.round(left) + 'px';
+    el.style.top = Math.round(top) + 'px';
+    // From the keyboard the first item is highlighted; from a mouse, nothing yet.
+    (o.keyboard ? menuItems()[0] : panel).focus({ preventScroll: true });
+  }
+
+  function closeMenu(restore) {
+    if (!menuOpen()) return;
+    const had = menu.el.contains(document.activeElement);
+    if (hasPopoverApi) { try { menu.el.hidePopover(); } catch (e) { /* already closed */ } } else menu.el.hidden = true;
+    if (had) {
+      if (restore) refocus(menu);
+      else document.activeElement.blur();
+    }
+  }
+
+  function runMenu(act, icon, back) {
+    if (act === 'open' && icon) open(icon.dataset.app, { from: icon });
+    else if (act === 'refresh') refreshDesktop();
+    else if (act === 'folder') newFolder();
+    else if (act === 'wallpaper') openWallpaper({ from: back });
+    else if (act === 'sort') sortIcons();
+    else if (act === 'about') aboutKasaiOS();
+  }
+
+  // Refresh: the icons jiggle and the wizard does a trick.
+  function refreshDesktop() {
+    layoutDesktop();
+    $$('.desk-icon').forEach((icon, i) => {
+      icon.classList.remove('is-jiggling');
+      icon.style.setProperty('--jiggle-delay', i * 45 + 'ms');
+      void icon.offsetWidth; // restart the jiggle
+      icon.classList.add('is-jiggling');
+      setTimeout(() => { icon.classList.remove('is-jiggling'); icon.style.removeProperty('--jiggle-delay'); }, 700 + i * 45);
+    });
+    if (K.pet && K.pet.trick) K.pet.trick();
+    announce('Desktop refreshed');
+  }
+
+  // New folder: a joke (os.newFolder in content.js).
+  const NEW_FOLDER = 'New folder (2) already exists. So does New folder (3). Kasai OS is staging an intervention.';
+  function newFolder() {
+    const line = C.os && typeof C.os.newFolder === 'string' && C.os.newFolder.trim();
+    K.dialog({ title: 'New folder', icon: 'folder', message: line || NEW_FOLDER, buttons: ['Fair enough'] });
+  }
+
+  // Sort icons: back into their columns, their dragged-to spots forgotten
+  // (the wizard keeps his).
+  function sortIcons() {
+    const items = saved();
+    Object.keys(items).forEach((k) => { if (k.indexOf('icon-') === 0) delete items[k]; });
+    K.store.set('kasai:desktop', { items });
+    const lis = $$('#desk-icons > li');
+    const was = lis.map((li) => li.getBoundingClientRect());
+    layoutDesktop();
+    if (!REDUCE_MOTION) {
+      lis.forEach((li, i) => {
+        const now = li.getBoundingClientRect();
+        const dx = was[i].left - now.left;
+        const dy = was[i].top - now.top;
+        if ((dx || dy) && li.animate) {
+          li.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }],
+            { duration: 480, delay: i * 30, easing: 'cubic-bezier(0.3, 1.25, 0.5, 1)', fill: 'backwards' });
+        }
+      });
+    }
+    announce('Icons sorted');
+  }
+
+  // About Kasai OS: the version and the credits (os.version and os.credits
+  // in content.js).
+  const CREDITS = ['Made by Andrew Worgan (Kasai).', 'Pet wizard drawn by Andrew, petted by you.', 'Hand-built in vanilla HTML, CSS and JavaScript.'];
+  function aboutKasaiOS() {
+    const O = C.os || {};
+    const version = String(O.version == null ? '' : O.version).trim() || '1.0';
+    const credits = textList(O.credits, CREDITS);
+    K.dialog({
+      title: 'About Kasai OS',
+      icon: 'info',
+      colour: 'lavender',
+      role: 'dialog',
+      body: `<div class="about-os">
+          <img class="about-os-logo" src="/assets/ui/favicon.png" alt="" />
+          <div>
+            <p class="about-os-name">Kasai OS</p>
+            <p class="about-os-version">Version ${esc(version)}</p>
+            ${credits.length ? `<ul class="about-os-credits">${credits.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+            <p class="about-os-copy">${esc(copyright())}</p>
+          </div>
+        </div>`,
+      buttons: ['OK'],
+    });
+  }
+
+  function wireDeskMenu() {
+    const onDesk = (t) => !!t && (t === document.body || t === root || desktop.contains(t));
+    let keyAt = 0;
+    let keyTimer = 0;
+    const openAt = (target, point) => {
+      const icon = target.closest ? target.closest('.desk-icon') : null;
+      if (icon && deskSel) deskSel.select(icon);
+      let x;
+      let y;
+      if (point) ({ x, y } = point);
+      else if (icon || desktop.contains(target)) {
+        const r = (icon || target).getBoundingClientRect();
+        x = r.left + Math.min(28, r.width / 2);
+        y = r.bottom - 6;
+      } else {
+        const d = desktop.getBoundingClientRect();
+        x = d.left + d.width * 0.4;
+        y = d.top + d.height * 0.3;
+      }
+      openMenu(x, y, { icon, keyboard: !point });
+    };
+
+    document.addEventListener('contextmenu', (e) => {
+      if (menu && menu.el.contains(e.target)) { e.preventDefault(); return; } // never the browser's menu on ours
+      if (e.defaultPrevented || bootRun || !onDesk(e.target)) return;
+      e.preventDefault();
+      clearTimeout(keyTimer);
+      if (Date.now() - keyAt < 1000) openAt(document.activeElement && onDesk(document.activeElement) ? document.activeElement : e.target, null);
+      else openAt(e.target, { x: e.clientX, y: e.clientY });
+    });
+    // Shift+F10 and the menu key: browsers follow these with a contextmenu
+    // event (above); if one doesn't, the menu opens anyway.
+    document.addEventListener('keydown', (e) => {
+      if (!(e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey))) return;
+      if (!onDesk(document.activeElement || document.body) || bootRun) return;
+      keyAt = Date.now();
+      clearTimeout(keyTimer);
+      keyTimer = setTimeout(() => { if (!menuOpen()) openAt(document.activeElement || document.body, null); }, 400);
+    });
+
+    // Touch screens: a long press on the desktop itself (icons and the
+    // wizard have their own long presses).
+    let press = null;
+    const letGo = (e) => { if (press && (!e || e.pointerId === press.id)) { clearTimeout(press.timer); press = null; } };
+    desktop.addEventListener('pointerdown', (e) => {
+      letGo();
+      if (e.pointerType !== 'touch' || !e.isPrimary || e.target.closest('.desk-icon, .pet')) return;
+      const p = { id: e.pointerId, x: e.clientX, y: e.clientY, target: e.target };
+      p.timer = setTimeout(() => {
+        if (press !== p) return;
+        press = null;
+        if (menuOpen()) return;
+        openAt(p.target, { x: p.x, y: p.y });
+        // Lifting that finger can fire a click under it, which mustn't pick an item.
+        const lift = (ev) => {
+          if (ev.pointerId !== p.id) return;
+          document.removeEventListener('pointerup', lift, true);
+          document.removeEventListener('pointercancel', lift, true);
+          if (ev.type !== 'pointerup') return;
+          const swallow = (c) => { c.preventDefault(); c.stopPropagation(); };
+          document.addEventListener('click', swallow, true);
+          setTimeout(() => document.removeEventListener('click', swallow, true), 80);
+        };
+        document.addEventListener('pointerup', lift, true);
+        document.addEventListener('pointercancel', lift, true);
+      }, 550);
+      press = p;
+    });
+    desktop.addEventListener('pointermove', (e) => {
+      if (press && e.pointerId === press.id && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) letGo(e);
+    });
+    desktop.addEventListener('pointerup', letGo);
+    desktop.addEventListener('pointercancel', letGo);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     SECRET CODES
+     ══════════════════════════════════════════════════════════════════════
+     Typed anywhere but a text box: "wizard" (a party for the wizard),
+     "kasai" (doodle rain), "sweep" (Wizard Sweeper), or the Konami code
+     (up up down down left right left right B A: the whole party). Phones
+     have no keyboard, so the home screen takes the Konami code as swipes. */
+  const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+  const petHere = () => !!(K.pet && $('#desk-pet .pet'));
+  const SECRETS = {
+    wizard() {
+      if (petHere()) K.pet.party();
+      else K.doodleRain();
+      return 'a party for the wizard';
+    },
+    kasai() {
+      // With reduced motion there's no rain, so the wizard describes it.
+      if (!K.doodleRain() && petHere()) K.pet.say('*imagine doodles raining down*');
+      return 'doodle rain';
+    },
+    sweep() {
+      if (K.openSweeper) K.openSweeper();
+      return 'Wizard Sweeper';
+    },
+    konami() {
+      K.doodleRain();
+      if (petHere()) K.pet.party();
+      return 'the Konami code';
+    },
+  };
+  const secret = (name) => announce('Secret found: ' + SECRETS[name]());
+  const endsWith = (list, tail) => list.length >= tail.length && tail.every((k, i) => k === list[list.length - tail.length + i]);
+
+  function wireSecrets() {
+    let keys = [];
+    let lastKey = 0;
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing || !e.key) return;
+      const t = e.target;
+      // Never while someone is typing in a box, or with a dialog up.
+      if (t && t.closest && t.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+      if (bootRun || $('dialog[open]')) return;
+      const now = Date.now();
+      if (now - lastKey > 3000) keys = [];
+      lastKey = now;
+      keys.push(e.key.length === 1 ? e.key.toLowerCase() : e.key);
+      if (keys.length > 12) keys.shift();
+      if (endsWith(keys, KONAMI)) { keys = []; secret('konami'); return; }
+      let typed = '';
+      for (let i = keys.length - 1; i >= 0 && keys[i].length === 1; i--) typed = keys[i] + typed;
+      const word = ['wizard', 'kasai', 'sweep'].find((w) => typed.endsWith(w));
+      if (word) { keys = []; secret(word); }
+    });
+
+    // Phones: swipe up, up, down, down, left, right, left, right on the
+    // home screen (not on the wizard: that's carrying him).
+    let touch = null;
+    let swipes = [];
+    let lastSwipe = 0;
+    desktop.addEventListener('touchstart', (e) => {
+      const p = e.touches[0];
+      touch = e.touches.length === 1 && !e.target.closest('.pet') ? { x: p.clientX, y: p.clientY, at: Date.now() } : null;
+    }, { passive: true });
+    desktop.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
+    desktop.addEventListener('touchend', (e) => {
+      if (!touch) return;
+      const p = e.changedTouches[0];
+      const dx = p.clientX - touch.x;
+      const dy = p.clientY - touch.y;
+      const quick = Date.now() - touch.at < 800;
+      touch = null;
+      if (!quick || Math.max(Math.abs(dx), Math.abs(dy)) < 40) return;
+      const now = Date.now();
+      if (now - lastSwipe > 3000) swipes = [];
+      lastSwipe = now;
+      swipes.push(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'ArrowRight' : 'ArrowLeft') : (dy > 0 ? 'ArrowDown' : 'ArrowUp'));
+      if (swipes.length > 8) swipes.shift();
+      if (endsWith(swipes, KONAMI.slice(0, 8))) { swipes = []; secret('konami'); }
+    }, { passive: true });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
      START-UP
      ══════════════════════════════════════════════════════════════════════ */
   function startRoute() {
@@ -845,6 +1434,19 @@
     });
   }
 
+  // The first page of a visit: head.js has already covered the screen, and
+  // the boot screen plays over the desktop that's just been built.
+  function startBoot() {
+    if (!root.classList.contains('booting')) return;
+    try {
+      if (REDUCE_MOTION) root.classList.remove('booting');
+      else playBoot();
+    } catch (err) {
+      root.classList.remove('booting'); // never leave the screen covered
+      throw err;
+    }
+  }
+
   [
     ['desktop', wireDesktop],
     ['windows', () => Object.keys(APPS).forEach((id) => { if (!wins.get(id)) build(Object.assign({ id }, APPS[id])); })],
@@ -854,9 +1456,12 @@
     ['pet', () => { if (K.pet) K.pet.init($('#desk-pet')); }],
     ['first window', startRoute],
     ['skip link', wireSkipLink],
+    ['desktop menu', wireDeskMenu],
+    ['secret codes', wireSecrets],
     ['doodle trail', K.wireTrail],
     ['tab title', wireAwayTitle],
     ['console', consoleEgg],
+    ['boot screen', startBoot],
   ].forEach(([name, step]) => {
     try { step(); } catch (err) { console.error('Kasai OS: the ' + name + ' step failed', err); }
   });

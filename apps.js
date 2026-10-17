@@ -522,6 +522,7 @@
       onClose(win) { if (K.sweeper) K.sweeper.unmount(win); },
     }, { from });
   };
+  K.openSweeper = openSweeper; // a secret code opens it too (kasai-os.js)
 
   const games = {
     label: 'Games',

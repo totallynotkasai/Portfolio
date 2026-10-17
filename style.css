@@ -97,10 +97,13 @@ p, h1, h2, h3, li { cursor: auto; }
   --radius-md: 16px;
   --radius-lg: 22px;
 
-  /* The OS */
+  /* The OS. The wallpaper is a colour and a pattern (dots, grid or none). */
   --taskbar-h: 56px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --wall: var(--periwinkle);
+  --wall-dots: var(--tx-dots);
+  --wall-grid: var(--tx-grid);
+  --wall-tx: var(--wall-dots);
 
   --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -108,6 +111,8 @@ p, h1, h2, h3, li { cursor: auto; }
   /* Flat textures (each a tiny SVG tile) */
   --tx-dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='2' cy='2' r='1.4' fill='%23161A2E' fill-opacity='.2'/%3E%3C/svg%3E");
   --tx-grid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M0 .5H32M.5 0V32' stroke='%23161A2E' stroke-opacity='.14'/%3E%3C/svg%3E");
+  --tx-dots-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='2' cy='2' r='1.4' fill='%23FFFFFF' fill-opacity='.18'/%3E%3C/svg%3E");
+  --tx-grid-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M0 .5H32M.5 0V32' stroke='%23FFFFFF' stroke-opacity='.14'/%3E%3C/svg%3E");
   --tx-stripes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Crect width='3' height='1' fill='%23161A2E'/%3E%3C/svg%3E");
   --tx-stripes-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Crect width='3' height='1' fill='%23FFFFFF'/%3E%3C/svg%3E");
   --tx-dither: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0zM2 2h2v2H2z' fill='%23161A2E'/%3E%3C/svg%3E");
@@ -133,8 +138,10 @@ html[data-wall="blue"]   { --wall: var(--blue); }
 html[data-wall="yellow"] { --wall: var(--yellow); }
 html[data-wall="teal"]   { --wall: var(--teal); }
 html[data-wall="pink"]   { --wall: var(--pink); }
-html[data-wall="navy"]   { --wall: var(--ink); }
+html[data-wall="navy"]   { --wall: var(--ink); --wall-dots: var(--tx-dots-light); --wall-grid: var(--tx-grid-light); }
 html[data-wall="blush"]  { --wall: var(--blush); }
+html[data-pattern="grid"]  { --wall-tx: var(--wall-grid); }
+html[data-pattern="plain"] { --wall-tx: none; }
 
 /* ============================================================
    THE PAGE ITSELF  (it never scrolls: windows scroll inside)
@@ -146,13 +153,8 @@ body {
   font-size: var(--fs-body);
   line-height: 1.6;
   color: var(--ink);
-  background: var(--wall) var(--tx-dots);
+  background: var(--wall) var(--wall-tx);
 }
-html[data-pattern="grid"] body  { background-image: var(--tx-grid); }
-html[data-pattern="plain"] body { background-image: none; }
-html[data-wall="navy"] body { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='2' cy='2' r='1.4' fill='%23FFFFFF' fill-opacity='.18'/%3E%3C/svg%3E"); }
-html[data-wall="navy"][data-pattern="grid"] body { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M0 .5H32M.5 0V32' stroke='%23FFFFFF' stroke-opacity='.14'/%3E%3C/svg%3E"); }
-html[data-wall="navy"][data-pattern="plain"] body { background-image: none; }
 
 ::selection { background: var(--yellow); color: var(--ink); }
 :focus-visible { outline: 3px solid var(--blue-ink); outline-offset: 2px; }
@@ -320,6 +322,11 @@ a:hover > .card-arrow, a:hover .card-arrow { translate: 4px 0; }
 }
 .desk-icon.is-selected .desk-label { color: var(--white); background: var(--ink); }
 .desk-icon.is-selected .desk-ico { background: rgba(255, 255, 255, 0.45); border-radius: 12px; }
+/* On the navy wallpaper each icon sits on a light tile, so its dark
+   outlines don't vanish into it (and the focus ring turns yellow). */
+html[data-wall="navy"] .desk-ico { background: var(--blush); border-radius: 14px; }
+html[data-wall="navy"] .desk-icon.is-selected .desk-ico { background: var(--yellow); }
+html[data-wall="navy"] .desktop :focus-visible { outline-color: var(--yellow); }
 .is-dragging .desk-icon { cursor: grabbing; }
 li.is-dragging { z-index: 5; }
 li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
@@ -598,13 +605,35 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .start-apps a:hover, .start-links a:hover, .start-system button:hover { background: var(--periwinkle-tint); }
 .start-apps .nav-icon { width: 26px; height: 26px; }
 .start-links svg.doodle, .start-system svg.doodle { width: 22px; height: 22px; }
+/* pet.exe, Wallpaper, Restart and Shut down share one row. */
+.start-system { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: 2px; }
+.start-system button { flex-direction: column; gap: 4px; padding: 8px 2px 6px; font-size: 0.76rem; line-height: 1.2; text-align: center; }
 .start-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
   padding: 9px 14px;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--ink-soft);
   border-top: var(--border);
 }
+.start-foot button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 5px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--white);
+  border: var(--border);
+  border-radius: 7px;
+  transition: background var(--transition);
+}
+.start-foot button:hover { background: var(--periwinkle-tint); }
+.start-foot svg.doodle { width: 16px; height: 16px; }
 
 /* ============================================================
    APP: ABOUT  (about_me.txt)
@@ -1335,6 +1364,210 @@ dialog.os-dialog::backdrop { background: rgba(22, 26, 46, 0.35); }
 .os-dialog-icon svg { width: 24px; height: 24px; }
 .os-dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px 18px; }
 
+/* About Kasai OS (the desktop menu, or the foot of the Start menu). */
+.about-os { display: flex; align-items: flex-start; gap: 16px; padding: 20px 22px 4px; }
+.about-os-logo { width: 64px; height: 64px; flex: none; }
+.about-os-name { font-family: var(--font-display); font-size: 1.6rem; line-height: 1.1; }
+.about-os-version { margin-top: 2px; font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); }
+.about-os-credits { display: grid; gap: 4px; margin-top: 12px; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-soft); }
+.about-os-credits li { position: relative; padding-left: 20px; }
+.about-os-credits li::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  top: 0.4em;
+  width: 11px;
+  height: 11px;
+  background: var(--periwinkle);
+  border: var(--border);
+  border-radius: 50%;
+}
+.about-os-copy { margin-top: 12px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); }
+
+/* ============================================================
+   BOOT AND SHUT DOWN  (kasai-os.js; head.js decides the first boot)
+   ============================================================ */
+/* The first page of a visit stays navy from the very first frame until
+   the boot screen takes over. If the scripts never arrive, it gives up. */
+html.booting body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--ink);
+  animation: boot-give-up 0.2s 6s forwards;
+}
+@keyframes boot-give-up { to { visibility: hidden; } }
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 2001;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--white);
+  background: var(--ink) var(--tx-dots-light);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.boot-inner { display: grid; justify-items: center; width: min(100%, 380px); }
+.boot-logo { width: 76px; height: 76px; }
+.boot-name { margin-top: 12px; font-family: var(--font-display); font-size: 2.1rem; line-height: 1.1; }
+.boot-bar {
+  display: block;
+  width: 100%;
+  height: 24px;
+  margin-top: 22px;
+  padding: 3px;
+  border: var(--line) solid var(--white);
+  border-radius: 9px;
+}
+.boot-fill { display: block; width: 0; height: 100%; background: var(--yellow); border-radius: 4px; }
+/* Room for five lines; past that the oldest one rolls away. */
+.boot-lines {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 7.5em;
+  margin-top: 16px;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--periwinkle-tint);
+}
+.boot-lines li { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.boot-ok { margin-right: 10px; font-weight: 700; color: var(--teal); }
+.boot-ok::before { content: '[ '; color: var(--white); }
+.boot-ok::after { content: ' ]'; color: var(--white); }
+
+/* Shut down: navy, a sleeping wizard and a power button. */
+dialog.shutdown {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 24px;
+  color: var(--white);
+  background: var(--ink) var(--tx-dots-light);
+  border: 0;
+}
+dialog.shutdown[open] { display: grid; place-content: center; justify-items: center; gap: 18px; text-align: center; }
+dialog.shutdown::backdrop { background: transparent; }
+.shutdown-pic { width: 150px; height: 150px; object-fit: contain; }
+.shutdown-pic.is-logo { width: 84px; height: 84px; }
+.shutdown-msg { max-width: 18ch; font-family: var(--font-display); font-size: clamp(1.5rem, 5vw, 2.2rem); line-height: 1.2; color: var(--yellow); text-wrap: balance; }
+.shutdown-power {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--white);
+}
+.shutdown-power svg.doodle {
+  box-sizing: content-box;
+  width: 30px;
+  height: 30px;
+  padding: 16px;
+  border: var(--line) solid var(--white);
+  border-radius: 50%;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.shutdown-power:hover svg.doodle, .shutdown-power:focus-visible svg.doodle { color: var(--ink); background: var(--yellow); border-color: var(--yellow); }
+.shutdown-power:focus-visible { outline: none; }
+.shutdown-power:focus-visible span { text-decoration: underline; text-decoration-color: var(--yellow); text-underline-offset: 4px; }
+
+/* ============================================================
+   THE DESKTOP MENU  (right-click the desktop; Shift+F10 too)
+   ============================================================ */
+.desk-menu {
+  position: fixed;
+  inset: auto;
+  width: 236px;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+}
+.desk-menu[hidden] { display: none; }
+.desk-menu .os-shadow { inset: 6px -6px -6px 6px; border-radius: 12px; }
+.desk-menu-panel { position: relative; padding: 5px; background: var(--white); border: var(--border); border-radius: 12px; }
+.desk-menu-panel:focus { outline: none; }
+.desk-menu-panel button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 5px 10px;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  line-height: 1.25;
+  text-align: left;
+  border-radius: 8px;
+}
+.desk-menu-panel button[hidden] { display: none; }
+.desk-menu-panel button:focus { outline: none; color: var(--white); background: var(--ink); }
+.desk-menu-panel button:focus .nav-icon { color: var(--white); }
+.desk-menu-panel svg.doodle, .desk-menu-panel .nav-icon { width: 20px; height: 20px; }
+.desk-menu-sep { height: 0; margin: 4px 8px; border-top: var(--line) solid var(--periwinkle-tint); }
+.desk-menu-sep[hidden] { display: none; }
+
+/* ============================================================
+   WALLPAPER  (wallpaper.exe: a little monitor, then the choices)
+   ============================================================ */
+.wall { display: grid; gap: 14px; padding: 18px 20px 20px; }
+.wall-monitor { display: grid; justify-items: center; }
+.wall-screen {
+  position: relative;
+  width: min(100%, 236px);
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--wall) var(--wall-tx);
+  border: var(--border);
+  border-radius: 10px;
+  box-shadow: 0 0 0 7px var(--white), 0 0 0 calc(7px + var(--line)) var(--ink);
+}
+.wall-icons { position: absolute; left: 9px; top: 9px; display: grid; gap: 7px; }
+.wall-icons i { display: block; width: 14px; height: 14px; background: var(--white); border: var(--line) solid var(--ink); border-radius: 4px; }
+.wall-window { position: absolute; right: 16px; bottom: 14px; width: 52%; height: 54%; background: var(--white); border: var(--line) solid var(--ink); border-radius: 6px; }
+.wall-window::before { content: ''; position: absolute; inset: 0 0 auto; height: 22%; background: var(--yellow); border-bottom: var(--line) solid var(--ink); border-radius: 3px 3px 0 0; }
+.wall-stand { width: 54px; height: 18px; margin-top: 9px; background: var(--white); border: var(--border); border-radius: 4px 4px 9px 9px; }
+.wall-set { min-width: 0; border: 0; }
+.wall-set legend { padding: 0; font-family: var(--font-mono); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.wall-options { display: flex; flex-wrap: wrap; gap: 6px 4px; margin-top: 8px; }
+.wall-choice { display: grid; justify-items: center; gap: 4px; width: 52px; font-size: 0.78rem; text-align: center; cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer; }
+.wall-chip {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--ink);
+  background: var(--chip, var(--wall));
+  border: var(--border);
+  border-radius: 12px;
+  transition: translate var(--transition);
+}
+.wall-chip svg.doodle { width: 22px; height: 22px; opacity: 0; }
+.wall-choice:hover .wall-chip { translate: 0 -2px; }
+.wall-choice input:checked + .wall-chip svg { opacity: 1; }
+.wall-choice input:checked + .wall-chip { box-shadow: 0 0 0 3px var(--white), 0 0 0 calc(3px + var(--line)) var(--ink); }
+.wall-choice input:focus-visible + .wall-chip { outline: 3px solid var(--blue-ink); outline-offset: 6px; }
+.wall-choice input:checked ~ .wall-label { font-weight: 700; }
+/* The check stays readable on navy. */
+.wall-chip.is-dark { color: var(--white); }
+.wall-tile.is-dots { background: var(--wall) var(--wall-dots); }
+.wall-tile.is-grid { background: var(--wall) var(--wall-grid); }
+.wall-tile.is-plain { background: var(--wall); }
+html[data-wall="navy"] .wall-tile { color: var(--white); }
+.wall-actions { display: flex; justify-content: flex-start; }
+
 /* ============================================================
    THE PET WIZARD  (on the desktop, behind every window)
    ============================================================
@@ -1404,7 +1637,9 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   .pet-sprite.petted img { animation: pet-squish 0.45s ease; }
   .pet.is-landing .pet-body { animation: pet-land 0.9s ease-out; }
   .pet.is-settling .pet-body { animation: pet-settle 0.3s ease-out; }
-  .desk-icon.is-jiggling .desk-ico { animation: icon-jiggle 0.55s ease; }
+  .pet.is-trick .pet-body { transform-origin: 50% 55%; animation: pet-flip 0.9s cubic-bezier(0.3, 0.7, 0.4, 1); }
+  .pet.is-party .pet-body { animation: pet-party 0.42s ease-in-out 6 alternate; }
+  .desk-icon.is-jiggling .desk-ico { animation: icon-jiggle 0.55s ease var(--jiggle-delay, 0s); }
   .os-led.is-busy { animation: os-led 1.1s steps(2) infinite; }
 }
 @keyframes pet-breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.96); } }
@@ -1420,6 +1655,22 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   100% { transform: none; }
 }
 @keyframes pet-settle { 45% { transform: scale(1.05, 0.93); } }
+/* Refresh: a crouch, a flip and a bouncy landing. Every step lists the
+   same three moves, so the spin turns the whole way round. */
+@keyframes pet-flip {
+  0%   { transform: translateY(0) rotate(0deg) scale(1, 1); }
+  14%  { transform: translateY(0) rotate(0deg) scale(1.12, 0.84); }
+  34%  { transform: translateY(-44px) rotate(-150deg) scale(1, 1); }
+  58%  { transform: translateY(-48px) rotate(-280deg) scale(1, 1); }
+  82%  { transform: translateY(0) rotate(-360deg) scale(1.1, 0.88); }
+  100% { transform: translateY(0) rotate(-360deg) scale(1, 1); }
+}
+/* A secret code: hop from foot to foot. */
+@keyframes pet-party {
+  from { transform: translateY(0) rotate(-7deg); }
+  50%  { transform: translateY(-12px) rotate(0deg); }
+  to   { transform: translateY(0) rotate(7deg); }
+}
 @keyframes icon-jiggle { 20% { rotate: -12deg; } 40% { rotate: 9deg; } 60% { rotate: -6deg; } 80% { rotate: 3deg; } }
 @keyframes os-led { 50% { background: var(--white); } }
 
@@ -1430,7 +1681,7 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   place-items: end center;
   min-height: 206px;
   padding: 62px 16px 12px;
-  background: var(--wall) var(--tx-dots);
+  background: var(--wall) var(--wall-tx);
   border-bottom: var(--border);
 }
 .petexe-wizard { width: 132px; height: 132px; object-fit: contain; filter: drop-shadow(3px 3px 0 rgba(22, 26, 46, 0.22)); }
@@ -1518,6 +1769,10 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
    ============================================================ */
 @media (max-width: 760px) {
   :root { --taskbar-h: 62px; }
+  /* The home screen takes swipes (the Konami code), so pulling down never
+     reloads the page. */
+  html, body { overscroll-behavior-y: none; }
+  .desk-menu-panel button { min-height: 44px; }
   /* The home screen: icons at the top, the wizard wandering about below. */
   .desktop { display: flex; flex-direction: column; overflow-y: auto; padding: 16px 14px 10px; }
   .desk-icons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 4px; justify-items: center; }

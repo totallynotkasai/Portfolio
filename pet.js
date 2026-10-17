@@ -8,6 +8,8 @@
    with the mouse (or press and hold on a touch screen) to carry him about.
    He remembers where you left him and whether you petted him, and pet.exe
    in the Start menu shows how he's doing. Pet him ten times for a surprise.
+   The desktop menu's Refresh makes him do a trick, and the secret codes
+   (kasai-os.js) throw him a party.
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -25,6 +27,8 @@
     dropLines: ['oof.', 'rude.', 'the room is spinning'],
     trashLines: ["i'm NOT rubbish!", 'hey! not recyclable.'],
     welcomeBack: ['welcome back!', 'oh hi, you again :)'],
+    trickLines: ['ta-da!', 'did you see that?!'],
+    partyLines: ["it's a party!", 'nobody said there was a dress code'],
   };
 
   /* ---------- his drawings ----------
@@ -70,7 +74,7 @@
   const LONG_PRESS = 450;            // ms a finger rests on him to pick him up
 
   // What pet.exe calls his mood: what he's busy with, or else how loved he feels.
-  const BUSY = { asleep: 'Fast asleep', held: 'Being carried', dizzy: 'Seeing stars', walk: 'Out for a stroll' };
+  const BUSY = { asleep: 'Fast asleep', held: 'Being carried', dizzy: 'Seeing stars', walk: 'Out for a stroll', party: 'Partying' };
   const FEELING = ['A bit bored', 'Content', 'Content', 'Happy', 'Very happy', 'Over the moon'];
 
   let live = null; // the wizard on the desktop, once init() has run
@@ -83,6 +87,12 @@
     },
     // pet.exe (Start menu): a little window with him, his mood and his pets.
     openExe(opts) { if (live) live.openExe(opts || {}); },
+    // The desktop menu's Refresh: a flip (just a grin with reduced motion).
+    trick() { if (live) live.trick(); },
+    // A secret code: the party hat and a little dance.
+    party() { if (live) live.party(); },
+    // Says a line, if he's about (false if he isn't).
+    say(text, ms) { return live ? live.speak(text, ms) : false; },
     // The picture for one of his drawings (or its stand-in), for anything
     // else that shows a wizard, like Wizard Sweeper. Works even if he's retired.
     frame: frameSrc,
@@ -181,7 +191,7 @@
 
     /* ---------- what he's up to ----------
        idle (sitting about), walk, happy (just petted), asleep, held (being
-       carried) or dizzy (just put down). */
+       carried), dizzy (just put down) or party (a secret code). */
     let state = 'idle';
     const setState = (s) => {
       state = s;
@@ -466,7 +476,7 @@
     let coveredAt = 0;
     let nextWander = Date.now() + 5000 + Math.random() * 7000;
     function think() {
-      if (document.hidden || state === 'held' || state === 'walk' || state === 'happy' || state === 'dizzy') return;
+      if (document.hidden || state === 'held' || state === 'walk' || state === 'happy' || state === 'dizzy' || state === 'party') return;
       const now = Date.now();
       const cv = coverNow();
       if ((cv.win > 0.45 || cv.icon > 0.2 || cv.col > 0.5) && state !== 'asleep') {
@@ -652,6 +662,8 @@
       if (e.animationName === 'pet-land') el.classList.remove('is-landing');
       if (e.animationName === 'pet-settle') el.classList.remove('is-settling');
       if (e.animationName === 'pet-squish') btn.classList.remove('petted');
+      if (e.animationName === 'pet-flip') el.classList.remove('is-trick');
+      if (e.animationName === 'pet-party') el.classList.remove('is-party');
     });
 
     // Put down: a wobble and a complaint, or (now and then) a nap right
@@ -716,6 +728,47 @@
       const line = lineFor(e.app);
       if (line) setTimeout(() => { if (state !== 'asleep' && state !== 'held') speakOut(line, 3600); }, 700);
     });
+
+    /* ---------- tricks and parties ----------
+       Refresh (the desktop menu) gets a flip; a secret code gets the party
+       hat and a little dance. With reduced motion he just beams. If a
+       window is hiding him he pops out first, so nobody misses the show. */
+    function perform(kind) {
+      if (state === 'held') return;
+      if (state === 'walk') stopWalk();
+      if (state === 'asleep') wake();
+      const go = () => {
+        if (state === 'held') return;
+        clearTimeout(moodTimer);
+        rest();
+        nextWander = Date.now() + 8000 + Math.random() * 6000;
+        stopBlink();
+        el.classList.remove('is-landing', 'is-settling', 'is-trick', 'is-party');
+        bubble.setAttribute('role', 'status');
+        if (kind === 'party') {
+          setState('party');
+          show('party');
+          say(lineOf('partyLines'), 3400);
+          settleIn(3600, 'party');
+        } else {
+          setState('happy');
+          show('happy');
+          say(lineOf('trickLines'), 2400);
+          settleIn(1300, 'happy');
+        }
+        if (RM) return;
+        void el.offsetWidth; // restart the move
+        el.classList.add(kind === 'party' ? 'is-party' : 'is-trick');
+      };
+      if (state === 'idle' && coverNow().win > 0.45 && popOut(go)) return;
+      go();
+    }
+    const speak = (text, ms) => {
+      if (!text) return false;
+      bubble.setAttribute('role', 'status');
+      speakOut(text, ms || 3000);
+      return true;
+    };
 
     /* ---------- pet.exe ---------- */
     const moodText = () => BUSY[state] || FEELING[clamp(hearts, 0, 5)];
@@ -817,6 +870,6 @@
       fitTouch();
     });
 
-    return { openExe };
+    return { openExe, trick: () => perform('trick'), party: () => perform('party'), speak };
   }
 })();
