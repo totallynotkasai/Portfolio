@@ -86,7 +86,7 @@
   };
 
   /* ══════════════════════════════════════════════════════════════════════
-     ABOUT  (about_me.txt) + the Current Goals sticky notes on the desktop
+     ABOUT  (about_me.txt)
      ══════════════════════════════════════════════════════════════════════ */
   const DEFAULT_TICKER = ['Digital illustration', 'Graphic design', 'Web design', 'Creative writing', 'IT', 'QA', 'Automation'];
 
@@ -128,32 +128,6 @@
     // The ticker measures itself once the window is actually on screen.
     onShow(win) { K.setupMarquee(win.body.querySelector('.ticker')); },
     onResize(win) { K.setupMarquee(win.body.querySelector('.ticker')); },
-  };
-
-  // The goals board: one pinned sticky note per goal, stuck to the desktop.
-  // Each note opens the window it points at.
-  K.renderNotes = (box) => {
-    const a = C.about || {};
-    const items = a.currently || [];
-    if (!box || !items.length) return;
-    const fallback = ['blue', 'lavender', 'teal', 'pink'];
-    box.innerHTML = `
-      <p class="notes-title">${esc(a.currentlyHeading || 'Current Goals')}</p>
-      <ul class="notes-board">
-        ${items.map((it, i) => {
-          const app = it.url ? K.appFromPath(it.url) : null;
-          const inner = `
-            <span class="goal-pin" aria-hidden="true"></span>
-            <span class="goal-icon">${doodleIcon(it.icon)}</span>
-            <span class="goal-label">${esc(it.label || '')}</span>
-            <span class="goal-value">${esc(it.value || '')}</span>
-            ${it.url ? `<span class="goal-link">${esc(it.link || 'Take a look')} ${K.ARROW}</span>` : ''}`;
-          const cls = `goal-note ${accent(it.accent || fallback[i % fallback.length])}`;
-          return `<li data-drag-id="note-${i}">${it.url
-            ? `<a class="${cls}" href="${esc(it.url)}"${app ? ` data-app="${app}"` : ''} draggable="false">${inner}</a>`
-            : `<div class="${cls}">${inner}</div>`}</li>`;
-        }).join('')}
-      </ul>`;
   };
 
   /* ══════════════════════════════════════════════════════════════════════

@@ -53,6 +53,7 @@
   const wins = new Map(); // id -> window
   const order = []; // open windows (minimised ones too), back to front
   let cascade = 0;
+  let openCount = 0;
 
   const appOf = (win) => (APPS[win.id] ? win.id : win.spec.parent || null);
   const front = () => {
@@ -144,15 +145,14 @@
   }
 
   // Where a window first appears: centred in the free desktop (clear of the
-  // icons and sticky notes on big screens), each new one a step down and
-  // right; a project or document opens near the folder it came from.
+  // icons on big screens), each new one a step down and right; a project or
+  // document opens near the folder it came from.
   function place(win) {
     const area = layer.getBoundingClientRect();
     const W = area.width;
     const H = area.height;
     const spec = win.spec;
     const iconRail = W >= 1000 ? 132 : 12;
-    const notesRail = W >= 1280 && $('#desk-notes') && $('#desk-notes').childElementCount ? 236 : 12;
     let w;
     let h;
     if (spec.fit) {
@@ -163,9 +163,7 @@
       h = Math.max(280, imgW / ratio + spec.fit.chrome);
     } else {
       [w, h] = spec.size || [720, 520];
-      // Fit between the icons and the sticky notes when there's room for it.
-      const room = W - iconRail - notesRail;
-      w = Math.min(w, room >= 640 ? room : W - iconRail - 12);
+      w = Math.min(w, W - iconRail - 12);
     }
     w = Math.min(w, W - 16);
     h = Math.min(h, H - 16);
@@ -180,7 +178,7 @@
       x = parent.rect.x + 48 + step;
       y = parent.rect.y + 40 + step;
     } else {
-      x = iconRail + Math.max(0, (W - iconRail - notesRail - w) / 2) + step - 26;
+      x = iconRail + Math.max(0, (W - iconRail - 12 - w) / 2) + step - 26;
       y = Math.max(12, (H - h) / 2 - 24) + step - 13;
     }
     setRect(win, { x: clamp(x, 8, W - w - 8), y: clamp(y, 8, H - h - 8), w, h });
@@ -196,6 +194,7 @@
     const first = !win.open;
     if (first) {
       win.open = true;
+      win.openedAt = ++openCount; // its place along the taskbar
       win.minimised = false;
       order.push(win.id);
       win.el.hidden = false;
@@ -413,11 +412,16 @@
   /* ══════════════════════════════════════════════════════════════════════
      TASKBAR, ADDRESS BAR AND TAB TITLE
      ══════════════════════════════════════════════════════════════════════ */
-  const taskButton = (win) =>
-    $(`.task-btn[data-app="${win.id}"]`, taskbar) || $(`.task-win[data-win="${win.id}"]`, taskbar);
+  // A window's button you can actually see: its icon in the phone dock, or
+  // its own button in the taskbar on bigger screens.
+  const taskButton = (win) => [
+    $(`.task-btn[data-app="${win.id}"]`, taskbar),
+    $(`.task-win[data-win="${win.id}"]`, taskbar),
+  ].find((b) => b && b.getClientRects().length) || null;
 
   function syncTaskbar() {
     const f = front();
+    // The phone dock: one icon per app, marked when its window is open.
     $$('.task-btn[data-app]', taskbar).forEach((b) => {
       const w = wins.get(b.dataset.app);
       b.classList.toggle('is-open', !!(w && w.open));
@@ -425,16 +429,14 @@
       if (w && w === f) b.setAttribute('aria-current', 'true');
       else b.removeAttribute('aria-current');
     });
-    // Any other open windows (a project, a document, the viewer, a game).
+    // Bigger screens: a button for every open window, in the order opened.
     const list = $('#task-windows');
     if (!list) return;
     const had = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.win : null;
-    list.innerHTML = order.filter((id) => !APPS[id]).map((id) => {
-      const w = wins.get(id);
-      return `<li><button class="task-win ${esc(w.spec.colour || 'lavender')}${w === f ? ' is-active' : ''}${w.minimised ? ' is-min' : ''}" type="button" data-win="${esc(id)}">
+    const shown = order.map((id) => wins.get(id)).filter(Boolean).sort((a, b) => a.openedAt - b.openedAt);
+    list.innerHTML = shown.map((w) => `<li><button class="task-win ${esc(w.spec.colour || 'lavender')}${w === f ? ' is-active' : ''}${w.minimised ? ' is-min' : ''}" type="button" data-win="${esc(w.id)}"${w === f ? ' aria-current="true"' : ''}>
           ${w.spec.icon ? navIcon(w.spec.icon) : doodleIcon(w.spec.doodle || 'folder')}<span class="task-label">${esc(w.spec.label)}</span>
-        </button></li>`;
-    }).join('');
+        </button></li>`).join('');
     if (had && $(`.task-win[data-win="${had}"]`, list)) $(`.task-win[data-win="${had}"]`, list).focus({ preventScroll: true });
   }
 
@@ -581,7 +583,7 @@
     window.addEventListener('pageshow', (e) => { if (e.persisted) hideStart(); });
   }
 
-  // Links that open windows (sticky notes, Start menu, buttons in windows).
+  // Links that open windows (the Start menu, buttons inside windows).
   document.addEventListener('click', (e) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const a = e.target.closest('a[data-app]');
@@ -592,7 +594,7 @@
   });
 
   /* ══════════════════════════════════════════════════════════════════════
-     THE DESKTOP  (icons and sticky notes you can drag about)
+     THE DESKTOP  (icons you can drag about)
      ══════════════════════════════════════════════════════════════════════
      Positions are kept per visitor as fractions of the desktop, so they
      survive a different window size. Phones use a tidy grid instead. */
@@ -604,8 +606,7 @@
     K.store.set('kasai:desktop', { items });
   };
 
-  // Where everything sits until it's moved: icons down the left, notes down
-  // the right.
+  // Where the icons sit until they're moved: in columns down the left.
   function layoutDesktop() {
     const phone = isPhone();
     desktop.classList.toggle('is-free', !phone);
@@ -624,18 +625,6 @@
     $$('#desk-icons > li').forEach((li, i) => {
       put(li, li.dataset.dragId, 12 + Math.floor(i / perColumn) * 96, 12 + (i % perColumn) * slot);
     });
-    // Notes stack down the right; on short screens they overlap like a pile.
-    const notes = $$('#desk-notes .notes-board > li');
-    const heights = notes.map((li) => li.offsetHeight);
-    const total = heights.reduce((sum, h) => sum + h + 18, -18);
-    const squeeze = notes.length > 1 ? Math.max(0, (total - (d.height - 60)) / (notes.length - 1)) : 0;
-    let noteY = 44;
-    notes.forEach((li, i) => {
-      put(li, li.dataset.dragId, d.width - 222 - (i % 2) * 10, noteY);
-      noteY += heights[i] + 18 - squeeze;
-    });
-    const title = $('#desk-notes .notes-title');
-    if (title) title.style.display = phone ? '' : 'none';
   }
 
   // Drag with a mouse or pen (a few pixels first, so clicks still click).
@@ -692,8 +681,7 @@
         if (!e.target.closest('.desk-icon')) sel.clear();
       });
     }
-    if (K.renderNotes) K.renderNotes($('#desk-notes'));
-    $$('#desk-icons > li, #desk-notes .notes-board > li').forEach(draggable);
+    $$('#desk-icons > li').forEach(draggable);
     layoutDesktop();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutDesktop);
     PHONE.addEventListener('change', () => {

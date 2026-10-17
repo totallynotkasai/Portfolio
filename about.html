@@ -48,7 +48,7 @@
   </noscript>
 
   <!-- ========== THE DESKTOP ==========
-       You don't edit anything here: the windows, sticky notes and the pet
+       You don't edit anything here: the windows and the pet
        all come from content.js. The icons are real links so search engines
        can follow them; the OS opens them as windows. -->
   <main class="os" id="os">
@@ -65,7 +65,6 @@
           <li><a class="desk-icon" href="/trash" data-app="trash" draggable="false"><span class="desk-ico"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/trash.svg#icon"/></svg></span><span class="desk-label">Trash</span></a></li>
         </ul>
       </nav>
-      <div class="desk-notes" id="desk-notes"></div>
       <div class="desk-pet" id="desk-pet"></div>
     </div>
     <div class="windows" id="windows"></div>
@@ -73,8 +72,8 @@
 
   <!-- ========== THE TASKBAR ========== -->
   <nav class="taskbar" aria-label="Taskbar">
-    <button class="start-btn" type="button" popovertarget="start-menu">
-      <img src="/assets/ui/favicon.png" alt="" /><span class="start-name">Andrew Worgan</span><span class="vh"> start menu</span>
+    <button class="start-btn" type="button" popovertarget="start-menu" title="Start">
+      <img src="/assets/ui/favicon.png" alt="" /><span class="vh">Start menu</span>
     </button>
     <div class="start-menu" id="start-menu" popover></div>
     <ul class="task-apps">

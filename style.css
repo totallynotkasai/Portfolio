@@ -119,7 +119,7 @@ p, h1, h2, h3, li { cursor: auto; }
   --tx-grip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Cpath d='M13 4L4 13M13 8.5L8.5 13' stroke='%23161A2E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
-/* Accent classes give windows, buttons and notes their colour trio. */
+/* Accent classes give windows and buttons their colour trio. */
 .lavender { --acc: var(--periwinkle); --acc-tint: var(--periwinkle-tint); --acc-ink: var(--periwinkle-ink); }
 .blue     { --acc: var(--blue);       --acc-tint: var(--blue-tint);       --acc-ink: var(--blue-ink); }
 .teal     { --acc: var(--teal);       --acc-tint: var(--teal-tint);       --acc-ink: var(--teal-ink); }
@@ -285,17 +285,15 @@ svg.doodle :is(path, circle, rect) { vector-effect: non-scaling-stroke; }
 a:hover > .card-arrow, a:hover .card-arrow { translate: 4px 0; }
 
 /* ============================================================
-   THE DESKTOP  (icons, sticky notes and the pet)
+   THE DESKTOP  (the icons and the pet)
    ============================================================ */
 .os {
   position: fixed;
   inset: 0 0 calc(var(--taskbar-h) + var(--safe-b));
 }
 .desktop { position: absolute; inset: 0; }
-/* On wider screens everything sits wherever it's been dragged to (script). */
-.desktop.is-free .desk-icons > li,
-.desktop.is-free .notes-board > li { position: absolute; }
-.desktop.is-free .notes-title { display: none; }
+/* On wider screens the icons sit wherever they've been dragged to (script). */
+.desktop.is-free .desk-icons > li { position: absolute; }
 
 .desk-icon {
   display: grid;
@@ -322,57 +320,9 @@ a:hover > .card-arrow, a:hover .card-arrow { translate: 4px 0; }
 }
 .desk-icon.is-selected .desk-label { color: var(--white); background: var(--ink); }
 .desk-icon.is-selected .desk-ico { background: rgba(255, 255, 255, 0.45); border-radius: 12px; }
-.is-dragging .desk-icon, .is-dragging .goal-note { cursor: grabbing; }
+.is-dragging .desk-icon { cursor: grabbing; }
 li.is-dragging { z-index: 5; }
 li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
-
-/* "Current Goals": pinned sticky notes on the desktop, each opening its window. */
-.notes-title {
-  display: inline-block;
-  margin: 0 0 12px;
-  padding: 0 8px;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  background: var(--yellow);
-  border-radius: 6px;
-  rotate: -1.5deg;
-}
-.goal-note {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 196px;
-  padding: 22px 16px 14px;
-  color: var(--ink);
-  background: var(--acc, var(--periwinkle));
-  border: var(--border);
-  border-radius: 4px;
-  user-select: none;
-  -webkit-user-drag: none;
-  transition: rotate var(--transition), translate var(--transition);
-}
-.notes-board > li:nth-child(4n+1) .goal-note { rotate: -2.5deg; }
-.notes-board > li:nth-child(4n+2) .goal-note { rotate: 1.5deg; }
-.notes-board > li:nth-child(4n+3) .goal-note { rotate: -1deg; }
-.notes-board > li:nth-child(4n)   .goal-note { rotate: 2.5deg; }
-.notes-board a.goal-note:hover { rotate: 0deg; translate: 0 -3px; }
-.goal-pin {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  margin-left: -9px;
-  width: 18px;
-  height: 18px;
-  background: var(--ink);
-  border: var(--border);
-  border-radius: 50%;
-  box-shadow: inset 4px 4px 0 -1px var(--white);
-}
-.goal-icon svg { width: 22px; height: 22px; }
-.goal-label { font-family: var(--font-display); font-size: 1.15rem; margin-top: 2px; }
-.goal-value { font-size: 0.86rem; line-height: 1.45; }
-.goal-link { margin-top: 6px; font-family: var(--font-display); font-size: 0.82rem; }
 
 /* ============================================================
    WINDOWS
@@ -486,26 +436,26 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   background: var(--white);
   border-top: var(--border);
 }
+/* Start: just the flame in a white box. It lights up yellow while open. */
 .start-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  place-items: center;
   flex: none;
+  width: 40px;
   height: 40px;
-  padding: 0 14px 0 10px;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  white-space: nowrap;
-  background: var(--yellow);
+  background: var(--white);
   border: var(--border);
   border-radius: 10px;
-  transition: background var(--transition), color var(--transition);
+  transition: background var(--transition);
 }
-.start-btn img { width: 22px; height: 22px; }
-.start-btn:hover { background: var(--periwinkle); }
-.start-btn:has(+ .start-menu:popover-open), .start-btn[aria-expanded="true"] { color: var(--white); background: var(--ink); }
+.start-btn img { width: 24px; height: 24px; }
+.start-btn:hover { background: var(--yellow-tint); }
+.start-btn:has(+ .start-menu:popover-open), .start-btn[aria-expanded="true"] { background: var(--yellow); }
 
-.task-apps, .task-windows, .tray { display: flex; align-items: center; gap: 4px; }
+/* Bigger screens list the open windows; phones show the app dock instead. */
+.task-apps { display: none; }
+.task-apps, .task-windows, .tray { align-items: center; gap: 4px; }
+.task-windows, .tray { display: flex; }
 .task-windows { flex: 1; min-width: 0; overflow: hidden; }
 .task-btn, .task-win {
   position: relative;
@@ -521,13 +471,24 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border-radius: 10px;
   transition: background var(--transition);
 }
-/* Extra windows share what's left of the bar, shrinking to just their icon. */
+/* Open windows share the bar, shrinking towards just their icon. */
 .task-windows > li { flex: 0 1 190px; min-width: 46px; }
 .task-win { width: 100%; max-width: 190px; }
 .task-win .task-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* The dock's icons keep their names for screen readers only. */
+.task-btn .task-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Each open window is a white box like Start; the front one fills with its colour. */
+.task-win { background: var(--white); border-color: var(--ink); }
 .task-btn:hover, .task-win:hover { background: var(--acc-tint); }
-/* Open windows get an underline in their colour; the front one is pressed in. */
-.task-btn.is-open::after, .task-win::after {
+/* Dock icons of open apps get an underline in their colour. */
+.task-btn.is-open::after {
   content: '';
   position: absolute;
   left: 30%;
@@ -539,8 +500,12 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border-radius: 3px;
 }
 .task-btn.is-active, .task-win.is-active { color: var(--acc-text, var(--ink)); background: var(--acc); border-color: var(--ink); }
-.task-btn.is-active::after, .task-win.is-active::after { display: none; }
-.task-win.is-min { opacity: 0.75; }
+.task-btn.is-active::after { display: none; }
+/* The white Recycle Bin can't fill with white, so it goes navy instead. */
+.task-win.white.is-active { color: var(--white); background: var(--ink); }
+/* Minimised: tucked away, so the box goes see-through. */
+.task-win.is-min { background: transparent; border-style: dashed; }
+.task-win.is-min:hover { background: var(--acc-tint); }
 .task-win svg.doodle { width: 20px; height: 20px; }
 
 .tray { flex: none; margin-left: auto; }
@@ -1086,8 +1051,6 @@ dialog.os-dialog::backdrop { background: rgba(22, 26, 46, 0.35); }
    THE PET WIZARD  (on the desktop, behind every window)
    ============================================================ */
 .desk-pet { position: absolute; right: 28px; bottom: 8px; }
-/* Just left of the sticky notes, so he never sits on one. */
-.desktop.is-free .desk-pet { right: 250px; }
 .pet { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .pet-sprite { width: 116px; height: 116px; transition: translate var(--transition); }
 .pet-sprite:hover { translate: 0 -3px; }
@@ -1167,19 +1130,13 @@ dialog.os-dialog::backdrop { background: rgba(22, 26, 46, 0.35); }
 /* ============================================================
    PHONES  (a home screen; one app at a time, full screen)
    ============================================================ */
-@media (max-width: 1180px) {
-  .task-btn .task-label { display: none; }
-  .task-btn { padding: 0 9px; }
-}
 @media (max-width: 760px) {
   :root { --taskbar-h: 62px; }
-  .desktop { overflow-y: auto; padding: 16px 14px 24px; }
+  /* The home screen: icons at the top, the wizard at the bottom. */
+  .desktop { display: flex; flex-direction: column; overflow-y: auto; padding: 16px 14px 10px; }
   .desk-icons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 4px; justify-items: center; }
   .desk-icon { width: 78px; }
-  .desk-notes { margin-top: 26px; }
-  .notes-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 12px; padding-top: 10px; }
-  .goal-note { width: auto; height: 100%; }
-  .desk-pet { position: static; display: flex; justify-content: center; margin-top: 26px; }
+  .desk-pet { position: static; display: flex; justify-content: center; margin-top: auto; padding-top: 26px; }
 
   .win { inset: 0 !important; width: auto !important; height: auto !important; }
   .win:not(.is-active) { display: none; }
@@ -1190,9 +1147,9 @@ dialog.os-dialog::backdrop { background: rgba(22, 26, 46, 0.35); }
   .win-head { padding: 12px 16px 10px; }
   .about { padding: 18px; }
 
-  .start-btn { padding: 0 9px; }
-  .start-name, .task-windows, .tray { display: none; }
-  .task-apps { flex: 1; justify-content: space-around; gap: 0; }
+  /* The dock: Start, one icon per app, the clock. */
+  .task-windows, .tray { display: none; }
+  .task-apps { display: flex; flex: 1; justify-content: space-around; gap: 0; }
   .task-btn { padding: 0 5px; }
   .task-btn .nav-icon { width: 25px; height: 25px; }
   .tray-clock { min-width: 0; padding: 0 2px; font-size: 0.82rem; }

@@ -73,20 +73,6 @@ window.CONTENT = {
 
     email: 'andrew.worgan.enquiry@gmail.com',
 
-    // "Current Goals": sticky notes pinned to the desktop, one per goal.
-    // Visitors can drag them about. Keep them fresh: update me monthly, or
-    // delete every line to hide them.
-    // • icon: any doodle name, e.g. 'pencil' 'quill' 'hammer' 'book' 'sprout' 'controller'
-    // • accent is the note's colour (match the window it opens).
-    // • url (optional) makes the note open that window; "link" is the text at its foot.
-    currentlyHeading: 'Current Goals',
-    currently: [
-      { icon: 'hammer', label: 'Building', value: 'Filo, my personal knowledge manager.', accent: 'blue', url: '/coding_projects', link: 'See projects' },
-      { icon: 'pencil', label: 'Drawing', value: 'Getting better every day :)', accent: 'lavender', url: '/illustrations_and_graphics', link: 'See art' },
-      { icon: 'quill', label: 'Drafting', value: '"Dilettantes in the Interim" An Isekai Web-Novel.', accent: 'teal', url: '/writing', link: 'See writing' },
-      { icon: 'sprout', label: 'Growing', value: 'My career in IT, one cert at a time.', accent: 'pink', url: '/certificates', link: 'See certificates' },
-    ],
-
     // Casual sign-off, shown in the About window's status bar.
     signoff: 'Thanks for stopping by :)',
   },
