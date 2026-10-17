@@ -175,6 +175,11 @@
     dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/>',
     folder: '<path d="M3 7h6l2 2h10v10H3z"/>',
     fork: '<circle cx="6" cy="5" r="2.2"/><circle cx="18" cy="5" r="2.2"/><circle cx="12" cy="19" r="2.2"/><path d="M6 7.2v1.3a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V7.2M12 11.5v5.3"/>',
+    phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/>',
+    min: '<path d="M6 17h12"/>',
+    close: '<path d="M7 7l10 10M17 7 7 17"/>',
   };
   // Link arrow, nudges right on hover (see .card-arrow in style.css).
   const ARROW =
@@ -246,109 +251,374 @@
     return (l + 0.05) / (INK_L + 0.05) >= 1.05 / (l + 0.05) ? 'var(--ink)' : 'var(--white)';
   };
 
-  // Each polaroid's frame takes the artwork's most visible colour and its tag
-  // chip the second (picked by the build, or `frame:` / `chip:` in content.js).
-  const frameStyle = (it) => {
-    const picked = (imgInfo(it.img) || {}).colors || [];
-    const frame = HEX.test(it.frame) ? it.frame : picked[0];
-    const chip = HEX.test(it.chip) ? it.chip : picked[1];
-    let css = '';
-    if (frame) css += `--frame:${frame};--frame-ink:${textOn(frame)};`;
-    if (chip) css += `--chip:${chip};--chip-ink:${textOn(chip)};`;
-    return css ? ` style="${css}"` : '';
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const plural = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
+  const artSets = () => ART.reduce((tags, it) => (it.tag && tags.indexOf(it.tag) === -1 ? tags.concat(it.tag) : tags), []);
+  const binderStatus = (shown) => (shown === ART.length
+    ? `${plural(ART.length, 'card')} in ${plural(artSets().length, 'set')}`
+    : `Showing ${shown} of ${plural(ART.length, 'card')}`);
+  // "Final Valen" -> "final-valen.png", the name in the viewer's title bar.
+  const artFileName = (it) => {
+    const ext = (String(it.img || '').match(/\.(\w+)$/) || [0, 'png'])[1].toLowerCase();
+    return (String(it.title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'untitled') + '.' + ext;
   };
 
+  // Each piece is a spell card. Its frame takes the artwork's most visible
+  // colour and its type strip the second (picked by the build, or `frame:` /
+  // `chip:` in content.js). Wide pieces get a sideways card, two columns wide.
+  function artCard(it, i, n) {
+    const info = imgInfo(it.img) || {};
+    const picked = info.colors || [];
+    const frame = HEX.test(it.frame) ? it.frame : picked[0];
+    const chip = HEX.test(it.chip) ? it.chip : picked[1];
+    let style = `--tilt:${[-2, 1.6, -0.8, 2.2, -1.4, 0.9][i % 6]}deg;`;
+    if (frame) style += `--frame:${frame};--frame-ink:${textOn(frame)};`;
+    if (chip) style += `--chip:${chip};--chip-ink:${textOn(chip)};`;
+    const wide = info.w && info.h && info.w / info.h >= 1.25;
+    const title = it.title || 'Untitled';
+    const viewer = it.img
+      ? ` data-full="${esc(largeSrc(it.full || it.img))}" data-file="${esc(artFileName(it))}"` +
+        ` data-colors="${esc(picked.join(' '))}" data-caption="${esc(title + (it.tag ? ' · ' + it.tag : ''))}"` +
+        ` tabindex="0" role="button" aria-label="View ${esc(title)} full size"`
+      : '';
+    return `
+      <figure class="art-card${wide ? ' is-wide' : ''} animate-on-scroll" style="${style}" data-tag="${esc(it.tag || '')}"${viewer}>
+        <div class="art-card-tilt">
+          <div class="art-card-face">
+            <span class="art-card-name">${esc(title)}</span>
+            <div class="art-card-window">${it.img
+              ? `<img src="${esc(webSrc(it.img))}"${dims(it.img)} alt="${esc(title)}" loading="lazy" decoding="async" />`
+              : doodleIcon('palette')}</div>
+            <p class="art-card-type"><span>${esc(it.tag || 'Art')}</span><img src="/assets/ui/favicon.png" alt="" /></p>
+            <p class="art-card-foot" aria-hidden="true"><span>${pad2(i + 1)}/${pad2(n)}</span><span>Kasai</span></p>
+            <span class="art-card-glint" aria-hidden="true"></span>
+          </div>
+        </div>
+      </figure>`;
+  }
+
+  // Cards lean towards the mouse, and the foil glint follows it across.
+  function tiltCard(card) {
+    card.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      const r = card.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      card.classList.add('is-tilting');
+      card.style.setProperty('--ry', (px * 16).toFixed(2) + 'deg');
+      card.style.setProperty('--rx', (-py * 13).toFixed(2) + 'deg');
+      card.style.setProperty('--gx', (px * 140 + 15).toFixed(1) + '%');
+    });
+    card.addEventListener('pointerleave', () => {
+      card.classList.remove('is-tilting');
+      card.style.setProperty('--ry', '0deg');
+      card.style.setProperty('--rx', '0deg');
+    });
+  }
+
+  // The Art page is a Kasai OS "binder" window: title bar, the category menu
+  // (added by renderArtFilters), the cards on a play mat, and a status bar.
   function renderArt() {
     const grid = $('#art-grid');
     if (!grid) return;
     const items = ART;
+    const binder = document.createElement('section');
+    binder.className = 'binder lavender';
+    binder.setAttribute('aria-label', 'Art collection');
+    binder.innerHTML =
+      `<div class="os-bar"><span class="os-app" aria-hidden="true">${doodleIcon('palette')}</span>` +
+      '<span class="os-title">binder.exe</span><span class="os-stripes" aria-hidden="true"></span>' +
+      `<span class="binder-count">${plural(items.length, 'card')}</span></div>` +
+      '<div class="binder-mat"></div>' +
+      `<p class="binder-status"><span class="binder-status-text">${esc(binderStatus(items.length))}</span>` +
+      '<span>Click a card to see it full size</span></p>';
+    grid.parentNode.insertBefore(binder, grid);
+    binder.querySelector('.binder-mat').appendChild(grid);
     if (!items.length) { grid.innerHTML = emptyState(doodleIcon('palette'), 'artwork', 'art'); return; }
 
-    grid.innerHTML = items.map((it) => {
-      const media = it.img
-        ? `<div class="gallery-item-img"><img src="${esc(webSrc(it.img))}"${dims(it.img)} alt="${esc(it.title || '')}" loading="lazy" decoding="async" /></div>`
-        : `<div class="gallery-item-img gallery-item-img--empty">${doodleIcon('palette')}</div>`;
-      const full = largeSrc(it.full || it.img); // optional hi-res original for the lightbox
-      return `
-        <figure class="gallery-item animate-on-scroll"${frameStyle(it)} data-tag="${esc(it.tag || '')}"${it.img ? ` data-full="${esc(full)}" tabindex="0" role="button" aria-label="View ${esc(it.title || 'artwork')} full size"` : ''}>
-          ${media}
-          <figcaption class="gallery-item-cap">
-            <h3>${esc(it.title || 'Untitled')}</h3>
-            ${it.tag ? `<p>${esc(it.tag)}</p>` : ''}
-          </figcaption>
-        </figure>`;
-    }).join('');
+    grid.innerHTML = items.map((it, i) => artCard(it, i, items.length)).join('');
+    if (!REDUCE_MOTION) grid.querySelectorAll('.art-card').forEach(tiltCard);
+  }
+
+  // ─── KASAI OS (Coding) ───
+  // Each project is an app window on a little desktop. The title bar shows a
+  // file name: `window` in content.js, or the title up to any " - " with an
+  // extension that fits its tags (.apk Android, .html web, .exe otherwise).
+  // The tech stack is the menu bar; an "In Progress" tag becomes the status.
+  const STATUS_TAG = /^(in progress|wip|work in progress)$/i;
+  const windowName = (p) => {
+    if (p.window) return String(p.window);
+    const tags = (p.tags || []).join(' ').toLowerCase();
+    const ext = /android|kotlin|compose/.test(tags) ? 'apk'
+      : /electron|windows|desktop/.test(tags) ? 'exe'
+        : /html|css|javascript|web/.test(tags) ? 'html' : 'exe';
+    const base = String(p.tab || String(p.title || 'project').split(/\s+-\s+/)[0])
+      .trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return (base || 'project') + '.' + ext;
+  };
+  const appIcon = (file) => (/\.apk$/.test(file) ? 'phone' : /\.html?$/.test(file) ? 'globe' : 'laptop');
+
+  function osWindow(p) {
+    const file = windowName(p);
+    const parts = String(p.title || 'Untitled project').split(/\s+-\s+/);
+    const name = parts[0];
+    const sub = parts.slice(1).join(' - ');
+    const tags = p.tags || [];
+    const techs = tags.filter((t) => !STATUS_TAG.test(t));
+    const busy = tags.some((t) => STATUS_TAG.test(t));
+    const shot = p.img
+      ? `<img class="os-shot" src="${esc(webSrc(p.img))}"${dims(p.img)} alt="${esc(p.title || '')}" loading="lazy" decoding="async" draggable="false" />`
+      : `<div class="os-shot">${doodleIcon('laptop')}</div>`;
+    const links = (p.links || [])
+      .filter((l) => l && l.label)
+      .map((l) => `<a href="${esc(l.url || '#')}" target="_blank" rel="noopener">${esc(l.label)}</a>`)
+      .join('');
+    // Someone else's project I've built on: a GitHub-style "Forked from" line.
+    const fork = p.forkOf && p.forkOf.label
+      ? `<p class="os-fork">${doodleIcon('fork')}Forked from ${p.forkOf.url
+        ? `<a href="${esc(p.forkOf.url)}" target="_blank" rel="noopener">${esc(p.forkOf.label)}</a>`
+        : esc(p.forkOf.label)}</p>`
+      : '';
+    return `
+      <article class="os-win ${accent(p.accent || 'blue')} animate-on-scroll" data-file="${esc(file)}" aria-label="${esc(name)}">
+        <span class="os-shadow" aria-hidden="true"></span>
+        <div class="os-frame">
+          <div class="os-bar">
+            <span class="os-app" aria-hidden="true">${doodleIcon(appIcon(file))}</span>
+            <span class="os-title">${esc(file)}</span>
+            <span class="os-stripes" aria-hidden="true"></span>
+            <span class="os-btns">
+              <button class="os-btn os-min" type="button" aria-label="Minimise ${esc(name)}">${doodleIcon('min')}</button>
+              <button class="os-btn os-close" type="button" aria-label="Close ${esc(name)}">${doodleIcon('close')}</button>
+            </span>
+          </div>
+          ${techs.length ? `<p class="os-menu"><span class="vh">Built with: </span>${techs.map((t) => `<span>${esc(t)}</span>`).join('')}</p>` : ''}
+          <div class="os-body">
+            ${shot}
+            <h3 class="os-name">${esc(name)}</h3>
+            <p class="os-path">C:\\Kasai\\Projects\\${esc(name)}${sub ? ` &middot; ${esc(sub)}` : ''}</p>
+            ${fork}
+            <p class="os-desc">${esc(p.desc || '')}</p>
+          </div>
+          <div class="os-status">
+            <span class="os-led${busy ? ' is-busy' : ''}" aria-hidden="true"></span>${busy ? 'In progress' : 'Ready'}
+            ${links ? `<span class="os-links">${links}</span>` : ''}
+          </div>
+        </div>
+      </article>`;
   }
 
   function renderCoding() {
-    const grid = $('#coding-grid');
-    if (!grid) return;
+    const desk = $('#coding-grid');
+    if (!desk) return;
     const items = C.coding || [];
-    if (!items.length) { grid.innerHTML = emptyState(doodleIcon('laptop'), 'project', 'coding'); return; }
+    if (!items.length) { desk.innerHTML = emptyState(doodleIcon('laptop'), 'project', 'coding'); return; }
 
-    // Each project is a file folder: the tab shows a short folder name like
-    // "/filo" (from `tab` in content.js, or the title up to any " - "), and
-    // the screenshot is a sheet of paper tucked inside that rises out on hover.
-    // Concave curve where the tab's right border meets the folder's top
-    // border, in a 14px box. The stroke is centred on both CSS borders it
-    // joins; the fill covers the straight border ends inside the curve.
-    // `w` is the border width as actually drawn: browsers snap 2.5px borders
-    // to whole device pixels (2px on a 1x screen), so the curve must match
-    // that or it looks bolder than the outline. See .tab-cap / fitTabCaps().
-    const capSvg = (w) => {
-      const c = w / 2;                 // centre of the tab's right border
-      const ey = 14 - 2.5 + c;         // centre of the folder's top border
-      const arc = `A${14 - c} ${ey} 0 0 0 14 ${ey}`;
-      return `<path class="fill" d="M0 0H${c}${arc}H17V15H0Z"/>` +
-        `<path class="stroke" d="M${c} 0${arc}H17" style="stroke-width:${w}px"/>`;
+    // The wizard moves into the desk (his frames come from content.js).
+    const W = C.wizard || {};
+    const frames = W.enabled && W.frames && W.frames.idle
+      ? { idle: webSrc(W.frames.idle), happy: webSrc(W.frames.happy || W.frames.idle), asleep: webSrc(W.frames.asleep || W.frames.idle) }
+      : null;
+    // Start menu: the rest of the site as apps, using the header's nav icons.
+    const apps = [{ label: 'About me', url: '/', icon: 'about' }].concat(
+      ((C.about && C.about.pages) || [])
+        .filter((pg) => !/coding/i.test(pg.label || ''))
+        .map((pg) => ({ label: pg.label, url: pg.url, icon: String(pg.label || '').toLowerCase() })));
+    const startMenu = apps.map((a) =>
+      `<li><a href="${esc(a.url)}"><svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/${esc(a.icon)}.svg#icon"/></svg>${esc(a.label)}</a></li>`
+    ).join('') + (C.about && C.about.email
+      ? `<li><a href="mailto:${esc(C.about.email)}"><span class="os-app" aria-hidden="true">${doodleIcon('mail')}</span>Email me</a></li>`
+      : '');
+
+    desk.innerHTML = items.map(osWindow).join('') +
+      (frames ? `<img class="os-pet" src="${esc(frames.idle)}" alt="" decoding="async" />` : '') +
+      `<div class="os-taskbar">
+        <button class="os-start" type="button" aria-expanded="false" aria-controls="os-startmenu"><img src="/assets/ui/favicon.png" alt="" />Kasai</button>
+        <div class="os-startmenu" id="os-startmenu" hidden><span class="os-shadow" aria-hidden="true"></span><ul>${startMenu}</ul></div>
+        <div class="os-dock" role="group" aria-label="Closed windows"></div>
+        <span class="os-hint" aria-hidden="true">Drag a title bar to move a window</span>
+        <span class="os-clock" aria-hidden="true"></span>
+      </div>`;
+    wireDesk(desk, frames);
+  }
+
+  // Scatters the windows over the desk on wide screens and makes them
+  // draggable, closable into the taskbar and stackable; the wizard sits on
+  // whichever window is in front. Narrow screens keep the plain stack.
+  function wireDesk(desk, frames) {
+    const wins = Array.prototype.slice.call(desk.querySelectorAll('.os-win'));
+    const pet = frames && desk.querySelector('.os-pet');
+    const dock = desk.querySelector('.os-dock');
+    const wide = window.matchMedia('(min-width: 900px)');
+    const TASKBAR = 54, PAD = 34, TOP = 92, GAP_X = 34, GAP_Y = 44;
+    const order = wins.slice().reverse(); // back to front: the first project starts in front
+    let moved = false;                    // after a drag, resizes only nudge windows back on
+    let petTimer;
+
+    const scattered = () => desk.classList.contains('is-scattered');
+    const isOpen = (w) => !w.classList.contains('is-min');
+    const front = () => order.filter(isOpen).pop();
+    const restack = () => order.forEach((w, k) => { w.style.zIndex = String(10 + k); });
+
+    const seat = (w, hop) => {
+      if (!pet || !scattered()) return;
+      clearTimeout(petTimer);
+      if (!w) { // every window closed: he naps on the taskbar
+        pet.style.left = (desk.clientWidth - 190) + 'px';
+        pet.style.top = (desk.clientHeight - TASKBAR - 70) + 'px';
+        petTimer = setTimeout(() => { pet.src = frames.asleep; }, 600);
+        return;
+      }
+      pet.style.left = (w.offsetLeft + w.offsetWidth - 150) + 'px';
+      pet.style.top = (w.offsetTop - 66) + 'px';
+      if (hop && !REDUCE_MOTION) {
+        pet.classList.remove('is-hopping');
+        void pet.offsetWidth; // restart the hop
+        pet.classList.add('is-hopping');
+      }
+      pet.src = frames.happy;
+      petTimer = setTimeout(() => { pet.src = frames.idle; }, 1100);
     };
-    const TAB_CAP = `<svg class="tab-cap" aria-hidden="true">${capSvg(2.5)}</svg>`;
-
-    const folderName = (p) =>
-      '/' + (p.tab || String(p.title || 'project').split(/\s+-\s+/)[0])
-        .trim().toLowerCase().replace(/\s+/g, '-').replace(/^\/+|\/+$/g, '');
-
-    grid.innerHTML = items.map((p) => {
-      const img = p.img
-        ? `<img class="project-card-image" src="${esc(webSrc(p.img))}"${dims(p.img)} alt="${esc(p.title || '')}" loading="lazy" decoding="async" />`
-        : `<div class="project-card-image">${doodleIcon('laptop')}</div>`;
-      const tags = (p.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join('');
-      const links = (p.links || [])
-        .filter((l) => l && l.label)
-        .map((l) => `<a href="${esc(l.url || '#')}" target="_blank" rel="noopener">${esc(l.label)} ${ARROW}</a>`)
-        .join('');
-      // Someone else's project I've built on: a GitHub-style "Forked from" line.
-      const fork = p.forkOf && p.forkOf.label
-        ? `<p class="project-card-fork">${doodleIcon('fork')}Forked from ${p.forkOf.url
-          ? `<a href="${esc(p.forkOf.url)}" target="_blank" rel="noopener">${esc(p.forkOf.label)}</a>`
-          : esc(p.forkOf.label)}</p>`
-        : '';
-      return `
-        <article class="project-card ${accent(p.accent || 'blue')} animate-on-scroll">
-          <div class="project-card-top">
-            <span class="project-card-tab">${doodleIcon('folder')}${esc(folderName(p))}${TAB_CAP}</span>
-            <div class="project-card-slot"><div class="project-card-paper">${img}</div></div>
-          </div>
-          <div class="project-card-body">
-            <h3 class="project-card-title">${esc(p.title || 'Untitled project')}</h3>
-            ${fork}
-            <p class="project-card-desc">${esc(p.desc || '')}</p>
-            ${tags ? `<div class="project-card-tags">${tags}</div>` : ''}
-            ${links ? `<div class="project-card-links">${links}</div>` : ''}
-          </div>
-        </article>`;
-    }).join('');
-
-    // Redraw the tab curves at the border width the browser really paints
-    // (it changes with screen density and page zoom, which fire 'resize').
-    const fitTabCaps = () => {
-      const tab = grid.querySelector('.project-card-tab');
-      if (!tab) return;
-      const w = parseFloat(getComputedStyle(tab).borderTopWidth) || 2.5;
-      grid.querySelectorAll('.tab-cap').forEach((svg) => { svg.innerHTML = capSvg(w); });
+    const toFront = (w) => {
+      order.splice(order.indexOf(w), 1);
+      order.push(w);
+      restack();
+      seat(w, true);
     };
-    fitTabCaps();
-    window.addEventListener('resize', fitTabCaps);
+
+    // Columns of windows, each a little narrower than its column and nudged
+    // sideways, with the first row starting at uneven heights.
+    const layout = () => {
+      if (!wide.matches) {
+        desk.classList.remove('is-scattered');
+        desk.style.height = '';
+        wins.forEach((w) => { w.style.left = w.style.top = w.style.width = ''; });
+        return;
+      }
+      desk.classList.add('is-scattered');
+      if (moved) {
+        wins.forEach((w) => {
+          w.style.left = Math.min(Math.max(w.offsetLeft, 90 - w.offsetWidth), desk.clientWidth - 90) + 'px';
+        });
+        seat(front(), false);
+        return;
+      }
+      const inner = desk.clientWidth - PAD * 2;
+      const cols = inner >= 960 ? 3 : 2;
+      const colW = (inner - GAP_X * (cols - 1)) / cols;
+      const heights = [0, 52, 22].slice(0, cols);
+      wins.forEach((w, i) => {
+        const col = i < cols ? i : heights.indexOf(Math.min.apply(null, heights));
+        const width = Math.round(colW * (0.92 + ((i * 37) % 9) / 100));
+        const x = PAD + col * (colW + GAP_X) + (colW - width) * (((i * 53) % 10) / 10);
+        w.style.width = width + 'px';
+        w.style.left = Math.round(x) + 'px';
+        w.style.top = Math.round(TOP + heights[col]) + 'px';
+        heights[col] += w.offsetHeight + GAP_Y + ((i * 29) % 3) * 8;
+      });
+      desk.style.height = Math.round(TOP + Math.max.apply(null, heights) - GAP_Y + PAD + TASKBAR) + 'px';
+      seat(front(), false);
+    };
+
+    wins.forEach((w) => {
+      w.addEventListener('pointerdown', () => { if (scattered() && front() !== w) toFront(w); });
+      const bar = w.querySelector('.os-bar');
+      bar.addEventListener('pointerdown', (e) => {
+        if (!scattered() || e.button !== 0 || e.target.closest('button')) return;
+        e.preventDefault();
+        bar.setPointerCapture(e.pointerId);
+        const grabX = e.clientX - w.offsetLeft, grabY = e.clientY - w.offsetTop;
+        desk.classList.add('is-dragging');
+        const move = (ev) => {
+          moved = true;
+          const x = Math.min(Math.max(ev.clientX - grabX, 90 - w.offsetWidth), desk.clientWidth - 90);
+          const y = Math.min(Math.max(ev.clientY - grabY, 0), desk.clientHeight - TASKBAR - 44);
+          w.style.left = x + 'px';
+          w.style.top = y + 'px';
+          seat(w, false);
+        };
+        const up = () => {
+          desk.classList.remove('is-dragging');
+          bar.removeEventListener('pointermove', move);
+          bar.removeEventListener('pointerup', up);
+          bar.removeEventListener('pointercancel', up);
+        };
+        bar.addEventListener('pointermove', move);
+        bar.addEventListener('pointerup', up);
+        bar.addEventListener('pointercancel', up);
+      });
+    });
+
+    // Minimise or close: the window shrinks into a taskbar button that
+    // brings it back.
+    const closeWin = (w) => {
+      const done = () => {
+        w.classList.add('is-min');
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'os-docked ' + (ACCENTS.filter((a) => w.classList.contains(a))[0] || 'blue');
+        item.innerHTML = w.querySelector('.os-app').innerHTML + esc(w.dataset.file);
+        item.setAttribute('aria-label', 'Reopen ' + w.getAttribute('aria-label'));
+        item.addEventListener('click', () => {
+          item.remove();
+          w.classList.remove('is-min');
+          if (!REDUCE_MOTION && w.animate) {
+            w.animate([{ opacity: 0, transform: 'translateY(40px) scale(0.6)' }, { opacity: 1, transform: 'none' }],
+              { duration: 360, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+          }
+          toFront(w);
+          w.querySelector('.os-min').focus({ preventScroll: true });
+        });
+        dock.appendChild(item);
+        item.focus({ preventScroll: true });
+        seat(front(), true);
+      };
+      if (REDUCE_MOTION || !w.animate || !scattered()) { done(); return; }
+      const anim = w.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(60px) scale(0.4)' }],
+        { duration: 260, easing: 'ease-in', fill: 'forwards' });
+      anim.finished.then(() => { done(); anim.cancel(); }).catch(() => {});
+    };
+    desk.addEventListener('click', (e) => {
+      const btn = e.target.closest('.os-min, .os-close');
+      if (btn) closeWin(btn.closest('.os-win'));
+    });
+
+    // Start menu
+    const startBtn = desk.querySelector('.os-start');
+    const menu = desk.querySelector('.os-startmenu');
+    const setMenu = (open) => { menu.hidden = !open; startBtn.setAttribute('aria-expanded', String(open)); };
+    startBtn.addEventListener('click', () => setMenu(menu.hidden));
+    document.addEventListener('click', (e) => {
+      if (!menu.hidden && !e.target.closest('.os-start, .os-startmenu')) setMenu(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !menu.hidden) { setMenu(false); startBtn.focus(); }
+    });
+
+    const clock = desk.querySelector('.os-clock');
+    const tick = () => { clock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
+    tick();
+    setInterval(tick, 20000);
+
+    // While the desk is on screen the corner wizard steps out: he's in here.
+    if (pet && 'IntersectionObserver' in window) {
+      new IntersectionObserver((entries) => {
+        entries.forEach((e) => document.body.classList.toggle('desk-in-view', e.isIntersecting && scattered()));
+      }, { threshold: 0.15 }).observe(desk);
+    }
+
+    restack();
+    layout();
+    // Decide before the first paint too, so he doesn't visibly leave on load.
+    if (pet && scattered()) {
+      const r = desk.getBoundingClientRect();
+      const shown = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+      document.body.classList.toggle('desk-in-view', shown > r.height * 0.15);
+    }
+    let resizeTimer;
+    window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(layout, 120); });
+    // Web fonts can change a window's height once they arrive.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!moved) layout(); });
   }
 
   function renderWriting() {
@@ -480,9 +750,12 @@
     below.forEach((el) => obs.observe(el));
   }
 
-  // One lightbox for the whole site; opens on any element with [data-full].
-  // Built on the native <dialog>: showModal() gives us the focus trap, Escape
+  // One image viewer for the whole site; opens on any element with
+  // [data-full]. It's a Kasai OS window (file name in the title bar, the
+  // picture on a checkerboard, the artwork's colours underneath), built on
+  // the native <dialog>: showModal() gives us the focus trap, Escape
   // handling, aria-modal semantics and the ::backdrop layer for free.
+  // Optional extras on the trigger: data-file, data-caption, data-colors.
   function wireLightbox() {
     const triggers = document.querySelectorAll('[data-full]');
     if (!triggers.length) return;
@@ -490,19 +763,30 @@
     let box = $('#lightbox');
     if (!box) {
       box = document.createElement('dialog');
-      box.className = 'lightbox';
+      box.className = 'lightbox lavender';
       box.id = 'lightbox';
-      box.setAttribute('aria-label', 'Image viewer');
+      box.setAttribute('aria-labelledby', 'lightbox-title');
       box.innerHTML =
-        '<button class="lightbox-close" aria-label="Close">&times;</button>' +
-        // No src yet: an empty src fires an error that would use up the
-        // broken-image fallback before a real image is ever shown.
-        '<img id="lightbox-img" alt="" />' +
-        '<p class="lightbox-cap" id="lightbox-cap"></p>';
+        '<span class="os-shadow" aria-hidden="true"></span>' +
+        '<div class="lb-window">' +
+          '<div class="os-bar">' +
+            `<span class="os-app" aria-hidden="true">${doodleIcon('palette')}</span>` +
+            '<span class="os-title" id="lightbox-title">Image viewer</span>' +
+            '<span class="os-stripes" aria-hidden="true"></span>' +
+            '<span class="os-zoom" aria-hidden="true">100%</span>' +
+            `<button class="os-btn os-close lightbox-close" type="button" aria-label="Close">${doodleIcon('close')}</button>` +
+          '</div>' +
+          // No src yet: an empty src fires an error that would use up the
+          // broken-image fallback before a real image is ever shown.
+          '<div class="lb-canvas"><img id="lightbox-img" alt="" /></div>' +
+          '<div class="lb-status"><span class="lb-swatches"></span><p class="lightbox-cap" id="lightbox-cap"></p></div>' +
+        '</div>';
       document.body.appendChild(box);
     }
     const img = box.querySelector('#lightbox-img');
     const cap = box.querySelector('#lightbox-cap');
+    const title = box.querySelector('#lightbox-title');
+    const swatches = box.querySelector('.lb-swatches');
     const closeBtn = box.querySelector('.lightbox-close');
 
     // The morph: the clicked thumbnail grows into the lightbox picture and
@@ -526,10 +810,16 @@
     };
     let thumb = null; // the thumbnail the open picture came from
 
-    const show = (src, alt) => {
+    const show = (src, t) => {
+      const alt = (thumb && thumb.alt) || '';
       delete img.dataset.fallback; // each image gets its own broken-file fallback
-      img.src = src; img.alt = alt || '';
-      cap.textContent = alt || '';
+      img.src = src; img.alt = alt;
+      title.textContent = t.getAttribute('data-file') || alt || 'Image viewer';
+      cap.textContent = t.getAttribute('data-caption') || alt;
+      swatches.innerHTML = (t.getAttribute('data-colors') || '').split(/\s+/)
+        .filter((c) => HEX.test(c))
+        .map((c) => `<i style="--s:${c}"></i><code>${c}</code>`)
+        .join('');
       box.showModal();
       document.body.style.overflow = 'hidden';
     };
@@ -537,8 +827,7 @@
     const open = (t) => {
       const src = t.getAttribute('data-full');
       thumb = t.querySelector('img');
-      const alt = thumb && thumb.alt;
-      if (!canMorph() || !thumb || !thumb.complete) { show(src, alt); return; }
+      if (!canMorph() || !thumb || !thumb.complete) { show(src, t); return; }
       // Give the full-size picture a moment to arrive so the morph lands on
       // it; if it's slow, grow the thumbnail and swap the big one in later.
       const pre = warm(src);
@@ -551,11 +840,11 @@
           thumb.style.viewTransitionName = '';
           thumb.style.opacity = '0'; // lifted out of its frame while it's open
           img.style.viewTransitionName = 'lb-art';
-          if (loaded) { show(src, alt); return; }
+          if (loaded) { show(src, t); return; }
           // Hold the box at the size the big picture will fill, then swap.
           const ratio = thumb.naturalWidth / thumb.naturalHeight;
-          img.style.width = Math.min(innerWidth * 0.9, innerHeight * 0.8 * ratio) + 'px';
-          show(thumb.currentSrc || thumb.src, alt);
+          img.style.width = Math.min(innerWidth * 0.86, 1600, innerHeight * 0.72 * ratio) + 'px';
+          show(thumb.currentSrc || thumb.src, t);
           pre.decode().catch(() => {}).then(() => {
             if (box.open && img.style.width) img.src = src;
           });
@@ -695,34 +984,29 @@
      PERSONALITY & SIGNATURE FEATURES
      ══════════════════════════════════════════════════════════════════════ */
 
-  // Filter chips + shuffle button above the art gallery, derived from the
-  // unique `tag` values in content.js. Filtering toggles a class (no
-  // re-render), so the lightbox wiring on each card survives untouched.
+  // The binder's menu bar: one item per category (the unique `tag` values)
+  // plus Shuffle. Filtering toggles a class (no re-render), so the viewer
+  // wiring on each card survives untouched.
   function renderArtFilters() {
     const grid = $('#art-grid');
-    if (!grid) return;
-    const tags = [];
-    ART.forEach((it) => {
-      if (it.tag && tags.indexOf(it.tag) === -1) tags.push(it.tag);
-    });
+    const mat = grid && grid.closest('.binder-mat');
+    if (!mat) return;
+    const tags = artSets();
     if (tags.length < 2) return; // no point filtering one category
 
     const bar = document.createElement('div');
-    bar.className = 'gallery-filters';
+    bar.className = 'binder-menu';
     bar.setAttribute('role', 'group');
     bar.setAttribute('aria-label', 'Filter artwork by category');
-    // Art page leans periwinkle - its chips skip the blue accent.
-    const chipAccents = ['lavender', 'pink', 'teal', 'yellow'];
     bar.innerHTML =
-      `<button class="skill-tag filter-chip lavender" data-tag="*" aria-pressed="true">All</button>` +
-      tags.map((t, i) =>
-        `<button class="skill-tag filter-chip ${chipAccents[i % chipAccents.length]}" data-tag="${esc(t)}" aria-pressed="false">${esc(t)}</button>`
-      ).join('') +
-      `<button class="skill-tag filter-chip yellow" data-shuffle>${doodleIcon('dice')}Shuffle</button>` +
+      `<button type="button" data-tag="*" aria-pressed="true">All</button>` +
+      tags.map((t) => `<button type="button" data-tag="${esc(t)}" aria-pressed="false">${esc(t)}</button>`).join('') +
+      `<button type="button" class="binder-shuffle" data-shuffle>${doodleIcon('dice')}Shuffle</button>` +
       `<span class="vh" role="status"></span>`;
-    grid.parentElement.insertBefore(bar, grid);
+    mat.parentElement.insertBefore(bar, mat);
 
     const status = bar.querySelector('[role="status"]');
+    const statusLine = mat.parentElement.querySelector('.binder-status-text');
     bar.addEventListener('click', (e) => {
       const btn = e.target.closest('button');
       if (!btn) return;
@@ -748,6 +1032,7 @@
       glide(grid, { show: match });
       const shown = Array.prototype.filter.call(grid.children, match).length;
       status.textContent = 'Showing ' + shown + ' of ' + grid.children.length + ' pieces';
+      if (statusLine) statusLine.textContent = binderStatus(shown);
     });
   }
 

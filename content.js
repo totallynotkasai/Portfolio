@@ -108,10 +108,11 @@ window.CONTENT = {
        3. the other lines below, in this order
      • "title" replaces the name taken from the filename.
      • "tag" replaces the category taken from the subfolder (rarely needed).
-     • Each frame is painted with the piece's most visible colour and its
-       category chip with the second, picked automatically. Don't like a
-       pick? Set your own with  frame: '#F7216B', chip: '#17C38C'  (either
-       one on its own works too).
+     • Each piece is a collectible card. Its frame is painted with the
+       piece's most visible colour and its category strip with the second,
+       picked automatically. Don't like a pick? Set your own with
+       frame: '#F7216B', chip: '#17C38C'  (either one on its own works too).
+       Wide pieces get a sideways card automatically.
      • Deleting a line never removes the piece; delete the file for that. */
   art: [
     { img: 'assets/art/Digital Art/assisted existence.png', title: 'Assisted Existence' },
@@ -138,11 +139,14 @@ window.CONTENT = {
      ──────────────────────────────────────────────────────────────────────
      • "img" is an optional screenshot in assets/projects/ ('' shows a
        coloured block). It's cropped to 16:10, so landscape shots work best.
-     • "tags" is a list of technologies.
+     • "tags" is a list of technologies (they become the window's menu bar).
+       A tag of 'In Progress' shows in the status bar instead.
      • "links" is a list of buttons. Give each a label and url.
-     • Each project shows as a file folder. The tab reads the title up to
-       any " - " (e.g. "/filo"); set  tab: "my-name"  to choose it yourself.
-     • "accent" colours the folder (default blue).
+     • Each project shows as an app window. Its title bar reads the title
+       up to any " - " as a file name, with an extension that fits its tags
+       (e.g. "filo.exe", "toolbox.apk"); set  window: 'name.ext'  to choose
+       it yourself.
+     • "accent" colours the window's title bar (default blue).
      • Built on someone else's project? Add
          forkOf: { label: 'owner/repo', url: 'https://github.com/owner/repo' }
        and a "Forked from owner/repo" line appears under the title.       */
@@ -196,7 +200,7 @@ window.CONTENT = {
     {
       img: 'assets/projects/Portfolio.png',
       title: 'This Portfolio',
-      tab: 'portfolio',                     // folder tab label (optional)
+      window: 'portfolio.html',             // title bar name (optional)
       accent: 'teal',
       desc: 'The site you are looking at: a hand-built static portfolio with a one-file content system.',
       tags: ['HTML', 'CSS', 'JavaScript'],

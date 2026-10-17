@@ -109,6 +109,8 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   /* Typography */
   --font-display: 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
   --font-body:    'Inter', 'Arial Rounded MT Bold', sans-serif;
+  /* Kasai OS file names, paths and status bars (system mono, nothing to download). */
+  --font-mono:    ui-monospace, 'Cascadia Mono', Consolas, 'SFMono-Regular', Menlo, monospace;
 
   --fs-hero:    clamp(2.6rem, 6.5vw, 5.5rem);
   --fs-h1:      clamp(2.2rem, 5vw, 3.6rem);
@@ -460,180 +462,289 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 .page-banner.pink     .banner-chip { background: var(--pink); }
 
 /* ============================================================
-   PROJECT CARDS (Coding) - file folders
+   KASAI OS - the shared window chrome
    ============================================================
-   One fill (the accent tint) for tab + folder. The tab is a normal
-   CSS-bordered box (both top corners rounded the same way); only the
-   concave curve where it meets the folder top is an inline SVG (.tab-cap),
-   which also paints over the straight border lines that would otherwise
-   run through that curve.
-   The screenshot is a sheet of paper hidden behind the folder, to the
-   right of the tab; it rises out of the folder on hover. */
-.project-grid {
+   The Coding projects, the Art binder and the image viewer are all
+   windows from one little operating system: a title bar in the accent
+   colour (app icon, file name, pinstripes, buttons), a white body and
+   a status bar. Every line is a CSS border, so they all snap alike. */
+.os-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 8px 0 12px;
+  background: var(--acc, var(--periwinkle));
+  border-bottom: var(--border);
+  user-select: none;
+}
+.os-app { display: inline-flex; flex: none; }
+.os-app svg { width: 20px; height: 20px; }
+.os-title {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Classic pinstripes fill the bar between the name and the buttons. */
+.os-stripes {
+  flex: 1;
+  min-width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Crect width='3' height='1' fill='%23161A2E'/%3E%3C/svg%3E");
+}
+.os-zoom,
+.binder-count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.os-btns { display: flex; flex: none; gap: 5px; }
+.os-btn {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-  gap: var(--space-2xl) var(--space-lg);   /* headroom for the rising paper */
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--ink);
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  transition: background var(--transition), rotate var(--transition);
+}
+.os-btn svg { width: 14px; height: 14px; }
+.os-min:hover { background: var(--yellow); }
+.os-close:hover { background: var(--pink); rotate: 90deg; }
+/* Flat dithered drop shadow (a 2px checkerboard of ink) behind a window. */
+.os-shadow {
+  position: absolute;
+  inset: 9px -9px -9px 9px;
+  border-radius: var(--radius-md);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0zM2 2h2v2H2z' fill='%23161A2E'/%3E%3C/svg%3E");
+  pointer-events: none;
 }
 
-.project-card {
-  --tab-h: 38px;
-  --fillet: 14px;
-  container-type: inline-size;
+/* ============================================================
+   CODING - the Kasai OS desktop (projects as app windows)
+   ============================================================
+   On narrow screens the windows simply stack. From 900px script.js adds
+   .is-scattered and places each window on the desk; they can be dragged
+   by the title bar and closed into the taskbar, and the wizard sits on
+   whichever window is in front. */
+.os-desk {
+  --taskbar-h: 54px;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-md) calc(var(--taskbar-h) + var(--space-md));
+  overflow: hidden;
+  background: var(--blue) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='2' cy='2' r='1.4' fill='%23161A2E' fill-opacity='.2'/%3E%3C/svg%3E");
+  border: var(--border);
+  border-radius: var(--radius-xl);
+}
+.os-desk.is-scattered { display: block; padding: 0; }
+.os-desk.is-scattered .os-win { position: absolute; }
+.os-desk.is-scattered .os-bar { cursor: grab; touch-action: none; }
+.os-desk.is-dragging,
+.os-desk.is-dragging .os-bar { cursor: grabbing; }
+
+.os-win { position: relative; min-width: 0; }
+.os-win.is-min { display: none; }
+.os-frame {
   position: relative;
   display: flex;
   flex-direction: column;
-}
-.project-card:hover,
-.project-card:focus-within { z-index: 2; translate: 0 -4px; }
-
-/* Tab row: the tab, then a slot for the paper. No z-index here, so the
-   tab can sit above the folder while the paper sits below it. */
-.project-card-top {
-  position: relative;
-  display: flex;
-  height: var(--tab-h);
-  margin-bottom: -2.5px;        /* tab covers the folder's top border */
-}
-
-.project-card-tab {
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 8rem;              /* every tab the same size (longer labels still fit) */
-  padding: 0 16px 2px 14px;
-  margin-right: var(--fillet);
-  font-family: var(--font-display);
-  font-size: var(--fs-small);
-  white-space: nowrap;
-  background: var(--acc-tint);
+  overflow: hidden;
+  background: var(--white);
   border: var(--border);
-  border-bottom: 0;
-  border-radius: 14px 14px 0 0;
+  border-radius: var(--radius-md);
 }
-/* Seals any sub-pixel gap between the tab and the folder, between its borders. */
-.project-card-tab::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  background: var(--acc-tint);
+/* The tech stack is the menu bar (first letters underlined, like menus). */
+.os-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  padding: 4px 8px;
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  border-bottom: var(--border);
 }
-.project-card-tab > svg:not(.tab-cap) { width: 18px; height: 18px; flex-shrink: 0; }
-.tab-cap {
-  position: absolute;
-  left: 100%;                   /* = start of the tab's right border */
-  bottom: 0;
-  width: calc(var(--fillet) + 3px);
-  height: var(--fillet);
-  overflow: visible;
-}
-.tab-cap .fill   { fill: var(--acc-tint); }
-.tab-cap .stroke { fill: none; stroke: var(--ink); stroke-width: 2.5; }
-
-.project-card-slot {
-  position: relative;
-  flex: 1;
-  margin-left: 10px;
-}
-/* Same size on every card (54% of the card width, right-aligned), hidden
-   12px inside the folder at rest; rises out on hover or keyboard focus. */
-.project-card-paper {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 8px;
-  width: min(54cqw, 100% - 8px);
-  z-index: 0;
-  rotate: -1.5deg;
-  transition: rotate 0.4s var(--ease-bounce), translate 0.4s var(--ease-bounce);
-}
-.project-card:hover .project-card-paper,
-.project-card:focus-within .project-card-paper { rotate: 2deg; translate: 0 -85%; }
-/* No hover on touch screens - show the preview peeking out instead. */
-@media (hover: none) {
-  .project-card-paper { translate: 0 -60%; }
-}
-.project-card-image {
+.os-menu span:not(.vh) { padding: 0 6px; }
+.os-menu span:not(.vh)::first-letter { text-decoration: underline; text-underline-offset: 2px; }
+.os-body { flex: 1; padding: 14px 16px 16px; }
+.os-shot {
+  display: grid;
+  place-items: center;
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
-  background: var(--white);
+  color: var(--acc-ink);
+  background: var(--acc-tint);
   border: 2px solid var(--ink);
   border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--acc-ink);
 }
-.project-card-image svg { width: 44px; height: 44px; }
-
-.project-card-body {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  /* Tall enough to hide the paper at rest (54cqw wide at 16:10). */
-  min-height: calc(54cqw * 0.625 + 28px);
-  padding: var(--space-md);
-  background: var(--acc-tint);
-  border: var(--border);
-  border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg);
-}
-
-.project-card-title {
+.os-shot svg { width: 44px; height: 44px; }
+.os-name {
+  margin-top: 14px;
   font-family: var(--font-display);
   font-size: var(--fs-h3);
   font-weight: 600;
-  color: var(--ink);
-  margin-bottom: var(--space-xs);
+  line-height: 1.2;
 }
-.project-card-fork {
+.os-path {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.os-fork {
+  margin-top: 8px;
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
+.os-fork svg { display: inline-block; width: 1.1em; height: 1.1em; margin-right: 6px; vertical-align: -0.2em; color: var(--ink); }
+.os-fork a { font-weight: 600; color: var(--ink); border-bottom: 2px solid var(--acc); }
+.os-desc {
+  margin-top: 10px;
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.os-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 8px 10px 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--acc-tint);
+  border-top: var(--border);
+}
+.os-led {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  background: var(--teal);
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.os-led.is-busy { background: var(--yellow); }
+.os-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-left: auto; }
+.os-links a {
+  padding: 4px 9px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  transition: background var(--transition);
+}
+.os-links a:hover { background: var(--acc); }
+
+.os-taskbar {
+  position: absolute;
+  z-index: 60;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: -2px 0 var(--space-xs);
-  font-size: var(--fs-small);
-  color: var(--ink-soft);
-}
-.project-card-fork svg { width: 1.1em; height: 1.1em; flex-shrink: 0; color: var(--ink); }
-.project-card-fork a {
-  font-weight: 600;
-  color: var(--ink);
-  border-bottom: 2px solid var(--acc);
-}
-.project-card-desc {
-  font-size: var(--fs-small);
-  color: var(--ink-soft);
-  margin-bottom: var(--space-sm);
-  line-height: 1.6;
-  flex: 1;
-}
-.project-card-tags {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  margin-bottom: var(--space-sm);
-}
-.tag {
-  display: inline-block;
-  font-size: var(--fs-tiny);
-  font-weight: 600;
-  padding: 3px 11px;
-  border-radius: var(--radius-full);
+  gap: 10px;
+  height: var(--taskbar-h);
+  padding: 0 12px;
   background: var(--white);
-  border: 1.5px solid var(--ink);
-  color: var(--ink);
+  border-top: var(--border);
 }
-.project-card-links { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
-.project-card-links a {
+.os-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 5px 12px;
   font-family: var(--font-display);
-  font-size: var(--fs-small);
-  font-weight: 600;
-  color: var(--ink);
-  border-bottom: 2.5px solid var(--acc);
+  font-size: 1rem;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  transition: background var(--transition), color var(--transition);
 }
+.os-start img { width: 18px; height: 18px; }
+.os-start[aria-expanded="true"] { background: var(--ink); color: var(--white); }
+/* Start menu: the rest of the site, as apps. */
+.os-startmenu {
+  position: absolute;
+  left: 12px;
+  bottom: calc(100% + 10px);
+  min-width: 230px;
+}
+.os-startmenu[hidden] { display: none; }
+.os-startmenu ul {
+  position: relative;
+  padding: 6px;
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius-md);
+}
+.os-startmenu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  font-family: var(--font-display);
+  border-radius: 8px;
+}
+.os-startmenu a:hover { background: var(--blue-tint); }
+.os-startmenu .nav-icon { width: 22px; height: 22px; }
+.os-dock { display: flex; flex: 1; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.os-docked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--acc);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.os-docked svg { width: 16px; height: 16px; }
+.os-hint { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-soft); white-space: nowrap; }
+.os-desk:not(.is-scattered) .os-hint { display: none; }
+.os-clock { flex: none; font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; }
+
+/* The desk wizard sits on the front window's title bar and hops between them. */
+.os-pet {
+  position: absolute;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  display: none;
+  width: 82px;
+  pointer-events: none;
+  transition: left 0.6s cubic-bezier(0.5, 0, 0.3, 1), top 0.6s cubic-bezier(0.5, 0, 0.3, 1);
+}
+.os-desk.is-scattered .os-pet { display: block; }
+.os-desk.is-dragging .os-pet { transition: none; }
+/* While the desk is on screen the corner wizard steps out (he's in the desk). */
+.wizard-buddy { transition: translate 0.45s var(--ease-bounce), opacity 0.3s; }
+body.desk-in-view .wizard-buddy { translate: 0 140%; opacity: 0; pointer-events: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .os-led.is-busy { animation: os-led 1.1s steps(2) infinite; }
+  .os-pet.is-hopping { animation: os-hop 0.6s ease-out; }
+}
+@keyframes os-led { 50% { background: var(--white); } }
+@keyframes os-hop { 45% { translate: 0 -50px; } }
 
 /* Shared link arrow on cards - nudges right on hover. */
 .card-arrow {
@@ -642,137 +753,233 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   vertical-align: -0.15em;
   transition: translate var(--transition);
 }
-.project-card-links a:hover .card-arrow,
 .writing-card:hover .card-arrow,
 .cert-link:hover .card-arrow { translate: 4px 0; }
 
 /* ============================================================
-   GALLERY GRID (Illustrations) - polaroids
+   ART - spell cards in the Kasai OS card binder
    ============================================================
-   Colour-pop frames: each frame is painted with its artwork's most
-   visible colour and the tag chip with the second (set per card by
-   script.js as --frame / --chip). Chunky ink outline, a slight tilt that
-   varies card to card; on hover the frame straightens and lifts, and the
-   artwork jumps a little way out of it. Art keeps its natural ratio. */
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-xl) var(--space-lg);
-  align-items: start;   /* cards keep their natural (uneven) heights */
+   The gallery is a binder window: the categories are its menu bar and
+   the cards sit on a starry play mat. Each card's frame is painted with
+   the artwork's most visible colour and its type strip with the second
+   (picked by the build, or frame:/chip: in content.js). Wide pieces get
+   a sideways card two columns wide. Hovering tilts a card towards the
+   pointer under a flat foil glint; clicking opens the viewer. */
+.binder {
+  overflow: hidden;
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius-xl);
+}
+.binder > .os-bar { min-height: 46px; padding: 0 16px; }
+.binder-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: var(--border);
+}
+.binder-menu button {
+  flex: none;
+  padding: 4px 11px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 7px;
+  transition: background var(--transition), color var(--transition);
+}
+.binder-menu button::first-letter { text-decoration: underline; text-underline-offset: 2px; }
+.binder-menu button:hover { background: var(--periwinkle-tint); }
+.binder-menu button[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+.binder-menu .binder-shuffle { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.binder-shuffle svg { width: 1.1em; height: 1.1em; }
+.binder-mat {
+  padding: var(--space-lg) var(--space-lg) var(--space-xl);
+  background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='70'%3E%3Cg fill='%23FFFFFF' fill-opacity='.11'%3E%3Cpath d='M18 9l1.8 5.2L25 16l-5.2 1.8L18 23l-1.8-5.2L11 16l5.2-1.8z'/%3E%3Cpath d='M52 44l1.1 3.1 3.1 1.1-3.1 1.1L52 52.4l-1.1-3.1-3.1-1.1 3.1-1.1z'/%3E%3Ccircle cx='50' cy='14' r='1.5'/%3E%3Ccircle cx='14' cy='54' r='1.3'/%3E%3C/g%3E%3C/svg%3E");
+}
+.binder-mat .empty-state { color: var(--white); }
+.binder-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 9px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--periwinkle-tint);
+  border-top: var(--border);
 }
 
-.gallery-item {
-  --frame: var(--white);
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 172px), 1fr));
+  grid-auto-flow: dense;
+  align-items: stretch;
+  gap: 34px 24px;
+}
+.art-card {
+  --frame: var(--periwinkle);
   --frame-ink: var(--ink);
-  --chip: var(--periwinkle-tint);
+  --chip: var(--yellow);
   --chip-ink: var(--ink);
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 5 / 7;
+  perspective: 900px;
+  rotate: var(--tilt, 0deg);
+}
+.art-card.is-wide { grid-column: span 2; aspect-ratio: 7 / 5; }
+.art-card:hover,
+.art-card:focus-visible { z-index: 2; rotate: 0deg; translate: 0 -8px; }
+.art-card.filtered-out { display: none; }
+.art-card-tilt {
+  height: 100%;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.6s var(--ease-bounce);
+}
+.art-card.is-tilting .art-card-tilt { transition: transform 0.1s linear; }
+.art-card-face {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 12px 12px 0;
-  background: var(--frame);
+  gap: 6px;
+  height: 100%;
+  padding: 8px;
+  overflow: hidden;
+  background: var(--frame) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='46'%3E%3Cg fill='%23161A2E' fill-opacity='.10'%3E%3Cpath d='M12 6l1.2 3.6L17 11l-3.8 1.2L12 16l-1.2-3.8L7 11l3.8-1.4z'/%3E%3Ccircle cx='34' cy='32' r='1.4'/%3E%3C/g%3E%3C/svg%3E");
   border: var(--border);
-  border-radius: 6px;
-  box-shadow: var(--pop);
-  rotate: -1.5deg;   /* hover bounce comes from .animate-on-scroll's transition */
+  border-radius: 14px;
 }
-.gallery-item:nth-child(3n+2) { rotate: 1.8deg; }
-.gallery-item:nth-child(3n)   { rotate: -0.6deg; }
-.gallery-item:hover {
-  z-index: 1;
-  rotate: 0deg;
-  translate: -3px -6px;
-  box-shadow: var(--pop-lg);
+.art-card-name {
+  flex: none;
+  padding: 3px 10px;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: 9px;
 }
-/* No forced aspect ratio - artwork keeps its own proportions, never cropped. */
-.gallery-item-img {
-  width: 100%;
+.art-card-window {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   background: var(--periwinkle-tint);
   border: 2px solid var(--ink);
-  border-radius: 3px;
+  border-radius: 6px;
 }
-.gallery-item-img--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 4 / 3;
-  color: var(--periwinkle);
+.art-card-window img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 28%;
 }
-.gallery-item-img--empty svg { width: 52px; height: 52px; }
-.gallery-item-img img { width: 100%; height: auto; }
-
-.gallery-item-cap {
-  padding: 14px 4px 16px;
+.art-card-window > svg { position: absolute; inset: 0; width: 44px; height: 44px; margin: auto; color: var(--periwinkle); }
+.art-card-type {
   display: flex;
-  flex-wrap: wrap;
+  flex: none;
   align-items: center;
   justify-content: space-between;
-  gap: 8px var(--space-sm);
-}
-.gallery-item-cap h3 {
+  gap: 6px;
+  padding: 2px 6px 2px 9px;
   font-family: var(--font-display);
-  font-size: var(--fs-h3);
-  font-weight: 600;
-  color: var(--frame-ink);
-  line-height: 1.25;
-}
-.gallery-item-cap p {
-  font-size: var(--fs-tiny);
-  font-weight: 600;
+  font-size: 0.72rem;
+  line-height: 1.35;
   color: var(--chip-ink);
   background: var(--chip);
   border: 2px solid var(--ink);
-  border-radius: var(--radius-full);
-  padding: 2px 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
+  border-radius: 7px;
 }
+.art-card-type span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.art-card-type img { width: 15px; height: 15px; flex: none; }
+.art-card-foot {
+  display: flex;
+  flex: none;
+  justify-content: space-between;
+  padding: 0 3px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--frame-ink);
+}
+/* Foil glint: two flat translucent bands that follow the pointer. */
+.art-card-glint { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity 0.35s; }
+.art-card-glint::before,
+.art-card-glint::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: var(--gx, 40%);
+  height: 180%;
+  background: var(--white);
+  rotate: 24deg;
+}
+.art-card-glint::before { width: 24%; opacity: 0.2; }
+.art-card-glint::after { width: 5%; margin-left: 30%; opacity: 0.28; }
+.art-card:hover .art-card-glint { opacity: 1; }
 
 /* ============================================================
-   LIGHTBOX  (native <dialog> - focus trap, Esc and aria-modal for free)
-   ============================================================ */
+   IMAGE VIEWER  (native <dialog> - focus trap, Esc and aria-modal for free)
+   ============================================================
+   A Kasai OS window: the file name in the title bar, the picture on a
+   transparency checkerboard, and the artwork's own colours underneath. */
 .lightbox {
   margin: auto;          /* restores <dialog> centring (the * reset zeroes it) */
-  border: none;
-  background: transparent;
   padding: 0;
-  max-width: 92vw;
+  max-width: 94vw;
   overflow: visible;
+  background: transparent;
+  border: none;
 }
 .lightbox::backdrop { background: var(--overlay); }
-.lightbox img {
-  max-width: 90vw;
-  max-height: 80vh;
-  margin: 0 auto;
-  border-radius: var(--radius-md);
-  border: 3px solid var(--white);
-  box-shadow: var(--pop-lg);
-}
-.lightbox-cap {
-  margin-top: 0.7rem;
-  text-align: center;
-  font-family: var(--font-display);
-  font-size: var(--fs-body);
-  color: var(--white);
-}
-.lightbox-cap:empty { display: none; }
-.lightbox-close {
-  position: absolute;
-  top: -16px;
-  right: -16px;
-  width: 52px; height: 52px;
-  font-size: 1.7rem;
-  color: var(--ink);
+.lb-window {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--white);
   border: var(--border);
-  border-radius: 50%;
-  box-shadow: var(--pop);
-  display: flex; align-items: center; justify-content: center;
-  transition: transform var(--transition);
+  border-radius: var(--radius-md);
 }
-.lightbox-close:hover { transform: rotate(90deg); }
+.lb-canvas {
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' fill='%23FFFFFF'/%3E%3Cpath d='M0 0h8v8H0zM8 8h8v8H8z' fill='%23F0ECFC'/%3E%3C/svg%3E");
+}
+.lightbox img {
+  width: auto;
+  max-width: min(86vw, 1600px);
+  max-height: 72vh;
+  border: 2px solid var(--ink);
+}
+.lb-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 9px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  border-top: var(--border);
+}
+.lb-swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.lb-swatches:empty { display: none; }
+.lb-swatches i { width: 18px; height: 18px; background: var(--s); border: 2px solid var(--ink); border-radius: 5px; }
+.lb-swatches code { margin-right: 6px; font: inherit; }
+.lightbox-cap { margin-left: auto; font-family: var(--font-display); font-size: var(--fs-small); }
+.lightbox-cap:empty { display: none; }
 
 /* ============================================================
    WRITING - library index cards
@@ -1233,14 +1440,15 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
 @media (max-width: 768px) {
   .container { padding: 0 var(--space-md); }
   .section { padding: var(--space-xl) 0; }
-  .project-grid { grid-template-columns: 1fr; }
-  .gallery-grid { grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+  .os-desk { padding: var(--space-sm) var(--space-sm) calc(var(--taskbar-h) + var(--space-sm)); }
+  .binder-mat { padding: var(--space-md) var(--space-sm) var(--space-lg); }
+  .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 14px; }
+  .art-card-name { font-size: 0.8rem; padding: 2px 8px; }
+  .art-card-type { font-size: 0.64rem; }
+  .art-card-face { padding: 6px; gap: 5px; }
+  .lightbox img { max-height: 64vh; }
   .cert-grid { grid-template-columns: 1fr; }
   .footer-inner { flex-direction: column; text-align: center; }
-}
-
-@media (max-width: 480px) {
-  .gallery-grid { grid-template-columns: 1fr; }
 }
 
 /* ============================================================
@@ -1359,21 +1567,6 @@ p, h1, h2, h3, h4, li, blockquote, figcaption { cursor: auto; }
   .goal-note { min-height: 170px; padding: 24px 14px 14px; }
   .goal-link { font-size: 0.8rem; }
 }
-
-/* ---------- GALLERY FILTER CHIPS + SHUFFLE ---------- */
-.gallery-filters {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: var(--space-lg);
-}
-.filter-chip svg { width: 1.1em; height: 1.1em; vertical-align: -0.2em; margin-right: 6px; }
-.filter-chip[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--blush);
-}
-.gallery-item.filtered-out { display: none; }
 
 /* ---------- THE PET WIZARD (mascot, bottom-right) ---------- */
 .wizard-buddy {
