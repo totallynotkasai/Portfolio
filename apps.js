@@ -468,10 +468,27 @@
 
   /* ══════════════════════════════════════════════════════════════════════
      GAMES  (a folder; Wizard Sweeper lives here)
-     ══════════════════════════════════════════════════════════════════════ */
+     ══════════════════════════════════════════════════════════════════════
+     The game is its own script, sweeper.js, fetched the first time it
+     opens so the desktop never waits for it. The build stamps the address
+     below with a version (like the page's own script links), so a
+     returning visitor never gets a stale copy of the game. */
   const sleepyWizard = () => {
+    if (K.pet && K.pet.frame) return K.pet.frame('asleep');
     const frames = (C.wizard && C.wizard.frames) || {};
     return frames.asleep ? webSrc(frames.asleep) : '';
+  };
+  let sweeperLoad = null;
+  const loadSweeper = () => {
+    if (K.sweeper) return Promise.resolve(K.sweeper);
+    sweeperLoad = sweeperLoad || new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = '/sweeper.js';
+      s.onload = () => (K.sweeper ? resolve(K.sweeper) : reject(new Error('sweeper.js loaded but did not start')));
+      s.onerror = () => { s.remove(); reject(new Error('sweeper.js did not load')); };
+      document.head.appendChild(s);
+    }).catch((err) => { sweeperLoad = null; throw err; });
+    return sweeperLoad;
   };
   const openSweeper = (from) => {
     K.wm.open({
@@ -481,17 +498,28 @@
       file: 'sweeper.exe',
       colour: 'ink',
       doodle: 'controller',
-      size: [520, 440],
+      size: [600, 680],
+      minSize: [340, 420],
       render(win) {
-        win.body.innerHTML = `
-          <div class="coming-soon">
-            ${sleepyWizard() ? `<img src="${esc(sleepyWizard())}" alt="" />` : ''}
-            <h2 id="${win.headingId}" tabindex="-1">Wizard Sweeper</h2>
-            <p>Clear the field without waking the sleeping wizards. Each level gets a little tougher, and you pick an upgrade between levels.</p>
-            <p class="coming-soon-note">Still being built. Check back soon.</p>
-          </div>`;
-        win.setStatus('Version 0.1, very much asleep');
+        win.body.classList.add('sw-body');
+        win.body.innerHTML = `<h2 class="vh" id="${win.headingId}" tabindex="-1">Wizard Sweeper</h2>
+          <div class="sw-loading" role="status"></div>`;
+        const wait = win.body.querySelector('.sw-loading');
+        const start = () => {
+          const pic = sleepyWizard();
+          wait.innerHTML = `${pic ? `<img src="${esc(pic)}" alt="" />` : ''}<p>Loading Wizard Sweeper...</p>`;
+          loadSweeper().then((game) => { if (wait.isConnected) game.mount(win); }).catch((err) => {
+            console.error(err);
+            if (!wait.isConnected) return; // the window was closed meanwhile
+            wait.innerHTML = `<p>The game didn't load. Check your connection, then try again.</p>
+              <button class="os-button" type="button">Try again</button>`;
+            wait.querySelector('button').addEventListener('click', start);
+          });
+        };
+        start();
       },
+      // Closing keeps the run where it was, ready for next time.
+      onClose(win) { if (K.sweeper) K.sweeper.unmount(win); },
     }, { from });
   };
 

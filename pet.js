@@ -30,13 +30,36 @@
   /* ---------- his drawings ----------
      The five he started with plus the optional extras. A drawing that
      doesn't exist yet borrows the next one along its chain, and every chain
-     ends at idle, so he always has something to wear. */
+     ends at idle, so he always has something to wear. Wizard Sweeper
+     dresses its wizards from here too (K.pet.frame), so they borrow alike. */
   const BORROW = {
     half: 'idle', blink: 'idle', happy: 'idle', asleep: 'blink',
     walk1: 'idle', walk2: 'walk1', held: 'startled', startled: 'idle',
     dizzy: 'half', party: 'happy', wave: 'happy',
+    sweeperTile: 'asleep',
   };
   const FRAMES = ['idle'].concat(Object.keys(BORROW));
+  const GAME_ONLY = ['sweeperTile']; // only on Wizard Sweeper's board, never on him
+
+  // content.js paths become the small copies the build makes (worked out
+  // the first time a picture is wanted).
+  let srcs = null;
+  const sources = () => {
+    if (srcs) return srcs;
+    const W = C.wizard || {};
+    const given = W.frames || {};
+    srcs = {};
+    FRAMES.forEach((k) => { if (given[k]) srcs[k] = K.webSrc(given[k]); });
+    if (!srcs.idle && W.image) srcs.idle = K.webSrc(W.image);
+    return srcs;
+  };
+  // A drawing's picture, or the one it borrows ('' with no drawings at all).
+  const frameSrc = (name) => {
+    const src = sources();
+    let k = name;
+    while (k && !src[k]) k = BORROW[k];
+    return src[k || 'idle'] || '';
+  };
 
   const PET_KEY = 'kasai:pet';       // { pets, since, last, carried }, saved once he's been petted
   const DESK_KEY = 'kasai:desktop';  // where things sit on the desktop (shared with the icons)
@@ -60,6 +83,9 @@
     },
     // pet.exe (Start menu): a little window with him, his mood and his pets.
     openExe(opts) { if (live) live.openExe(opts || {}); },
+    // The picture for one of his drawings (or its stand-in), for anything
+    // else that shows a wizard, like Wizard Sweeper. Works even if he's retired.
+    frame: frameSrc,
   };
 
   function wizard(layer, W) {
@@ -69,17 +95,8 @@
     const PHONE = window.matchMedia('(max-width: 760px)');
     const TOUCH = window.matchMedia('(hover: none)');
 
-    // content.js paths become the small copies the build makes.
-    const src = {};
-    const given = W.frames || {};
-    FRAMES.forEach((k) => { if (given[k]) src[k] = K.webSrc(given[k]); });
-    if (!src.idle && W.image) src.idle = K.webSrc(W.image);
+    const src = sources();
     if (!src.idle) return null;
-    const frameSrc = (name) => {
-      let k = name;
-      while (k && !src[k]) k = BORROW[k];
-      return src[k || 'idle'];
-    };
     const lineOf = (key) => pick(linesOf(W[key], DEFAULT_LINES[key]));
 
     layer.innerHTML = `
@@ -94,7 +111,9 @@
     const btn = el.querySelector('.pet-sprite');
     const body = el.querySelector('.pet-body');
     const img = body.querySelector('img');
-    Object.keys(src).forEach((k) => { const pre = new Image(); pre.src = src[k]; });
+    Object.keys(src).forEach((k) => {
+      if (GAME_ONLY.indexOf(k) === -1) { const pre = new Image(); pre.src = src[k]; }
+    });
 
     let exe = null; // pet.exe's moving parts, while its window is open
     let frame = 'idle';

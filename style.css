@@ -1017,14 +1017,300 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .paper-excerpt { font-size: var(--fs-small); color: var(--ink-soft); }
 
 /* ============================================================
-   APP: GAMES, THE 404 DIALOG AND SMALL DIALOGS
-   ============================================================ */
-.coming-soon { display: grid; justify-items: center; gap: 8px; padding: 26px; text-align: center; }
-.coming-soon img { width: 120px; }
-.coming-soon h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; }
-.coming-soon p { max-width: 40ch; color: var(--ink-soft); }
-.coming-soon-note { font-family: var(--font-mono); font-size: 0.8rem; }
+   APP: WIZARD SWEEPER  (sweeper.js arrives when the game opens)
+   ============================================================
+   A night-time field: lavender covers, white cleared tiles and
+   yellow stars. Tiles size themselves to the window (24 to 46px;
+   past that the field scrolls). sweeper.js knows the gap and padding. */
+.sw-body { display: flex; flex-direction: column; overflow: hidden; }
+.sw-body .os-button:hover { background: var(--yellow); }
+.sw-loading { display: grid; flex: 1; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; color: var(--ink-soft); }
+.sw-loading img { width: 96px; height: 96px; object-fit: contain; }
+.sw { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 
+/* The menu bar: New run, Star mode, Lucky star, Help. */
+.sw-menu { display: flex; align-items: center; gap: 2px; padding: 6px 8px; overflow-x: auto; scrollbar-width: none; }
+.sw-menu button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 7px;
+  transition: background var(--transition), color var(--transition);
+}
+.sw-menu button[hidden] { display: none; }
+.sw-menu button:hover { background: var(--periwinkle-tint); }
+.sw-menu button[aria-pressed="true"] { color: var(--white); background: var(--ink); }
+.sw-menu button[aria-pressed="true"] svg { fill: var(--yellow); }
+.sw-menu button:disabled { opacity: 0.5; cursor: default; }
+.sw-menu svg.doodle { width: 18px; height: 18px; }
+.sw-menu b { min-width: 1.5em; padding: 0 4px; font-family: var(--font-mono); font-size: 0.78rem; text-align: center; color: var(--ink); background: var(--yellow); border-radius: 6px; }
+.sw-menu [data-act="help"] { margin-left: auto; }
+
+/* The scores along the top, and the upgrades you have. */
+.sw-hud { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: var(--border); }
+.sw-stat, .sw-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  border: var(--border);
+  border-radius: 9px;
+}
+.sw-stat { gap: 6px; padding: 0 10px; background: var(--white); }
+.sw-stat b { font-size: 0.95rem; }
+.sw-stat svg.doodle, .sw-chip svg.doodle { width: 18px; height: 18px; }
+.sw-stat-wiz { width: 22px; height: 22px; object-fit: contain; }
+.sw-level { background: var(--yellow); }
+.sw-owned { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+.sw-owned[hidden] { display: none; }
+.sw-chip { gap: 3px; padding: 0 7px; color: var(--acc-text, var(--ink)); background: var(--acc); cursor: default; }
+.sw-chip.ink svg { fill: var(--yellow); }
+
+/* The field. */
+.sw-play { position: relative; flex: 1; min-height: 0; }
+.sw-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: auto;
+  overscroll-behavior: contain;
+  container-type: size;
+  background: var(--ink) var(--tx-stars);
+}
+/* Star mode: a yellow frame round the field, so a tap's job is obvious. */
+.sw-stage.is-starmode { box-shadow: inset 0 0 0 var(--line) var(--yellow); }
+.sw-board {
+  --gap: 3px;
+  --pad: 8px;
+  --cell: clamp(24px, min((100cqw - 2 * var(--pad) - (var(--cols) - 1) * var(--gap)) / var(--cols),
+    (100cqh - 2 * var(--pad) - (var(--rows) - 1) * var(--gap)) / var(--rows)), 46px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  margin: auto;
+  padding: var(--pad);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+.sw-row { display: flex; gap: var(--gap); }
+.sw-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--cell);
+  height: var(--cell);
+  font-family: var(--font-display);
+  font-size: calc(var(--cell) * 0.56);
+  line-height: 1;
+  border-radius: calc(var(--cell) * 0.2);
+  -webkit-tap-highlight-color: transparent;
+}
+.sw-cell > * { grid-area: 1 / 1; }
+.sw-cell:focus-visible { z-index: 2; outline: 3px solid var(--yellow); outline-offset: 1px; }
+/* Covered: lavender with a darker lip, like a key waiting to be pressed. */
+.sw-cell.is-hidden {
+  background: var(--periwinkle);
+  box-shadow: inset 0 calc(-1 * var(--line)) 0 #8F7BE3;
+  cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer;
+}
+.sw-cell.is-hidden:hover { background: #BCAEF6; }
+.sw-board.is-lucky .sw-cell.is-hidden:hover { background: var(--yellow); }
+.sw-cell.is-open { background: var(--white); }
+.sw-board.can-chord .sw-cell.is-num { cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer; }
+.sw-cell.n1 { color: var(--blue-ink); }
+.sw-cell.n2 { color: var(--teal-ink); }
+.sw-cell.n3 { color: var(--pink-ink); }
+.sw-cell.n4 { color: var(--periwinkle-ink); }
+.sw-cell.n5 { color: var(--yellow-ink); }
+.sw-cell.n6, .sw-cell.n7, .sw-cell.n8 { color: var(--ink); }
+.sw-cell > svg.doodle { width: 64%; height: 64%; }
+.sw-cell.is-star > svg { color: var(--ink); fill: var(--yellow); }
+/* A Lucky star's wizard: a gold star on the night sky. */
+.sw-cell.is-sure { background: var(--ink); box-shadow: inset 0 0 0 var(--line) var(--yellow); }
+.sw-cell.is-sure > svg { color: var(--yellow); fill: var(--yellow); }
+.sw-cell img { width: 90%; height: 90%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
+.sw-cell.is-known, .sw-cell.is-asleep { background: var(--periwinkle-tint); }
+.sw-cell.is-calm { background: var(--blue-tint); }
+.sw-cell.is-woken { z-index: 1; background: var(--pink); }
+.sw-cell.is-wrong { background: var(--white); }
+.sw-cell.is-wrong > svg { color: var(--ink-muted); fill: var(--yellow-tint); }
+.sw-cross { display: grid; place-items: center; width: 100%; height: 100%; color: var(--pink-ink); }
+.sw-cross > svg.doodle { width: 80%; height: 80%; }
+.sw-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 48%;
+  height: 48%;
+  color: var(--blue-ink);
+  background: var(--white);
+  border: var(--border);
+  border-radius: 50%;
+}
+.sw-badge > svg.doodle { width: 74%; height: 74%; }
+
+/* A note over the field (the level, your lantern, a shield at work). */
+.sw-toast {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 50%;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  padding: 6px 14px;
+  font-family: var(--font-display);
+  font-size: var(--fs-small);
+  line-height: 1.35;
+  text-align: center;
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  translate: -50% 0;
+  pointer-events: none;
+}
+.sw-toast.is-low { top: auto; bottom: 10px; }
+.sw-toast[hidden] { display: none; }
+
+/* The cards over the field: the title, picking an upgrade, run over. */
+.sw-overlay { position: absolute; inset: 0; z-index: 4; display: flex; overflow: auto; padding: 14px; background: rgba(22, 26, 46, 0.55); }
+.sw-overlay[hidden] { display: none; }
+.sw-card {
+  position: relative;
+  width: min(100%, 460px);
+  margin: auto;
+  padding: 18px 20px 20px;
+  text-align: center;
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius-md);
+}
+.sw-card-art { display: block; }
+.sw-card-art :is(img, svg) { width: 76px; height: 76px; margin: 0 auto; object-fit: contain; }
+.sw-card-h { margin-top: 2px; font-family: var(--font-display); font-size: 1.45rem; font-weight: 400; line-height: 1.15; }
+.sw-card p { margin-top: 8px; font-size: var(--fs-small); line-height: 1.5; color: var(--ink-soft); }
+.sw-rules { display: grid; gap: 2px; width: fit-content; max-width: 100%; margin: 8px auto 0; font-size: var(--fs-small); text-align: left; }
+.sw-rules li { position: relative; padding-left: 22px; }
+.sw-rules li::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  top: 0.42em;
+  width: 12px;
+  height: 12px;
+  background: var(--yellow);
+  border: var(--border);
+  border-radius: 50%;
+}
+.sw-card .sw-keys { font-size: 0.82rem; }
+.sw-card .sw-kicker { font-family: var(--font-mono); font-size: 0.76rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+.sw-card .sw-tally { margin-top: 4px; font-family: var(--font-mono); font-size: 0.8rem; }
+.sw-card .sw-best { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--ink); }
+.sw-card .sw-best.is-new { padding: 6px 10px; background: var(--yellow); border-radius: 9px; }
+.sw-best.is-new span { display: block; font-family: var(--font-display); font-weight: 400; }
+/* What the wizard says: a speech bubble, its tail pointing at him. */
+.sw-card .sw-said {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  margin: 0 auto 12px;
+  padding: 6px 12px;
+  font-family: var(--font-display);
+  color: var(--ink);
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius-md);
+}
+.sw-said::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  width: 13px;
+  height: 13px;
+  margin-left: -6px;
+  background: var(--white);
+  border-right: var(--border);
+  border-bottom: var(--border);
+  rotate: 45deg;
+}
+.sw-card .sw-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
+.sw-card .sw-go { background: var(--yellow); }
+.sw-card .sw-go:hover { background: var(--periwinkle); }
+
+/* The upgrades on offer: three cards in a row (stacked when narrow). */
+.sw-ups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.sw-up {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 10px 14px;
+  text-align: center;
+  background: var(--white);
+  border: var(--border);
+  border-radius: 12px;
+  transition: background var(--transition), translate var(--transition);
+}
+.sw-up:hover { background: var(--acc-tint); translate: 0 -2px; }
+.sw-up-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: var(--acc-text, var(--ink));
+  background: var(--acc);
+  border: var(--border);
+  border-radius: 12px;
+}
+.sw-up-icon svg.doodle { width: 26px; height: 26px; }
+.sw-up.ink .sw-up-icon svg { fill: var(--yellow); }
+.sw-up-name { font-family: var(--font-display); font-size: 1.05rem; line-height: 1.2; }
+.sw-up-blurb { font-size: 0.78rem; line-height: 1.4; color: var(--ink-soft); }
+.sw-up-have { padding: 1px 8px; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; background: var(--acc-tint); border-radius: 6px; }
+@container win (max-width: 540px) {
+  .sw-ups { grid-template-columns: minmax(0, 1fr); }
+  .sw-up { grid-template-columns: auto minmax(0, 1fr); justify-items: start; column-gap: 12px; row-gap: 2px; text-align: left; }
+  .sw-up-icon { grid-row: span 3; align-self: center; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sw-cell.is-pop { animation: sw-pop 0.26s var(--ease-bounce) backwards; animation-delay: var(--d, 0ms); }
+  .sw-cell.is-lit { animation: sw-lit 0.7s ease-out backwards; animation-delay: var(--d, 0ms); }
+  .sw-cell.is-starring > svg { animation: sw-star 0.34s var(--ease-bounce); }
+  .sw-cell.is-jolted img, .sw-cell.is-woken img { animation: sw-jolt 0.6s ease; }
+  .sw-card { animation: sw-card-in 0.28s var(--ease-bounce); }
+  .sw-toast.is-in { animation: sw-toast-in 0.2s ease-out; }
+  .sw-toast.is-low.is-in { animation-name: sw-toast-up; }
+}
+@keyframes sw-pop { from { scale: 0.5; } }
+@keyframes sw-lit { from { background: var(--yellow); scale: 0.6; } }
+@keyframes sw-star { from { scale: 0.2; rotate: -90deg; } }
+@keyframes sw-jolt {
+  15% { translate: 0 -14%; scale: 1.15; }
+  30% { rotate: -14deg; }
+  50% { rotate: 11deg; }
+  70% { rotate: -6deg; }
+  85% { rotate: 3deg; }
+}
+@keyframes sw-card-in { from { opacity: 0; translate: 0 14px; scale: 0.96; } }
+@keyframes sw-toast-in { from { opacity: 0; translate: -50% -8px; } }
+@keyframes sw-toast-up { from { opacity: 0; translate: -50% 8px; } }
+
+/* ============================================================
+   THE 404 DIALOG AND SMALL DIALOGS
+   ============================================================ */
 .error-box { display: flex; align-items: flex-start; gap: 18px; padding: 22px; }
 .error-wizard { width: 104px; flex: none; rotate: -6deg; }
 .error-box h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; line-height: 1.2; }
@@ -1258,6 +1544,10 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   .art-card-name { font-size: 0.8rem; padding: 2px 8px; }
   .art-card-type { font-size: 0.64rem; }
   .art-card-face { padding: 6px; gap: 5px; }
+  .sw-hud { gap: 5px; padding: 6px 8px; }
+  .sw-stat, .sw-chip { height: 30px; }
+  .sw-stat { padding: 0 8px; }
+  .sw-menu button { padding: 7px 10px; }
 }
 @media (max-width: 380px) {
   .desk-icons { grid-template-columns: repeat(3, minmax(0, 1fr)); }

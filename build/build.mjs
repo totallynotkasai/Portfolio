@@ -10,8 +10,9 @@
      3. Lists every artwork in assets/art, so dropping a file in there puts
         it on the site. A subfolder name becomes its tag (assets/art/Poster/).
         It also picks each artwork's two most visible colours for its frame.
-     4. Stamps a version onto the page's CSS and JS links, so a returning
-        visitor never gets new HTML with yesterday's cached code.
+     4. Stamps a version onto the page's CSS and JS links (and onto the
+        game's script, which loads later), so a returning visitor never
+        gets new HTML with yesterday's cached code.
    Output: dist/ - the deployed site - with everything new in dist/generated/.
    The local preview server (.claude/devserver.mjs) reuses generate() below.
    ════════════════════════════════════════════════════════════════════════ */
@@ -262,19 +263,37 @@ export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), 
 // CSS and JS are cached for a week while revalidating (vercel.json), so after
 // a deploy a returning visitor's first load could pair the new HTML with the
 // old code. Adding ?v=<hash of the file> to each link makes every change a
-// fresh URL. Only dist/ is touched; the source HTML stays clean.
+// fresh URL. A script that loads another one later (apps.js fetches
+// sweeper.js when the game opens) has that address stamped first, so its
+// own stamp changes whenever the other file does. Only dist/ is touched;
+// the source files stay clean.
 export async function stampAssetUrls(dist = DIST) {
+  const hashOf = async (url) => {
+    try { return createHash('sha1').update(await readFile(join(dist, url))).digest('hex').slice(0, 8); }
+    catch { return ''; } // not in dist (shouldn't happen): leave the link alone
+  };
+  const files = await readdir(dist);
+
+  // Script addresses written inside the scripts, like '/sweeper.js'.
+  for (const f of files) {
+    if (!/\.js$/i.test(f)) continue;
+    const file = join(dist, f);
+    const code = await readFile(file, 'utf8');
+    let out = code;
+    for (const url of new Set([...code.matchAll(/['"](\/[\w.-]+\.js)['"]/g)].map((m) => m[1]))) {
+      const v = await hashOf(url);
+      if (v) out = out.split(`'${url}'`).join(`'${url}?v=${v}'`).split(`"${url}"`).join(`"${url}?v=${v}"`);
+    }
+    if (out !== code) await writeFile(file, out);
+  }
+
+  // Then the pages' own links, hashed after the step above so they cover it.
   const versions = new Map();
   const version = async (url) => {
-    if (!versions.has(url)) {
-      let v = '';
-      try { v = createHash('sha1').update(await readFile(join(dist, url))).digest('hex').slice(0, 8); }
-      catch { /* not in dist (shouldn't happen): leave the link alone */ }
-      versions.set(url, v);
-    }
+    if (!versions.has(url)) versions.set(url, await hashOf(url));
     return versions.get(url);
   };
-  for (const f of await readdir(dist)) {
+  for (const f of files) {
     if (!/\.html$/i.test(f)) continue;
     const file = join(dist, f);
     const html = await readFile(file, 'utf8');

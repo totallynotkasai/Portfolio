@@ -297,7 +297,8 @@ window.CONTENT = {
      • FRAMES: his drawings, 960×960 transparent PNGs in assets/Wizard
        Sprite/. The first five are drawn. The rest are optional: until one
        exists he borrows another drawing (noted beside each), so nothing
-       ever looks broken. With no frames at all he uses the single `image`. */
+       ever looks broken. With no frames at all he uses the single `image`.
+       The wizards in Wizard Sweeper (section 9) wear these drawings too. */
   wizard: {
     enabled: true,                // set false to retire him (he'll understand)
     image: 'assets/ui/Pet Wizard Cursor default Not rotated.png', // fallback frame
@@ -314,9 +315,13 @@ window.CONTENT = {
       walk2: '',     // walking, step two                 (until drawn: walk1)
       held: '',      // dangling when picked up           (until drawn: startled)
       dizzy: '',     // just been put down                (until drawn: half)
-      startled: '',  // surprised (dropped in the Trash)  (until drawn: idle)
+      startled: '',  // surprised: dropped in the Trash, or woken in Wizard Sweeper (until drawn: idle)
       wave: '',      // waving hello to old friends       (until drawn: happy)
       party: '',     // in a party hat, for a secret      (until drawn: happy)
+
+      // A tiny sleeping wizard for Wizard Sweeper's board. Bold, simple
+      // shapes read best: it shows at about 32px.  (until drawn: asleep, shrunk)
+      sweeperTile: '',
     },
     sleepAfter: 60,               // seconds of being ignored before he naps (half that at night)
     quietPages: ['coding'],       // windows where he won't speak unprompted
@@ -360,6 +365,42 @@ window.CONTENT = {
     // Said to someone who petted him before, when they come back later
     // (after half an hour or more away).
     welcomeBack: ['welcome back!', 'oh hi, you again :)', 'i kept your spot warm.'],
+  },
+
+  /* ──────────────────────────────────────────────────────────────────────
+     9. WIZARD SWEEPER  (the game in the Games window)
+     ──────────────────────────────────────────────────────────────────────
+     Minesweeper with sleeping wizards: clear the field without waking
+     any. Each level is a little bigger, and after every one you pick an
+     upgrade. A visitor's best run is remembered on their computer.
+     • The wizards on the board wear the pet wizard's drawings from
+       section 8: "sweeperTile" (asleep), "startled" (the one you woke).
+     • Each list of lines is said one at random. Empty a list, e.g.
+       loseLines: [],  to keep the wizards quiet.
+     • "upgrades" are the names and blurbs on the upgrade cards. Reword
+       them freely, but keep them true: the numbers are how the game
+       works, so changing them here doesn't change the game.            */
+  sweeper: {
+    // Said by the wizard you woke, when the run ends.
+    loseLines: ['WHO DARES WAKE ME?', 'five more minutes. FIVE.', "it's not even morning!", 'i was dreaming about cake...'],
+
+    // After each level you clear.
+    clearLines: ['shhh... not one of them stirred.', 'they slept right through it.', 'tiptoe champion.'],
+
+    // When a run beats your best.
+    bestLines: ['a new best! the wizards will hear about it tomorrow.', 'record broken. quietly.'],
+
+    // When a Shield saves you.
+    shieldLines: ['your shield hummed him back to sleep.', 'phew. shield to the rescue.'],
+
+    upgrades: {
+      lantern:   { name: 'Lantern',     blurb: 'Every level starts with a safe 3x3 patch already lit.' },
+      shield:    { name: 'Shield',      blurb: 'Wake a wizard and your shield sends him back to sleep. Used up when it saves you.' },
+      scry:      { name: 'Scry',        blurb: 'Your crystal ball spots one sleeping wizard at the start of every level.' },
+      chord:     { name: 'Chord charm', blurb: 'Tap or click a number once all its wizards are starred to clear the rest of the tiles around it.' },
+      hourglass: { name: 'Hourglass',   blurb: "20 more seconds on every level's speed bonus clock." },
+      lucky:     { name: 'Lucky star',  blurb: "Once a level, a star that can't be wrong: it lands on a wizard or safely clears the tile." },
+    },
   },
 
 };
