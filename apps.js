@@ -11,7 +11,7 @@
 
   const K = window.Kasai;
   const C = K.C;
-  const { esc, highlight, accent, plural, pad2, slug, doodleIcon, webSrc, largeSrc, dims, imgInfo, HEX, textOn } = K;
+  const { esc, highlight, accent, plural, pad2, slug, doodleIcon, webSrc, largeSrc, srcset, dims, imgInfo, HEX, textOn } = K;
 
   // Each window's heading and line can be changed in content.js (os.windows).
   const copy = (id, fallback) => Object.assign({}, fallback, ((C.os && C.os.windows) || {})[id] || {});
@@ -20,23 +20,61 @@
      THE IMAGE VIEWER  (art, certificates and the Trash all open in it)
      ══════════════════════════════════════════════════════════════════════
      Opens on any element with data-full (the big picture). Optional extras:
+     data-img (the picture's path in content.js, for its copies and size),
      data-file (title bar name), data-caption, data-colors ("#hex #hex"). */
-  let fullCache = new Map(); // big pictures fetched on hover, ready for the click
-  const warm = (src) => {
-    if (!fullCache.has(src)) { const pre = new Image(); pre.src = src; fullCache.set(src, pre); }
-    return fullCache.get(src);
+  // An opener's big picture, every copy of it and its full size.
+  const picOf = (t) => {
+    const path = t.getAttribute('data-img');
+    const info = imgInfo(path) || {};
+    return { src: t.getAttribute('data-full'), set: srcset(path), w: info.lw || info.w, h: info.lh || info.h };
+  };
+
+  // Big pictures fetched on hover, ready for the click. With a srcset the
+  // browser picks the copy for `sizes`, the width it will be drawn at.
+  const fullCache = new Map();
+  const warm = (pic, sizes) => {
+    const key = pic.src + ' ' + sizes;
+    if (!fullCache.has(key)) {
+      const pre = new Image();
+      if (pic.set) { pre.sizes = sizes; pre.srcset = pic.set; }
+      pre.src = pic.src;
+      fullCache.set(key, pre);
+    }
+    return fullCache.get(key);
+  };
+  // Before the click, the biggest the viewer could draw the picture on this
+  // desktop, so the copy fetched ahead is never too small.
+  const roomFor = (pic) => {
+    const d = document.getElementById('windows');
+    return pic.w && d ? Math.floor(Math.min(pic.w, d.clientWidth, (d.clientHeight * pic.w) / pic.h)) + 'px' : '';
   };
   document.addEventListener('pointerover', (e) => {
     const t = e.target.closest && e.target.closest('[data-full]');
-    if (t) warm(t.getAttribute('data-full'));
+    if (t) { const pic = picOf(t); warm(pic, roomFor(pic)); }
   }, { passive: true });
 
+  // The picture is drawn as big as the viewer allows, never past its own
+  // size. Its width is set here (the height follows), and `sizes` passes it
+  // on, so the browser fetches a copy with enough pixels for this screen.
+  const fitViewer = (win) => {
+    const img = win.body.querySelector('.viewer-img');
+    const box = img && img.parentElement;
+    const w = img && Number(img.getAttribute('width'));
+    const h = img && Number(img.getAttribute('height'));
+    if (!w || !h || !box.clientWidth) return;
+    const edge = img.offsetWidth - img.clientWidth; // its border, both sides
+    const fit = Math.max(1, Math.floor(Math.min(w, box.clientWidth - edge, ((box.clientHeight - edge) * w) / h)));
+    img.style.width = fit + edge + 'px';
+    img.sizes = fit + 'px';
+  };
+
   K.openViewer = (t) => {
-    const src = t.getAttribute('data-full');
+    const pic = picOf(t);
     const thumb = t.querySelector('img');
     const alt = (thumb && thumb.alt) || t.getAttribute('data-caption') || '';
     const colors = (t.getAttribute('data-colors') || '').split(/\s+/).filter((c) => HEX.test(c));
-    const ratio = thumb && thumb.naturalWidth ? thumb.naturalWidth / thumb.naturalHeight : 1;
+    // The picture's own shape, even before its thumbnail has loaded.
+    const ratio = pic.w ? pic.w / pic.h : thumb && thumb.naturalWidth ? thumb.naturalWidth / thumb.naturalHeight : 1;
 
     const show = () => {
       const win = K.wm.open({
@@ -51,20 +89,30 @@
           w.body.classList.add('viewer-body');
           w.body.innerHTML = '<div class="viewer-canvas"><img class="viewer-img" alt="" /></div>';
         },
+        onShow: fitViewer, // back from the taskbar
+        onResize: fitViewer, // maximised, restored, resized or a new screen size
       }, { refit: true, from: t }); // closing it takes focus back to the card or file
       const img = win.body.querySelector('.viewer-img');
       delete img.dataset.fallback; // each picture gets its own broken-file fallback
       img.alt = alt;
-      // Show the small copy at once (already loaded), then swap in the big one.
-      img.src = (thumb && (thumb.currentSrc || thumb.src)) || src;
-      const pre = warm(src);
-      (pre.decode ? pre.decode() : Promise.resolve()).catch(() => {}).then(() => {
-        if (win.body.contains(img) && img.alt === alt) img.src = src;
-      });
       win.setTitle(t.getAttribute('data-file') || alt || 'picture.png');
       win.setStatus(
         (colors.length ? `<span class="viewer-swatches">${colors.map((c) => `<i style="--s:${c}"></i><code>${c}</code>`).join('')}</span>` : '') +
         `<span class="viewer-caption">${esc(t.getAttribute('data-caption') || alt)}</span>`);
+      // Sized once the status bar is filled in, as it changes the room left.
+      ['srcset', 'sizes', 'width', 'height'].forEach((a) => img.removeAttribute(a)); // the last picture's
+      img.style.width = '';
+      const sized = (w, h) => { img.setAttribute('width', w); img.setAttribute('height', h); fitViewer(win); };
+      if (pic.w) sized(pic.w, pic.h);
+      // Show the small copy at once (already loaded), then swap in the big one.
+      img.src = (thumb && (thumb.currentSrc || thumb.src)) || pic.src;
+      const pre = warm(pic, img.sizes);
+      (pre.decode ? pre.decode() : Promise.resolve()).catch(() => {}).then(() => {
+        if (!win.body.contains(img) || img.alt !== alt) return; // closed, or showing another picture
+        if (!pic.w && pre.naturalWidth) sized(pre.naturalWidth, pre.naturalHeight);
+        if (pic.set) img.srcset = pic.set;
+        else img.src = pic.src;
+      });
       return img;
     };
 
@@ -162,6 +210,18 @@
   const statusLed = (busy) =>
     `<span class="os-led${busy ? ' is-busy' : ''}" aria-hidden="true"></span>${busy ? 'In progress' : 'Ready'}`;
 
+  // A project's screenshot fills its window's width, cropped to 16:10, so the
+  // copy it needs changes with the window. `sizes` is the width the picture
+  // is drawn at, cropped edges included; once the small copy would be
+  // stretched (a big window, a high-density screen) the browser fetches the
+  // large one.
+  const sizeShot = (win) => {
+    const img = win.body.querySelector('img.os-shot[srcset]');
+    if (!img || !img.clientWidth) return;
+    const ratio = img.getAttribute('width') / img.getAttribute('height');
+    img.sizes = Math.ceil(Math.max(img.clientWidth, img.clientHeight * ratio)) + 'px';
+  };
+
   const openProject = (p, from) => {
     const { name, sub, file, techs, busy } = projectParts(p);
     K.wm.open({
@@ -176,8 +236,11 @@
         if (techs.length) {
           win.menu.innerHTML = `<p class="os-menu"><span class="vh">Built with: </span>${techs.map((t) => `<span>${esc(t)}</span>`).join('')}</p>`;
         }
+        // sizes starts as the window's width; sizeShot corrects it once the
+        // window is on screen, before the lazy picture loads.
+        const set = p.img ? srcset(p.img) : '';
         const shot = p.img
-          ? `<img class="os-shot" src="${esc(webSrc(p.img))}"${dims(p.img)} alt="${esc(p.title || '')}" loading="lazy" decoding="async" draggable="false" />`
+          ? `<img class="os-shot" src="${esc(webSrc(p.img))}"${set ? ` srcset="${esc(set)}" sizes="560px"` : ''}${dims(p.img)} alt="${esc(p.title || '')}" loading="lazy" decoding="async" draggable="false" />`
           : `<div class="os-shot">${doodleIcon('laptop')}</div>`;
         // Someone else's project I've built on: a GitHub-style "Forked from" line.
         const fork = p.forkOf && p.forkOf.label
@@ -197,6 +260,8 @@
           .map((l) => `<a href="${esc(l.url || '#')}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('');
         win.setStatus(`<span class="os-state">${statusLed(busy)}</span>${links ? `<span class="os-links">${links}</span>` : ''}`);
       },
+      onShow: sizeShot,
+      onResize: sizeShot, // maximised, restored, resized or a new screen size
     }, { from });
   };
 
@@ -259,7 +324,7 @@
     const wide = info.w && info.h && info.w / info.h >= 1.25;
     const title = it.title || 'Untitled';
     const viewer = it.img
-      ? ` data-full="${esc(largeSrc(it.full || it.img))}" data-file="${esc(artFileName(it))}"` +
+      ? ` data-full="${esc(largeSrc(it.full || it.img))}" data-img="${esc(it.full || it.img)}" data-file="${esc(artFileName(it))}"` +
         ` data-colors="${esc(picked.join(' '))}" data-caption="${esc(title + (it.tag ? ' · ' + it.tag : ''))}"` +
         ` tabindex="0" role="button" aria-label="View ${esc(title)} full size"`
       : '';
@@ -444,7 +509,7 @@
         const meta = [c.issuer, c.date].filter(Boolean).map(esc).join(' · ');
         // The tile opens the scan; the credential link sits beside it, never inside.
         const tile = c.img
-          ? `<button class="file-tile cert-tile ${accent(c.accent || 'pink')}" type="button" data-full="${esc(largeSrc(c.img))}"
+          ? `<button class="file-tile cert-tile ${accent(c.accent || 'pink')}" type="button" data-full="${esc(largeSrc(c.img))}" data-img="${esc(c.img)}"
                data-file="${esc(slug(title))}.png" data-caption="${esc(title + (meta ? ' · ' + [c.issuer, c.date].filter(Boolean).join(' · ') : ''))}">
                <span class="tile-thumb"><img src="${esc(webSrc(c.img))}"${dims(c.img)} alt="${esc(title)}" loading="lazy" decoding="async" draggable="false" /></span>
                <span class="tile-name">${esc(title)}</span>${meta ? `<span class="tile-sub">${meta}</span>` : ''}
@@ -571,7 +636,7 @@
       }
       win.menu.innerHTML = `<div class="win-toolbar"><button class="os-button" type="button" data-empty>${doodleIcon('alert')}Empty Recycle Bin</button></div>`;
       win.body.innerHTML = `<ul class="folder-grid folder-grid--projects">${files.map((f) => `
-          <li><button class="file-tile recycle-tile" type="button" data-full="${esc(largeSrc(f.img))}"
+          <li><button class="file-tile recycle-tile" type="button" data-full="${esc(largeSrc(f.img))}" data-img="${esc(f.img)}"
               data-file="${esc(slug(f.name))}.png" data-caption="${esc(f.name)}">
             <span class="tile-thumb"><img src="${esc(webSrc(f.img))}"${dims(f.img)} alt="${esc(f.name)}" loading="lazy" decoding="async" draggable="false" /></span>
             <span class="tile-name">${esc(f.name)}</span>

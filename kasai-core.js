@@ -48,6 +48,14 @@
   // The small copy for the page, the large one for the image viewer.
   K.webSrc = (p) => (imgInfo(p) ? imgInfo(p).web : assetUrl(p));
   K.largeSrc = (p) => (imgInfo(p) ? imgInfo(p).large || imgInfo(p).web : assetUrl(p));
+  // Both copies with their widths, for an <img srcset>. Given the width the
+  // picture is drawn at (its `sizes`), the browser fetches the small copy
+  // when that's sharp enough and the large one for a big window or a
+  // high-density screen. Empty when the build made only one copy.
+  K.srcset = (p) => {
+    const i = imgInfo(p);
+    return i && i.large && i.lw > i.w ? `${i.web} ${i.w}w, ${i.large} ${i.lw}w` : '';
+  };
   // Real width/height, so space is reserved before the image loads.
   K.dims = (p) => (imgInfo(p) ? ` width="${imgInfo(p).w}" height="${imgInfo(p).h}"` : '');
 

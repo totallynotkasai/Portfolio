@@ -5,8 +5,9 @@
      1. Checks content.js and every script file. A typo fails the build, and
         Vercel then keeps the previous version of the site live.
      2. Makes small WebP copies of every image in IMAGE_SETS (plus a large
-        one for the image viewer) and records their sizes, so the page
-        downloads only what it shows and doesn't jump about while loading.
+        one for the image viewer and big windows) and records their sizes,
+        so the page downloads only what it shows and doesn't jump about
+        while loading.
      3. Lists every artwork in assets/art, so dropping a file in there puts
         it on the site. A subfolder name becomes its tag (assets/art/Poster/).
         It also picks each artwork's two most visible colours for its frame.
@@ -29,12 +30,15 @@ export const DIST = join(ROOT, 'dist');
 const GEN_URL = '/generated/';
 
 // Which folders get WebP copies. `web` is the max width shown on the page
-// (about 2x its on-screen size); `large` is the longest edge in the image viewer.
+// (about 2x its on-screen size); `large` is the longest edge of the big copy,
+// or the original's own size if that's smaller. The page offers both, and
+// the browser fetches the big one only when a picture is drawn too wide for
+// the small one (a big window, the image viewer, a high-density screen).
 const IMAGE_SETS = [
-  { dir: 'assets/art', web: 800, large: 2000 },
+  { dir: 'assets/art', web: 800, large: 4000 },        // every artwork whole (the biggest is 3200x4000)
   { dir: 'assets/certs', web: 480, large: 2000 },
   { dir: 'assets/photos', web: 800 },
-  { dir: 'assets/projects', web: 640 },
+  { dir: 'assets/projects', web: 640, large: 2560 },   // a maximised project window
   { dir: 'assets/Wizard Sprite', web: 240 },
   { dir: 'assets/recycle', web: 480, large: 1600 },   // retired designs in the Trash
 ];
@@ -198,6 +202,10 @@ let sharpLib;
 export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), log = console.log } = {}) {
   sharpLib = sharpLib || (await import('sharp')).default;
   const sharp = sharpLib;
+  // Let go of each file once it's read. sharp keeps some open by default,
+  // and on Windows an open file can't be deleted, so another dev server
+  // (or `npm run build`) couldn't tidy up the copies this one had read.
+  sharp.cache({ files: 0 });
   await mkdir(outDir, { recursive: true });
 
   const keep = new Set(['manifest.js']);
@@ -227,7 +235,7 @@ export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), 
       if (set.large) {
         const large = await makeWebp(buf, `${base}-l${set.large}.webp`,
           { width: set.large, height: set.large, fit: 'inside', withoutEnlargement: true });
-        info.large = large.url;
+        Object.assign(info, { large: large.url, lw: large.width, lh: large.height });
       }
       if (set.dir === 'assets/art') {
         // Worked out from the small copy, once per version of the file.
@@ -252,9 +260,11 @@ export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), 
     '   or the files in assets/ instead. */\n' +
     'window.GENERATED = ' + JSON.stringify({ images, art }, null, 1) + ';\n');
 
-  // Tidy up copies of images that were changed or removed.
+  // Tidy up copies of images that were changed or removed. One that another
+  // process still has open (a second dev server on Windows) waits for the
+  // next run rather than failing this one.
   for (const f of await readdir(outDir)) {
-    if (!keep.has(f)) await unlink(join(outDir, f));
+    if (!keep.has(f)) await unlink(join(outDir, f)).catch(() => {});
   }
   log(`  images: ${Object.keys(images).length} (${made} new WebP files), artworks: ${art.length}`);
   return { images, art };
