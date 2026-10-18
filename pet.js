@@ -836,6 +836,9 @@
     /* ---------- off he goes ---------- */
     const start = home();
     place(start.x, start.y);
+    // A tab opened in the background may have no desktop yet: he finds his
+    // spot once it has a size.
+    let homed = desktop.clientWidth > 0 && desktop.clientHeight > 0;
     fitTouch();
     rest();
     scheduleBlink();
@@ -855,6 +858,10 @@
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
+        if (!homed && desktop.clientWidth > 0 && desktop.clientHeight > 0) {
+          homed = true;
+          if (state !== 'held') { const h = home(); place(h.x, h.y); }
+        }
         const a = area();
         if (walk) { walk.x = clamp(walk.x, a.minX, a.maxX); walk.y = clamp(walk.y, a.minY, a.maxY); }
         if (state !== 'held') place(clamp(pos.x, a.minX, a.maxX), clamp(pos.y, a.minY, a.maxY));

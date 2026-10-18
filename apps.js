@@ -51,7 +51,7 @@
           w.body.classList.add('viewer-body');
           w.body.innerHTML = '<div class="viewer-canvas"><img class="viewer-img" alt="" /></div>';
         },
-      }, { refit: true });
+      }, { refit: true, from: t }); // closing it takes focus back to the card or file
       const img = win.body.querySelector('.viewer-img');
       delete img.dataset.fallback; // each picture gets its own broken-file fallback
       img.alt = alt;
@@ -105,7 +105,7 @@
         : `<span class="about-photo-empty">${doodleIcon('camera')}</span>`;
       const paras = (a.paragraphs || []).map((p) => `<p>${esc(p)}</p>`).join('');
       win.body.innerHTML = `
-        ${ticker.length ? `<div class="ticker marquee-container" role="marquee" aria-label="What I do">
+        ${ticker.length ? `<div class="ticker" role="marquee" aria-label="What I do">
           <div class="marquee-content"><ul class="marquee-group">${ticker.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>
         </div>` : ''}
         <div class="about">

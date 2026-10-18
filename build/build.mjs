@@ -29,7 +29,7 @@ export const DIST = join(ROOT, 'dist');
 const GEN_URL = '/generated/';
 
 // Which folders get WebP copies. `web` is the max width shown on the page
-// (about 2x its on-screen size); `large` is the longest edge in the lightbox.
+// (about 2x its on-screen size); `large` is the longest edge in the image viewer.
 const IMAGE_SETS = [
   { dir: 'assets/art', web: 800, large: 2000 },
   { dir: 'assets/certs', web: 480, large: 2000 },
@@ -95,8 +95,9 @@ function commitDates(root) {
   return dates;
 }
 
-// An artwork's two most visible colours: the Art page paints its frame with
-// the first and its tag chip with the second. The pixels of a small copy are
+// An artwork's two most visible colours: its spell card in the Art window
+// takes its frame from the first and its category strip from the second
+// (the image viewer shows both too). The pixels of a small copy are
 // grouped into colour clusters (k-means, seeded from the busiest colour
 // bins so it gives the same answer every build). Each cluster scores by how
 // much of the picture it covers, nudged towards vivid colours so a plain

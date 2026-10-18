@@ -4,26 +4,42 @@
 
    HOW IT WORKS
    ------------
-   The site is Kasai OS: one page that's a little desktop. Every image,
-   certificate, project and bit of text in its windows lives in this one
-   file, so you never have to touch the HTML, CSS or JS.
+   The site is Kasai OS: one page that's a little desktop. Every word,
+   picture and project in its windows lives in this one file, so you never
+   have to touch the HTML, CSS or JS. Save, push, and the site rebuilds.
+
+   WHAT'S IN HERE
+     1. ABOUT          the about_me.txt window
+     2. ART            the binder.exe window of spell cards
+     3. CODING         the projects folder (each project is its own window)
+     4. WRITING        the documents folder (each piece opens on an index card)
+     5. CERTIFICATES   the certificates folder
+     6. SITE           little bits of voice around the edges
+     7. KASAI OS       window headings, the boot screen, About Kasai OS
+     8. PET WIZARD     his drawings and everything he says
+     9. WIZARD SWEEPER the game in the Games window
 
    TO ADD ARTWORK: just drop the file into a category folder and push:
-     assets/art/Poster/My Piece.png   →  appears in the Art window as a
-     card, tagged "Poster", titled "My Piece". No need to touch this file.
-     A new folder makes a new category (and a new menu item). Files loose
-     in assets/art/ appear with no category.
+     assets/art/Poster/My Piece.png   →  a new spell card in the Art
+     window, in the "Poster" category, titled "My Piece". No need to touch
+     this file. A new folder makes a new category (and a new button in the
+     binder's menu bar). Files loose in assets/art/ get no category.
 
-   TO ADD A CERTIFICATE / PROJECT:
-     1. Drop the image file into the matching assets folder:
-          certificates → assets/certs/   photos → assets/photos/
-     2. Add ONE line to the matching list below (copy the line above it),
-        using the folder in the path, e.g.  img: 'assets/certs/My Cert.png'
+   TO ADD A PROJECT OR A CERTIFICATE:
+     1. Drop its picture into the matching folder:
+          project screenshots → assets/projects/
+          certificates        → assets/certs/
+     2. Copy an entry in its section below and fill it in, with the folder
+        in the path, e.g.  img: 'assets/certs/My Cert.png'
      3. Save & push. Done.
 
    TO PUT AN OLD DESIGN IN THE TRASH: drop a screenshot into assets/recycle/
-     and it appears in the Recycle Bin, named after the file. A date in
-     brackets, like "My Old Look (May 2027).png", puts them in order.
+     and it appears in the Recycle Bin, named after the file. A month and
+     year in brackets, like "My Old Look (May 2027).png", puts them in date
+     order, oldest first.
+
+   NEW DRAWINGS OF THE PET WIZARD go in assets/Wizard Sprite/ (section 8
+     says which ones he can use).
 
    IMAGE SIZE: don't worry about it. Use your full-resolution files. Every
    deploy makes small, fast copies for the page automatically (the
@@ -37,31 +53,42 @@
      • Wrap text in 'single quotes'. If your text contains an apostrophe,
        use "double quotes" around it instead, e.g.  "Dilettante's".
      • The "img" path must match the file EXACTLY, capitals and spaces
-       included, e.g.  img: 'assets/art/Pet Wizard 2.png'
-     • Leave  img: ''  empty to get a coloured placeholder instead.
-     • "accent" can be:  'lavender'  'blue'  'yellow'  'teal'  'pink'
+       included, e.g.  img: 'assets/art/Pet Wizard 2.png'. If it doesn't,
+       the build log warns you and the site shows a small picture icon.
+     • Leave  img: ''  empty and an icon stands in for the picture.
+     • "accent" (the colour of a window or a file) can be:
+         'lavender'  'blue'  'yellow'  'teal'  'pink'
+     • Write " - " rather than a long dash. The build warns about long dashes.
 
    ════════════════════════════════════════════════════════════════════════ */
 
 window.CONTENT = {
 
   /* ──────────────────────────────────────────────────────────────────────
-     1. ABOUT  (the about_me.txt window, open when someone first arrives)
+     1. ABOUT  (the about_me.txt window)
      ──────────────────────────────────────────────────────────────────────
+     It's open when someone arrives on a computer (phones start on the
+     home screen, with About one tap away).
      • In the heading and subheading, put *asterisks* around words you
-       want highlighted in yellow (it only works in those two).
+       want highlighted in yellow. It only works in those two.
      • Each string in "paragraphs" becomes one paragraph. Add/remove freely.
-     • Set  photo: ''  to show a placeholder instead of a photo. */
+     • Set  photo: ''  to show a placeholder instead of a photo.
+     • Set  email: ''  to hide both Email me buttons. */
   about: {
     // The big greeting at the top of the window. Wrap any part in *asterisks* to highlight.
     heading: "Hi I'm *Andrew Worgan*",
 
-    // Shown just under the greeting (and in the Start menu, under your name).
+    // Just under the greeting. It's also under your name at the top of the
+    // Start menu (without the highlight there).
     subheading: "IT professional and hobbyist artist living around Bristol, UK",
 
-    // The rolling strip across the top of the About window. One phrase per line.
+    // The rolling strip across the top of the window, one phrase per item.
+    // Empty the list,  ticker: [],  to hide the strip.
     ticker: ['Digital illustration', 'Graphic design', 'Web design', 'Creative writing', 'IT', 'QA', 'Automation'],
 
+    // Your photo: in a little me.png window beside the text, and in the
+    // circle at the top of the Start menu. "photoAlt" describes it for
+    // people using screen readers.
     photo: 'assets/photos/About Me Photo.png',
     photoAlt: 'Photo of Andrew',
 
@@ -71,14 +98,15 @@ window.CONTENT = {
       "My current goals are to finish my main side project, my PKM \"Filo\", and to keep progressing my career in IT.",
     ],
 
+    // The Email me button under your text and the one in the Start menu.
     email: 'andrew.worgan.enquiry@gmail.com',
 
-    // Casual sign-off, shown in the About window's status bar.
+    // A casual sign-off in the window's status bar (the strip along its foot).
     signoff: 'Thanks for stopping by :)',
   },
 
   /* ──────────────────────────────────────────────────────────────────────
-     2. ART  (the binder.exe window: every piece is a collectible card)
+     2. ART  (the binder.exe window: every piece is a spell card)
      ──────────────────────────────────────────────────────────────────────
      Every image in assets/art/ shows up automatically (see the top of this
      file); its subfolder is its category. This list is OPTIONAL. Only add a
@@ -90,11 +118,14 @@ window.CONTENT = {
        3. the other lines below, in this order
      • "title" replaces the name taken from the filename.
      • "tag" replaces the category taken from the subfolder (rarely needed).
-     • Each piece is a collectible card. Its frame is painted with the
-       piece's most visible colour and its category strip with the second,
-       picked automatically. Don't like a pick? Set your own with
-       frame: '#F7216B', chip: '#17C38C'  (either one on its own works too).
-       Wide pieces get a sideways card automatically.
+     • Each card's frame is painted with the piece's most visible colour
+       and its category strip with the second, picked automatically. Don't
+       like a pick? Set your own with  frame: '#F7216B', chip: '#17C38C'
+       (either one on its own works too).
+     • Wide pieces get a sideways card, two cards wide, automatically.
+     • With two or more categories, the binder's menu bar gets a button
+       for each one (plus Shuffle) to filter the cards.
+     • A click on a card opens the piece full size in the image viewer.
      • Deleting a line never removes the piece; delete the file for that. */
   art: [
     { img: 'assets/art/Digital Art/assisted existence.png', title: 'Assisted Existence' },
@@ -119,22 +150,28 @@ window.CONTENT = {
   /* ──────────────────────────────────────────────────────────────────────
      3. CODING  (the projects folder; each project opens as its own window)
      ──────────────────────────────────────────────────────────────────────
+     Projects show in the folder in this order.
+     • "title" is the project's name, then (optionally) " - " and a short
+       subtitle, e.g. 'Filo - Personal Knowledge Manager'.
      • "img" is an optional screenshot in assets/projects/ ('' shows an
        icon). It's cropped to 16:10, so landscape shots work best.
+     • "desc" is the paragraph in the project's window.
      • "tags" is a list of technologies (they become the window's menu bar).
-       A tag of 'In Progress' shows in the status bar instead.
-     • "links" is a list of buttons. Give each a label and url.
-     • Each project is a file in the folder and opens as an app window. Its
-       name reads the title up to any " - ", with an extension that fits its
-       tags (e.g. "filo.exe", "toolbox.apk"); set  window: 'name.ext'  to
-       choose it yourself.
+       A tag of 'In Progress' becomes a blinking "In progress" light in the
+       folder and the status bar instead; without one it says "Ready".
+     • "links" are the buttons in the window's status bar. Give each a
+       label and a url.
+     • Each project is named like a file: the title up to any " - ", plus
+       an ending that fits its tags (.apk for Android or Kotlin, .exe for
+       desktop apps, .html for the web), e.g. "filo.exe", "toolbox.apk".
+       Set  window: 'name.ext'  to choose it yourself.
      • "accent" colours the project's window (default blue).
      • Built on someone else's project? Add
          forkOf: { label: 'owner/repo', url: 'https://github.com/owner/repo' }
        and a "Forked from owner/repo" line appears under the title.       */
   coding: [
     {
-      img: 'assets/projects/Filo.png',
+      img: 'assets/projects/Filo Updated.png',
       title: 'Filo - Personal Knowledge Manager',
       desc: 'My main side project: a local-first desktop app for notes, ideas and worldbuilding. Mind maps, kanban boards, task lists and documents, all saved as plain Markdown files on your own disk.',
       tags: ['TypeScript', 'Svelte', 'Electron', 'In Progress'],
@@ -194,14 +231,17 @@ window.CONTENT = {
   ],
 
   /* ──────────────────────────────────────────────────────────────────────
-     4. WRITING  (the documents window; each piece opens on an index card)
+     4. WRITING  (the documents folder; each piece opens on an index card)
      ──────────────────────────────────────────────────────────────────────
         { date: 'Month Year', title: 'Title', excerpt: 'Teaser…',
           url: 'https://…', status: 'Finished', accent: 'blue', stamp: 'Short' },
-     • Each piece is a document in the list (title, status, date). Opening
-       it shows the excerpt on a ruled index card. "accent" colours the
-       card's margin line; "stamp" (optional) is the little rubber stamp.
-     • Give it a real url and a "Read it" button appears.                 */
+     • Each piece is a document in the list (its title, status and date).
+       Opening it shows the date, title and excerpt on a ruled index card
+       in a window of its own.
+     • Give it a real url and a "Read it" button appears in the card's
+       status bar; with no url the status sits there instead.
+     • "stamp" (optional) is the little rubber stamp in the card's corner.
+     • "accent" colours the card's window and its margin line (default teal). */
   writing: [
     {
       date: '2026',
@@ -227,7 +267,13 @@ window.CONTENT = {
           issuer: 'Who issued it', date: 'Month Year',
           link: 'https://credential-url',     // optional 'View credential'
           accent: 'yellow', icon: 'cap' },
-     • "icon" (no image only): any doodle name, e.g. 'cap' 'ribbon' 'book' 'laptop' */
+     • "issuer" and "date" show under the name, and in the image viewer.
+     • "link" adds a "View credential" link under the file.
+     • "accent" colours the file (default pink).
+     • "icon" (only used with no image) picks the icon by name: 'cap'
+       (the default), 'ribbon', 'book', 'laptop', 'star', 'heart', 'globe',
+       'sprout', 'pencil', 'quill', 'palette' or 'hammer'. Any doodle name
+       in kasai-core.js works; one it doesn't know shows the pencil.     */
   certificates: [
     // Empty on purpose: the folder shows a tidy "This folder is empty",
     // which looks better to a recruiter than placeholder data ever would.
@@ -239,11 +285,12 @@ window.CONTENT = {
      ──────────────────────────────────────────────────────────────────────
      Small bits of voice that live around the edges of the site.           */
   site: {
-    // The last line of the Start menu.
+    // At the foot of the Start menu, and in the About Kasai OS box.
     copyright: '© 2026 Andrew Worgan (Kasai). All rights reserved.',
 
-    // What an empty folder says under "This folder is empty". Keys match
-    // each window. The coding one stays straight because recruiters read it.
+    // What an empty folder says under "This folder is empty", one line per
+    // window (a  trash: '...'  line works too, should the bin ever be
+    // empty). The coding one stays straight because recruiters read it.
     emptyStates: {
       art: 'The easel is warming up. Art arriving soon.',
       coding: 'Projects are being tidied up. Check back soon.',
@@ -252,11 +299,12 @@ window.CONTENT = {
     },
 
     // Printed in the browser dev console for nosy developers (hi!).
+    // \n starts a new line.
     consoleMsg: 'Oh hi, you opened the console. The wizard sees you.\n' +
       'Yes, this site is hand-built vanilla HTML/CSS/JS. View source away:\n' +
       'all the content lives in one friendly file: content.js',
 
-    // Tab title when you wander off to another tab. '' disables it.
+    // The tab's title while someone is looking at another tab. '' turns it off.
     awayTitle: 'hey, come back :(',
   },
 
@@ -264,12 +312,16 @@ window.CONTENT = {
      7. KASAI OS  (the OS itself; every line here is optional)
      ──────────────────────────────────────────────────────────────────────
      Delete a line to go back to the built-in wording.
-     • "windows": each window's big heading, the line under it and its
-       folder path.
-     • "bootLines": the boot screen, shown on a visitor's first page, on
-       Start > Restart and after Shut down. It's over in under a second, so
-       keep them short; four or five is plenty. Empty the list,
-       bootLines: [],  for none.
+     • "windows": each folder window's big heading ("heading"), the line
+       under it ("sub") and the folder path above it ("address"; Coding,
+       Writing and Certificates have one built in). In an address, type
+       two backslashes for each one you want to see, e.g.
+       address: 'C:\\Kasai\\Games'. (The About window's heading is the
+       greeting in section 1.)
+     • "bootLines": the boot screen, shown once per visit (but not for
+       people whose device asks for less motion), on Start > Restart and
+       after Shut down. It's over in under a second, so keep them short;
+       five fit. Empty the list,  bootLines: [],  and only the bar shows.
      • "version" and "credits": the About Kasai OS box (right-click the
        desktop, or the button at the bottom of the Start menu).
      • "newFolder": the joke when someone picks New folder on the desktop menu.
@@ -289,6 +341,7 @@ window.CONTENT = {
     },
 
     // The boot screen's lines, in order (each gets a little "[ OK ]").
+    // Past five, the oldest ones roll away.
     bootLines: [
       'Loading doodles...',
       'Waking the wizard...',
@@ -316,35 +369,37 @@ window.CONTENT = {
      • He lives on the desktop, always behind the windows, and wanders the
        free bits with a little hop. If a window lands on him he pops out
        from behind it. Ignore him and he naps.
-     • Click him (or Tab to him + Enter) to pet him. Pet him a LOT and
-       something nice happens.
+     • Click him (or Tab to him + Enter) to pet him. Every tenth pet it
+       rains doodles, and the mouse leaves a trail of them for the rest of
+       the visit.
      • Drag him with the mouse to carry him somewhere (on a phone, press and
        hold him first). He dangles, then grumbles or dozes off where you put
        him down. Try dropping him on the Trash.
      • He remembers where you left him, and remembers people who petted
        him: they get a "welcomeBack" line when they come back.
      • pet.exe in the Start menu shows him, his mood and how many pets he's had.
-     • "lines" = what he says when a window opens (one at random). Windows
-       listed in "quietPages" never get a line unprompted; pet him while one
-       is in front and he says it then.
+     • What he says, and when, is noted above each list of lines below.
      • Any list of lines can be emptied, e.g.  dropLines: [],  to keep him quiet.
      • FRAMES: his drawings, 960×960 transparent PNGs in assets/Wizard
        Sprite/. The first five are drawn. The rest are optional: until one
        exists he borrows another drawing (noted beside each), so nothing
-       ever looks broken. With no frames at all he uses the single `image`.
-       The wizards in Wizard Sweeper (section 9) wear these drawings too. */
+       ever looks broken. The wizards in Wizard Sweeper (section 9), the
+       Shut down screen and the page-not-found box wear these drawings too,
+       even if he's retired.                                               */
   wizard: {
-    enabled: true,                // set false to retire him (he'll understand)
-    image: 'assets/ui/Pet Wizard Cursor default Not rotated.png', // fallback frame
+    enabled: true,                // set false to retire him from the desktop (he'll understand)
+    image: 'assets/ui/Pet Wizard Cursor default Not rotated.png', // stands in for "idle" if that drawing is ever missing
     frames: {                     // his expressions, see assets/Wizard Sprite/
       idle: 'assets/Wizard Sprite/Idle Wizard.png',            // eyes open, resting
-      half: 'assets/Wizard Sprite/Inbetween Frame Wizard.png', // mid-blink (eyes half)
+      half: 'assets/Wizard Sprite/Inbetween Frame Wizard.png', // mid-blink, eyes half shut (and just after he's put down)
       blink: 'assets/Wizard Sprite/Blink Wizard.png',           // eyes shut
       happy: 'assets/Wizard Sprite/Happy Wizard.png',           // when you pet him
       asleep: 'assets/Wizard Sprite/Sleepy Wizard.png',          // napping (zzz drawn in)
 
       // Optional extras: draw one, drop it in the folder, put its path between
       // the quotes. Walking frames face RIGHT (he's flipped to walk left).
+      // Draw them like the five above: same size and line weight, hat tip
+      // near the top and feet near the bottom, so his hops line up.
       walk1: '',     // walking, step one                 (until drawn: idle)
       walk2: '',     // walking, step two                 (until drawn: walk1)
       held: '',      // dangling when picked up           (until drawn: startled)
@@ -357,9 +412,16 @@ window.CONTENT = {
       // shapes read best: it shows at about 32px.  (until drawn: asleep, shrunk)
       sweeperTile: '',
     },
-    sleepAfter: 60,               // seconds of being ignored before he naps (half that at night)
-    quietPages: ['coding'],       // windows where he won't speak unprompted
+    sleepAfter: 60,               // seconds of being ignored before he naps (half that from 10pm to 6am)
+    quietPages: ['coding'],       // windows where he won't speak unprompted (see "lines" below)
 
+    // What he says when a window opens: one line at random from its list,
+    // at most one every 8 seconds and never in his sleep. Its project or
+    // document windows count as the folder's. "games" and "trash" lists
+    // work too, if you'd like him to talk there.
+    // Windows in "quietPages" never get a line unprompted: pet him while
+    // one is in front and he says it then (once per visit).
+    // "notfound" is his line in the page-not-found (404) box.
     lines: {
       about: [
         'hello!',
@@ -388,7 +450,8 @@ window.CONTENT = {
       ],
     },
 
-    // What he says when you pet him (cycles in order, then repeats).
+    // What he says when you pet him (cycles in order, then repeats; every
+    // tenth pet is the doodle rain instead).
     petLines: ['!', '<3', 'Momentai', 'Good vibes only, gang.', 'again.', 'this is acceptable', 'magic +1', 'okay one more'],
 
     // Carrying him about (one at random each time).
@@ -414,7 +477,8 @@ window.CONTENT = {
      any. Each level is a little bigger, and after every one you pick an
      upgrade. A visitor's best run is remembered on their computer.
      • The wizards on the board wear the pet wizard's drawings from
-       section 8: "sweeperTile" (asleep), "startled" (the one you woke).
+       section 8: "sweeperTile" (asleep), "startled" (the one you woke),
+       and "happy" cheers on the level-cleared card.
      • Each list of lines is said one at random. Empty a list, e.g.
        loseLines: [],  to keep the wizards quiet.
      • "upgrades" are the names and blurbs on the upgrade cards. Reword

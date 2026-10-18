@@ -159,6 +159,14 @@
     const W = area.width;
     const H = area.height;
     const spec = win.spec;
+    // A tab opened in the background can have no size yet: park the window
+    // and place it properly once the desktop has a size (see refit below).
+    win.unplaced = W < 120 || H < 120;
+    if (win.unplaced) {
+      const [w0, h0] = spec.size || [720, 520];
+      setRect(win, { x: 8, y: 8, w: w0, h: h0 });
+      return;
+    }
     const iconRail = W >= 1000 ? 132 : 12;
     let w;
     let h;
@@ -276,6 +284,7 @@
       const btn = taskButton(win);
       if (btn) btn.focus({ preventScroll: true });
       else returnFocus(win);
+      announce(win.spec.label + ' minimised');
     });
   }
 
@@ -392,22 +401,31 @@
     if (win) { e.preventDefault(); minimise(win); }
   });
 
-  // Keep windows reachable when the browser window changes size.
+  // Keep windows reachable when the browser window changes size (or a tab
+  // that opened in the background is first shown).
   let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      const area = layer.getBoundingClientRect();
-      wins.forEach((w) => {
-        if (!w.rect) return;
+  function refit() {
+    const area = layer.getBoundingClientRect();
+    if (area.width < 120 || area.height < 120) return; // still no room to work with
+    wins.forEach((w) => {
+      if (!w.rect) return;
+      if (w.unplaced) place(w);
+      else {
         const r = w.rect;
         const nw = Math.min(r.w, area.width - 16);
         const nh = Math.min(r.h, area.height - 16);
         setRect(w, { x: clamp(r.x, 8 - nw + 90, area.width - 90), y: clamp(r.y, 0, area.height - 44), w: nw, h: nh });
-        if (w.open && !w.minimised && w.spec.onResize) w.spec.onResize(w);
-      });
-      layoutDesktop();
-    }, 150);
+      }
+      if (w.open && !w.minimised && w.spec.onResize) w.spec.onResize(w);
+    });
+    layoutDesktop();
+  }
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(refit, 150);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && Array.from(wins.values()).some((w) => w.unplaced)) refit();
   });
 
   K.wm = {
@@ -442,7 +460,9 @@
     // Bigger screens: a button for every open window, in the order opened.
     const list = $('#task-windows');
     if (!list) return;
-    const had = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.win : null;
+    // A taskbar button with focus keeps it after the buttons are redrawn.
+    const a = document.activeElement;
+    const had = a && a.matches && a.matches('.task-win') ? a.dataset.win : null;
     const shown = order.map((id) => wins.get(id)).filter(Boolean).sort((a, b) => a.openedAt - b.openedAt);
     list.innerHTML = shown.map((w) => `<li><button class="task-win ${esc(w.spec.colour || 'lavender')}${w === f ? ' is-active' : ''}${w.minimised ? ' is-min' : ''}" type="button" data-win="${esc(w.id)}"${w === f ? ' aria-current="true"' : ''}>
           ${w.spec.icon ? navIcon(w.spec.icon) : doodleIcon(w.spec.doodle || 'folder')}<span class="task-label">${esc(w.spec.label)}</span>
@@ -554,26 +574,30 @@
     if (!startMenu) return;
     const a = C.about || {};
     const avatar = a.photo ? `<img src="${esc(K.webSrc(a.photo))}" alt="" />` : doodleIcon('camera');
-    // The same icons as the tray, drawn as masks in the text colour.
+    // The same icons as the tray, drawn as masks in the text colour, in one
+    // row after Email me.
     const socials = $$('.tray .social-link').map((s) => {
       const img = s.querySelector('img');
       const ico = img
         ? `<span class="social-ico" aria-hidden="true" style="--ico: url(&quot;${esc(img.getAttribute('src'))}&quot;)"></span>`
         : doodleIcon('globe');
-      return `<li><a href="${esc(s.href)}" target="_blank" rel="noopener">${ico}${esc(s.getAttribute('aria-label') || 'Link')}</a></li>`;
+      const name = esc(s.getAttribute('aria-label') || 'Link');
+      return `<li><a class="start-social" href="${esc(s.href)}" target="_blank" rel="noopener" title="${name}">${ico}<span class="vh">${name}</span></a></li>`;
     }).join('');
+    // The subheading's *highlight* marks only make sense in the About window.
+    const tagline = String(a.subheading || '').replace(/\*([^*]+)\*/g, '$1');
     startMenu.innerHTML = `
       <span class="os-shadow" aria-hidden="true"></span>
       <div class="start-panel">
         <div class="start-head">
           <span class="start-avatar">${avatar}</span>
-          <span class="start-who"><strong>Andrew Worgan</strong><span>${esc(a.subheading || '')}</span></span>
+          <span class="start-who"><strong>Andrew Worgan</strong><span>${esc(tagline)}</span></span>
         </div>
         <nav aria-label="Apps"><ul class="start-apps">
           ${Object.keys(APPS).map((id) => `<li><a class="start-app" href="${esc(APPS[id].path)}" data-app="${id}">${navIcon(APPS[id].icon)}${esc(APPS[id].label)}</a></li>`).join('')}
         </ul></nav>
         <ul class="start-links">
-          ${a.email ? `<li><a href="mailto:${esc(a.email)}">${doodleIcon('mail')}Email me</a></li>` : ''}
+          ${a.email ? `<li class="start-email"><a href="mailto:${esc(a.email)}">${doodleIcon('mail')}Email me</a></li>` : ''}
           ${socials}
         </ul>
         <ul class="start-system" aria-label="System">

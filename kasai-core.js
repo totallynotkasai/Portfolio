@@ -3,6 +3,9 @@
    ════════════════════════════════════════════════════════════════════════
    You do NOT need to edit this file. Everything on the site comes from
    content.js. The scripts load in this order:
+     head.js        before anything is drawn: the saved wallpaper, and
+                    whether this visit starts with the boot screen
+     generated/manifest.js  made by the build: image sizes and the art list
      content.js     the words and pictures (the only file you edit)
      kasai-core.js  these shared helpers
      apps.js        what each window shows
