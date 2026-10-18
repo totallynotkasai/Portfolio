@@ -40,7 +40,7 @@ const IMAGE_SETS = [
   { dir: 'assets/photos', web: 800 },
   { dir: 'assets/projects', web: 640, large: 2560 },   // a maximised project window
   { dir: 'assets/Wizard Sprite', web: 240 },
-  { dir: 'assets/recycle', web: 480, large: 1600 },   // retired designs in the Trash
+  { dir: 'assets/recycle', web: 480, large: 2880 },   // retired designs in the Trash
 ];
 const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
 const WEBP = { quality: 82, effort: 5 };
