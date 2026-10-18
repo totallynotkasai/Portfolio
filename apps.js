@@ -86,13 +86,12 @@
   };
 
   /* ══════════════════════════════════════════════════════════════════════
-     ABOUT  (about_me.txt)
+     ABOUT
      ══════════════════════════════════════════════════════════════════════ */
   const DEFAULT_TICKER = ['Digital illustration', 'Graphic design', 'Web design', 'Creative writing', 'IT', 'QA', 'Automation'];
 
   const about = {
     label: 'About',
-    file: 'about_me.txt',
     colour: 'yellow',
     icon: 'about',
     path: '/',
@@ -203,7 +202,6 @@
 
   const coding = {
     label: 'Coding',
-    file: 'projects',
     colour: 'blue',
     icon: 'coding',
     path: '/coding_projects',
@@ -234,7 +232,7 @@
   };
 
   /* ══════════════════════════════════════════════════════════════════════
-     ART  (binder.exe: every piece is a spell card)
+     ART  (a binder where every piece is a spell card)
      ══════════════════════════════════════════════════════════════════════
      Each card's frame takes the artwork's most visible colour and its type
      strip the second (picked by the build, or `frame:` / `chip:` in
@@ -302,7 +300,6 @@
 
   const art = {
     label: 'Art',
-    file: 'binder.exe',
     colour: 'lavender',
     icon: 'art',
     path: '/illustrations_and_graphics',
@@ -397,7 +394,6 @@
 
   const writing = {
     label: 'Writing',
-    file: 'documents',
     colour: 'teal',
     icon: 'writing',
     path: '/writing',
@@ -431,7 +427,6 @@
      ══════════════════════════════════════════════════════════════════════ */
   const certificates = {
     label: 'Certificates',
-    file: 'certificates',
     colour: 'pink',
     icon: 'certificates',
     path: '/certificates',
@@ -526,8 +521,7 @@
 
   const games = {
     label: 'Games',
-    file: 'games',
-    colour: 'ink',
+    colour: 'coral',
     icon: 'games',
     path: '/games',
     size: [620, 440],
@@ -563,8 +557,7 @@
 
   const trash = {
     label: 'Trash',
-    file: 'Recycle Bin',
-    colour: 'white',
+    colour: 'grey',
     icon: 'trash',
     path: '/trash',
     size: [820, 560],

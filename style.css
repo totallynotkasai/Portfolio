@@ -4,6 +4,7 @@
    Flat colours only (patterns are flat SVG tiles, never gradients):
      --blush #FEF6FE   --ink #161A2E   --periwinkle #AE9DF3
      --yellow #FEDA74  --blue #65A1FB  --teal #5AC8B6  --pink #FB9DC4
+     --coral #F98776   --grey #C5C8D6
    Every line of OS chrome is the same weight (--line), drawn as a CSS
    border so they all snap to the screen alike.
    ------------------------------------------------------------
@@ -61,6 +62,8 @@ p, h1, h2, h3, li { cursor: auto; }
   --blue:       #65A1FB;
   --teal:       #5AC8B6;
   --pink:       #FB9DC4;
+  --coral:      #F98776;
+  --grey:       #C5C8D6;
   --white:      #FFFFFF;
 
   /* Derived */
@@ -73,6 +76,8 @@ p, h1, h2, h3, li { cursor: auto; }
   --blue-tint:       #E4EDFE;
   --teal-tint:       #E0F5F1;
   --pink-tint:       #FEEAF3;
+  --coral-tint:      #FEE7E4;
+  --grey-tint:       #EEEFF3;
 
   /* Deep accent inks - accent-coloured text on white */
   --periwinkle-ink:  #5E46B8;
@@ -80,6 +85,8 @@ p, h1, h2, h3, li { cursor: auto; }
   --blue-ink:        #1F5FC0;
   --teal-ink:        #1F7D6E;
   --pink-ink:        #B03A70;
+  --coral-ink:       #BE2D18;
+  --grey-ink:        #5F647F;
 
   /* Typography */
   --font-display: 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
@@ -112,8 +119,6 @@ p, h1, h2, h3, li { cursor: auto; }
   --tx-grid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M0 .5H32M.5 0V32' stroke='%23161A2E' stroke-opacity='.14'/%3E%3C/svg%3E");
   --tx-dots-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='2' cy='2' r='1.4' fill='%23FFFFFF' fill-opacity='.18'/%3E%3C/svg%3E");
   --tx-grid-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M0 .5H32M.5 0V32' stroke='%23FFFFFF' stroke-opacity='.14'/%3E%3C/svg%3E");
-  --tx-stripes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Crect width='3' height='1' fill='%23161A2E'/%3E%3C/svg%3E");
-  --tx-stripes-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Crect width='3' height='1' fill='%23FFFFFF'/%3E%3C/svg%3E");
   --tx-dither: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0zM2 2h2v2H2z' fill='%23161A2E'/%3E%3C/svg%3E");
   --tx-checker: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' fill='%23FFFFFF'/%3E%3Cpath d='M0 0h8v8H0zM8 8h8v8H8z' fill='%23F0ECFC'/%3E%3C/svg%3E");
   --tx-stars: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='70'%3E%3Cg fill='%23FFFFFF' fill-opacity='.11'%3E%3Cpath d='M18 9l1.8 5.2L25 16l-5.2 1.8L18 23l-1.8-5.2L11 16l5.2-1.8z'/%3E%3Cpath d='M52 44l1.1 3.1 3.1 1.1-3.1 1.1L52 52.4l-1.1-3.1-3.1-1.1 3.1-1.1z'/%3E%3Ccircle cx='50' cy='14' r='1.5'/%3E%3Ccircle cx='14' cy='54' r='1.3'/%3E%3C/g%3E%3C/svg%3E");
@@ -129,8 +134,9 @@ p, h1, h2, h3, li { cursor: auto; }
 .teal     { --acc: var(--teal);       --acc-tint: var(--teal-tint);       --acc-ink: var(--teal-ink); }
 .yellow   { --acc: var(--yellow);     --acc-tint: var(--yellow-tint);     --acc-ink: var(--yellow-ink); }
 .pink     { --acc: var(--pink);       --acc-tint: var(--pink-tint);       --acc-ink: var(--pink-ink); }
+.coral    { --acc: var(--coral);      --acc-tint: var(--coral-tint);      --acc-ink: var(--coral-ink); }
+.grey     { --acc: var(--grey);       --acc-tint: var(--grey-tint);       --acc-ink: var(--grey-ink); }
 .ink      { --acc: var(--ink);        --acc-tint: #ECEBF3;                --acc-ink: var(--ink); --acc-text: var(--white); --acc-button: var(--yellow); }
-.white    { --acc: var(--white);      --acc-tint: var(--blush);           --acc-ink: var(--ink); --acc-button: var(--yellow); }
 
 /* The visitor's wallpaper (Start > Wallpaper), set before first paint by head.js. */
 html[data-wall="blue"]   { --wall: var(--blue); }
@@ -220,10 +226,8 @@ body {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-/* Classic pinstripes fill the bar between the name and the buttons. */
-.os-stripes { flex: 1; min-width: 14px; height: 14px; background: var(--tx-stripes); }
-.ink .os-stripes { background-image: var(--tx-stripes-light); }
-.os-btns { display: flex; flex: none; gap: 5px; }
+/* The window's buttons keep to the right of the bar. */
+.os-btns { display: flex; flex: none; gap: 5px; margin-left: auto; }
 .os-btn {
   display: grid;
   place-items: center;
@@ -252,7 +256,9 @@ body {
 /* Doodle icons keep one line weight at every size. */
 svg.doodle { width: 1.15em; height: 1.15em; flex: none; stroke-width: 2.2px; }
 svg.doodle :is(path, circle, rect) { vector-effect: non-scaling-stroke; }
-.nav-icon { width: 22px; height: 22px; flex: none; stroke-width: 2px; }
+/* App icons keep their colour and their ink outline everywhere, even on
+   white text (their outlines are drawn in currentColor). */
+.nav-icon { width: 22px; height: 22px; flex: none; color: var(--ink); stroke-width: 2px; }
 
 /* A standard OS button. */
 .os-button {
@@ -269,7 +275,7 @@ svg.doodle :is(path, circle, rect) { vector-effect: non-scaling-stroke; }
   border-radius: 9px;
   transition: background var(--transition);
 }
-/* It lights up in its window's colour (yellow in ink and white windows). */
+/* It lights up in its window's colour (yellow in ink windows). */
 .os-button:hover { background: var(--acc-button, var(--acc, var(--yellow))); }
 .os-button:active { translate: 0 1px; }
 
@@ -311,7 +317,7 @@ a:hover > .card-arrow, a:hover .card-arrow { translate: 4px 0; }
   user-select: none;
   -webkit-user-drag: none;
 }
-.desk-ico { display: grid; place-items: center; width: 52px; height: 52px; }
+.desk-ico { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; }
 .desk-ico .nav-icon { width: 48px; height: 48px; stroke-width: var(--line); transition: translate var(--transition); }
 .desk-icon:hover .desk-ico .nav-icon { translate: 0 -2px; }
 .desk-label {
@@ -324,11 +330,11 @@ a:hover > .card-arrow, a:hover .card-arrow { translate: 4px 0; }
   border-radius: 6px;
 }
 .desk-icon.is-selected .desk-label { color: var(--white); background: var(--ink); }
-.desk-icon.is-selected .desk-ico { background: rgba(255, 255, 255, 0.45); border-radius: 12px; }
+/* Selected, an icon sits on a tile in its own colour (its accent class). */
+.desk-icon.is-selected .desk-ico { background: var(--acc, var(--white)); border: var(--border); }
 /* On the navy wallpaper each icon sits on a light tile, so its dark
    outlines don't vanish into it (and the focus ring turns yellow). */
 html[data-wall="navy"] .desk-ico { background: var(--blush); border-radius: 14px; }
-html[data-wall="navy"] .desk-icon.is-selected .desk-ico { background: var(--yellow); }
 html[data-wall="navy"] .desktop :focus-visible { outline-color: var(--yellow); }
 .is-dragging .desk-icon { cursor: grabbing; }
 li.is-dragging { z-index: 5; }
@@ -359,7 +365,6 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 }
 /* The window in front wears its colour; the others go white. */
 .win:not(.is-active) .win-bar { color: var(--ink); background: var(--white); }
-.win:not(.is-active) .os-stripes { background-image: var(--tx-stripes); opacity: 0.35; }
 .win-bar { cursor: grab; touch-action: none; }
 .os.is-dragging, .os.is-dragging .win-bar { cursor: grabbing; }
 .os.is-resizing { cursor: nwse-resize; }
@@ -516,8 +521,6 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 }
 .task-btn.is-active, .task-win.is-active { color: var(--acc-text, var(--ink)); background: var(--acc); border-color: var(--ink); }
 .task-btn.is-active::after { display: none; }
-/* The white Recycle Bin can't fill with white, so it goes navy instead. */
-.task-win.white.is-active { color: var(--white); background: var(--ink); }
 /* Minimised: tucked away, so the box goes see-through. */
 .task-win.is-min { background: transparent; border-style: dashed; }
 .task-win.is-min:hover { background: var(--acc-tint); }
@@ -655,7 +658,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 }
 
 /* ============================================================
-   APP: ABOUT  (about_me.txt)
+   APP: ABOUT
    ============================================================ */
 /* The ticker: a rolling strip of what I do. */
 .ticker {
@@ -746,7 +749,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 }
 
 /* ============================================================
-   FOLDERS  (projects, certificates, games and the Recycle Bin)
+   FOLDERS  (Coding, Certificates, Games and Trash)
    ============================================================ */
 .folder-grid {
   display: grid;
@@ -841,7 +844,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .os-links a:hover { background: var(--acc); }
 
 /* ============================================================
-   APP: ART  (binder.exe: spell cards on a starry mat)
+   APP: ART  (a binder of spell cards on a starry mat)
    ============================================================ */
 .binder-mat { padding: 26px 28px 40px; background: var(--ink) var(--tx-stars); }
 .binder-mat .folder-empty { color: var(--white); }
@@ -1523,16 +1526,18 @@ dialog.shutdown::backdrop { background: transparent; }
   gap: 10px;
   width: 100%;
   min-height: 36px;
-  padding: 5px 10px;
+  padding: 3px 8px;
   font-family: var(--font-display);
   font-size: 0.92rem;
   line-height: 1.25;
   text-align: left;
+  border: var(--line) solid transparent;
   border-radius: 8px;
 }
 .desk-menu-panel button[hidden] { display: none; }
-.desk-menu-panel button:focus { outline: none; color: var(--white); background: var(--ink); }
-.desk-menu-panel button:focus .nav-icon { color: var(--white); }
+/* The highlight (the mouse and the keyboard share it): yellow, outlined in
+   ink, so an app icon keeps its colours on it. */
+.desk-menu-panel button:focus { outline: none; background: var(--yellow); border-color: var(--ink); }
 .desk-menu-panel svg.doodle, .desk-menu-panel .nav-icon { width: 20px; height: 20px; }
 .desk-menu-sep { height: 0; margin: 4px 8px; border-top: var(--line) solid var(--periwinkle-tint); }
 .desk-menu-sep[hidden] { display: none; }

@@ -9,8 +9,8 @@
    have to touch the HTML, CSS or JS. Save, push, and the site rebuilds.
 
    WHAT'S IN HERE
-     1. ABOUT          the about_me.txt window
-     2. ART            the binder.exe window of spell cards
+     1. ABOUT          the About window
+     2. ART            the Art window: a binder of spell cards
      3. CODING         the projects folder (each project is its own window)
      4. WRITING        the documents folder (each piece opens on an index card)
      5. CERTIFICATES   the certificates folder
@@ -65,7 +65,7 @@
 window.CONTENT = {
 
   /* ──────────────────────────────────────────────────────────────────────
-     1. ABOUT  (the about_me.txt window)
+     1. ABOUT  (the About window)
      ──────────────────────────────────────────────────────────────────────
      It's open when someone arrives on a computer (phones start on the
      home screen, with About one tap away).
@@ -106,7 +106,7 @@ window.CONTENT = {
   },
 
   /* ──────────────────────────────────────────────────────────────────────
-     2. ART  (the binder.exe window: every piece is a spell card)
+     2. ART  (the Art window: every piece is a spell card)
      ──────────────────────────────────────────────────────────────────────
      Every image in assets/art/ shows up automatically (see the top of this
      file); its subfolder is its category. This list is OPTIONAL. Only add a

@@ -92,7 +92,6 @@
         <div class="os-bar win-bar">
           <span class="os-app" aria-hidden="true">${spec.icon ? navIcon(spec.icon) : doodleIcon(spec.doodle || 'folder')}</span>
           <span class="os-title">${esc(spec.file || spec.label)}</span>
-          <span class="os-stripes" aria-hidden="true"></span>
           <span class="os-btns">
             <button class="os-btn os-min" type="button" aria-label="Minimise ${esc(spec.label)}">${doodleIcon('min')}</button>
             <button class="os-btn os-max" type="button" aria-label="Maximise ${esc(spec.label)}" aria-pressed="false">${doodleIcon('max')}</button>
@@ -816,7 +815,7 @@
       <span class="os-shadow" aria-hidden="true"></span>
       <div class="os-dialog-frame">
         <div class="os-bar"><span class="os-app" aria-hidden="true">${doodleIcon(icon || 'alert')}</span>
-          <span class="os-title" id="os-dialog-title">${esc(title || 'Kasai OS')}</span><span class="os-stripes" aria-hidden="true"></span></div>
+          <span class="os-title" id="os-dialog-title">${esc(title || 'Kasai OS')}</span></div>
         ${body ? `<div id="os-dialog-msg">${body}</div>` : `<div class="os-dialog-body">
           <span class="os-dialog-icon" aria-hidden="true">${doodleIcon(icon || 'alert')}</span>
           <p id="os-dialog-msg">${esc(message || '')}</p>
