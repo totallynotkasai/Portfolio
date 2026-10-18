@@ -17,7 +17,8 @@
      6. SITE           little bits of voice around the edges
      7. KASAI OS       window headings, the boot screen, About Kasai OS
      8. PET WIZARD     his drawings and everything he says
-     9. WIZARD SWEEPER the game in the Games window
+     9. WIZARD SWEEPER a game in the Games window
+    10. NOT RUBBISH    a game in the Games window
 
    TO ADD ARTWORK: just drop the file into a category folder and push:
      assets/art/Poster/My Piece.png   →  a new spell card in the Art
@@ -326,10 +327,10 @@ window.CONTENT = {
        desktop, or the button at the bottom of the Start menu).
      • "newFolder": the joke when someone picks New folder on the desktop menu.
      • Secret codes (just so you know them): typing "wizard" throws the
-       wizard a party, "kasai" makes it rain doodles and "sweep" opens
-       Wizard Sweeper; the Konami code (up up down down left right left
-       right B A) gets the party and the rain together. On a phone, swipe
-       the arrows part of the Konami code on the home screen.             */
+       wizard a party, "kasai" makes it rain doodles, and "sweep" and
+       "rubbish" open the games; the Konami code (up up down down left
+       right left right B A) gets the party and the rain together. On a
+       phone, swipe the arrows part of the Konami code on the home screen. */
   os: {
     windows: {
       coding: { heading: 'Projects', sub: "Apps, experiments & tools I've built." },
@@ -383,9 +384,9 @@ window.CONTENT = {
      • FRAMES: his drawings, 960×960 transparent PNGs in assets/Wizard
        Sprite/. The first five are drawn. The rest are optional: until one
        exists he borrows another drawing (noted beside each), so nothing
-       ever looks broken. The wizards in Wizard Sweeper (section 9), the
-       Shut down screen and the page-not-found box wear these drawings too,
-       even if he's retired.                                               */
+       ever looks broken. The games (sections 9 and 10), the Shut down
+       screen and the page-not-found box wear these drawings too, even if
+       he's retired.                                                       */
   wizard: {
     enabled: true,                // set false to retire him from the desktop (he'll understand)
     image: 'assets/ui/Pet Wizard Cursor default Not rotated.png', // stands in for "idle" if that drawing is ever missing
@@ -411,6 +412,11 @@ window.CONTENT = {
       // A tiny sleeping wizard for Wizard Sweeper's board. Bold, simple
       // shapes read best: it shows at about 32px.  (until drawn: asleep, shrunk)
       sweeperTile: '',
+
+      // Only the games use these (he never wears them on the desktop).
+      hop: '',       // mid-hop, in the air (Not Rubbish)  (until drawn: walk2)
+      bonk: '',      // bonking a gremlin with his hat (Not Rubbish)  (until drawn: idle)
+      hurt: '',      // "ouch!" when a gremlin hits him (Not Rubbish)  (until drawn: startled)
     },
     sleepAfter: 60,               // seconds of being ignored before he naps (half that from 10pm to 6am)
     quietPages: ['coding'],       // windows where he won't speak unprompted (see "lines" below)
@@ -504,6 +510,71 @@ window.CONTENT = {
       chord:     { name: 'Chord charm', blurb: 'Tap or click a number once all its wizards are starred to clear the rest of the tiles around it.' },
       hourglass: { name: 'Hourglass',   blurb: "20 more seconds on every level's speed bonus clock." },
       lucky:     { name: 'Lucky star',  blurb: "Once a level, a star that can't be wrong: it lands on a wizard or safely clears the tile." },
+    },
+  },
+
+  /* ──────────────────────────────────────────────────────────────────────
+     10. NOT RUBBISH  (a game in the Games window)
+     ──────────────────────────────────────────────────────────────────────
+     Someone dropped the pet wizard in the Trash, so he climbs out: ten
+     floors dressed as the retired designs in the Trash, oldest at the
+     bottom, then the Empty Recycle Bin dialog on the lid. It's turn by
+     turn: gremlins mark the tiles they'll strike after his move. After
+     every floor he installs a program. A visitor's best run is
+     remembered on their computer.
+     • He wears his own drawings from section 8: "walk1"/"walk2" (steps),
+       "hop", "bonk", "hurt", "asleep" (a nap), "party" (the Party popper
+       and climbing out), "happy" (a floor cleared) and "startled"
+       (knocked out).
+     • "gremlins": a drawing for each gremlin, a 960×960 transparent PNG
+       in assets/Games/, e.g.  bug: 'assets/Games/Bug.png',  Until one is
+       drawn, a stand-in shows (a coloured blob with eyes and a doodle).
+     • Each list of lines is said one at random. Empty a list, e.g.
+       loseLines: [],  to keep him quiet.
+     • "programs" are the names and blurbs on the program cards. Reword
+       them freely, but keep them true: changing them here doesn't change
+       the game.                                                         */
+  rubbish: {
+    gremlins: {
+      bug: '',       // bites the four tiles beside it
+      popup: '',     // an error pop-up that fires along its row or column
+      bunny: '',     // a dust bunny: naps, then sneezes on all eight tiles round it
+      spinner: '',   // a loading spinner that rolls at him
+      spam: '',      // bites like a bug and copies itself
+    },
+
+    // After each floor he climbs.
+    floorLines: ['up we go.', 'one floor closer to the desktop.', 'that floor smelled like June.'],
+
+    // When he's knocked out (the run ends).
+    loseLines: ['back to the bottom of the bin...', 'i was nearly out!', 'someone empty this thing already.'],
+
+    // When he climbs out at the top.
+    winLines: ['told you. NOT rubbish.', 'fresh air! and wallpaper!'],
+
+    // When a run beats your best.
+    bestLines: ['a new best! the gremlins are fuming.'],
+
+    // The Empty Recycle Bin dialog, in order, each time he bonks it (it
+    // takes eight). The last line waits until it gives up.
+    lidLines: ['Are you sure?', 'Are you really sure?', 'Are you totally sure?', 'This cannot be undone!', 'Seriously, this is permanent.', 'Last chance!', 'Final answer?', 'Fine. Keep him.'],
+
+    // What he tells the desktop after a run. {floor} becomes the floor he
+    // reached.
+    deskLines: {
+      lose: ['i made it to floor {floor} of the Trash!', 'floor {floor}. the gremlins got me.'],
+      win: ['i climbed out of the Trash! not rubbish.'],
+    },
+
+    programs: {
+      undo:        { name: 'Ctrl+Z',        blurb: 'Once a floor, take back a turn. If a hit would knock you out, it steps in by itself.' },
+      firewall:    { name: 'Firewall',      blurb: 'Blocks the first hit on every floor.' },
+      screensaver: { name: 'Screensaver',   blurb: 'Once a floor, every gremlin forgets its attack and sits out a turn. Using it costs no turn.' },
+      ram:         { name: 'Extra RAM',     blurb: 'One more heart, and all your hearts back.' },
+      overclock:   { name: 'Overclock',     blurb: 'Your hop recharges a turn sooner.' },
+      antivirus:   { name: 'Antivirus',     blurb: 'Bonks do double damage.' },
+      snooze:      { name: 'Snooze button', blurb: 'One more nap on every floor.' },
+      popper:      { name: 'Party popper',  blurb: 'Once a floor, every gremlin round you gets dizzy. Using it costs no turn.' },
     },
   },
 

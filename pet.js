@@ -34,16 +34,19 @@
   /* ---------- his drawings ----------
      The five he started with plus the optional extras. A drawing that
      doesn't exist yet borrows the next one along its chain, and every chain
-     ends at idle, so he always has something to wear. Wizard Sweeper
-     dresses its wizards from here too (K.pet.frame), so they borrow alike. */
+     ends at idle, so he always has something to wear. The games dress
+     him (and Wizard Sweeper's wizards) from here too (K.pet.frame), so
+     they borrow alike. */
   const BORROW = {
     half: 'idle', blink: 'idle', happy: 'idle', asleep: 'blink',
     walk1: 'idle', walk2: 'walk1', held: 'startled', startled: 'idle',
     dizzy: 'half', party: 'happy', wave: 'happy',
     sweeperTile: 'asleep',
+    hop: 'walk2', bonk: 'idle', hurt: 'startled',
   };
   const FRAMES = ['idle'].concat(Object.keys(BORROW));
-  const GAME_ONLY = ['sweeperTile']; // only on Wizard Sweeper's board, never on him
+  // Only ever worn in the games, never by him on the desktop.
+  const GAME_ONLY = ['sweeperTile', 'hop', 'bonk', 'hurt'];
 
   // content.js paths become the small copies the build makes (worked out
   // the first time a picture is wanted).

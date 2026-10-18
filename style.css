@@ -126,6 +126,7 @@ p, h1, h2, h3, li { cursor: auto; }
   --tx-ruled: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='28'%3E%3Crect y='22' width='10' height='1' fill='%23DDE3F7'/%3E%3C/svg%3E");
   --tx-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 12'%3E%3Cpath d='M2 6 Q 6.5 1 11 6 T 20 6 T 29 6' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E");
   --tx-grip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Cpath d='M13 4L4 13M13 8.5L8.5 13' stroke='%23161A2E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+  --tx-hatch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M-2 2l4-4M0 10L10 0M8 12l4-4' stroke='%23B03A70' stroke-opacity='.4' stroke-width='2'/%3E%3C/svg%3E");
 }
 
 /* Accent classes give windows and buttons their colour trio. */
@@ -786,6 +787,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .tile-thumb svg.doodle { width: 40px; height: 40px; }
 .tile-thumb--sprite { aspect-ratio: 1; background: var(--periwinkle-tint); }
 .tile-thumb--sprite img { object-fit: contain; padding: 8%; }
+/* Each game's file is tinted in its window's colour. */
+.game-tile .tile-thumb--sprite { background: var(--acc-tint); }
 .tile-name { font-family: var(--font-display); font-size: 1.05rem; line-height: 1.2; }
 .tile-sub { font-size: 0.82rem; line-height: 1.35; color: var(--ink-soft); }
 .tile-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; margin-top: 4px; font-family: var(--font-mono); font-size: 0.75rem; }
@@ -1074,15 +1077,17 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
    ============================================================
    A night-time field: lavender covers, white cleared tiles and
    yellow stars. Tiles size themselves to the window (24 to 46px;
-   past that the field scrolls). sweeper.js knows the gap and padding. */
-.sw-body { display: flex; flex-direction: column; overflow: hidden; }
-.sw-loading { display: grid; flex: 1; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; color: var(--ink-soft); }
-.sw-loading img { width: 96px; height: 96px; object-fit: contain; }
-.sw { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+   past that the field scrolls). sweeper.js knows the gap and padding.
+   The menu bar, scores, notes and cards here are shared by the games:
+   Not Rubbish uses the same rules under .gm- names. */
+.sw-body, .gm-body { display: flex; flex-direction: column; overflow: hidden; }
+.sw-loading, .gm-loading { display: grid; flex: 1; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; color: var(--ink-soft); }
+:is(.sw-loading, .gm-loading) img { width: 96px; height: 96px; object-fit: contain; }
+.sw, .gm { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 
 /* The menu bar: New run, Star mode, Lucky star, Help. */
-.sw-menu { display: flex; align-items: center; gap: 2px; padding: 6px 8px; overflow-x: auto; scrollbar-width: none; }
-.sw-menu button {
+.sw-menu, .gm-menu { display: flex; align-items: center; gap: 2px; padding: 6px 8px; overflow-x: auto; scrollbar-width: none; }
+:is(.sw-menu, .gm-menu) button {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -1094,18 +1099,18 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border-radius: 7px;
   transition: background var(--transition), color var(--transition);
 }
-.sw-menu button[hidden] { display: none; }
-.sw-menu button:hover { background: var(--periwinkle-tint); }
-.sw-menu button[aria-pressed="true"] { color: var(--white); background: var(--ink); }
-.sw-menu button[aria-pressed="true"] svg { fill: var(--yellow); }
-.sw-menu button:disabled { opacity: 0.5; cursor: default; }
-.sw-menu svg.doodle { width: 18px; height: 18px; }
-.sw-menu b { min-width: 1.5em; padding: 0 4px; font-family: var(--font-mono); font-size: 0.78rem; text-align: center; color: var(--ink); background: var(--yellow); border-radius: 6px; }
-.sw-menu [data-act="help"] { margin-left: auto; }
+:is(.sw-menu, .gm-menu) button[hidden] { display: none; }
+:is(.sw-menu, .gm-menu) button:hover { background: var(--periwinkle-tint); }
+:is(.sw-menu, .gm-menu) button[aria-pressed="true"] { color: var(--white); background: var(--ink); }
+:is(.sw-menu, .gm-menu) button[aria-pressed="true"] svg { fill: var(--yellow); }
+:is(.sw-menu, .gm-menu) button:disabled { opacity: 0.5; cursor: default; }
+:is(.sw-menu, .gm-menu) svg.doodle { width: 18px; height: 18px; }
+:is(.sw-menu, .gm-menu) b { min-width: 1.5em; padding: 0 4px; font-family: var(--font-mono); font-size: 0.78rem; text-align: center; color: var(--ink); background: var(--yellow); border-radius: 6px; }
+:is(.sw-menu, .gm-menu) [data-act="help"] { margin-left: auto; }
 
 /* The scores along the top, and the upgrades you have. */
-.sw-hud { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: var(--border); }
-.sw-stat, .sw-chip {
+.sw-hud, .gm-hud { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: var(--border); }
+.sw-stat, .sw-chip, .gm-stat, .gm-chip {
   display: inline-flex;
   align-items: center;
   height: 32px;
@@ -1115,18 +1120,18 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border: var(--border);
   border-radius: 9px;
 }
-.sw-stat { gap: 6px; padding: 0 10px; background: var(--white); }
-.sw-stat b { font-size: 0.95rem; }
-.sw-stat svg.doodle, .sw-chip svg.doodle { width: 18px; height: 18px; }
+.sw-stat, .gm-stat { gap: 6px; padding: 0 10px; background: var(--white); }
+:is(.sw-stat, .gm-stat) b { font-size: 0.95rem; }
+:is(.sw-stat, .sw-chip, .gm-stat, .gm-chip) svg.doodle { width: 18px; height: 18px; }
 .sw-stat-wiz { width: 22px; height: 22px; object-fit: contain; }
-.sw-level { background: var(--yellow); }
-.sw-owned { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
-.sw-owned[hidden] { display: none; }
-.sw-chip { gap: 3px; padding: 0 7px; color: var(--acc-text, var(--ink)); background: var(--acc); cursor: default; }
-.sw-chip.ink svg { fill: var(--yellow); }
+.sw-level, .gm-level { background: var(--yellow); }
+.sw-owned, .gm-owned { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+:is(.sw-owned, .gm-owned)[hidden] { display: none; }
+.sw-chip, .gm-chip { gap: 3px; padding: 0 7px; color: var(--acc-text, var(--ink)); background: var(--acc); cursor: default; }
+:is(.sw-chip, .gm-chip).ink svg { fill: var(--yellow); }
 
 /* The field. */
-.sw-play { position: relative; flex: 1; min-height: 0; }
+.sw-play, .gm-play { position: relative; flex: 1; min-height: 0; }
 .sw-stage {
   position: absolute;
   inset: 0;
@@ -1214,7 +1219,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .sw-badge > svg.doodle { width: 74%; height: 74%; }
 
 /* A note over the field (the level, your lantern, a shield at work). */
-.sw-toast {
+.sw-toast, .gm-toast {
   position: absolute;
   z-index: 3;
   top: 10px;
@@ -1232,13 +1237,13 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   translate: -50% 0;
   pointer-events: none;
 }
-.sw-toast.is-low { top: auto; bottom: 10px; }
-.sw-toast[hidden] { display: none; }
+:is(.sw-toast, .gm-toast).is-low { top: auto; bottom: 10px; }
+:is(.sw-toast, .gm-toast)[hidden] { display: none; }
 
 /* The cards over the field: the title, picking an upgrade, run over. */
-.sw-overlay { position: absolute; inset: 0; z-index: 4; display: flex; overflow: auto; padding: 14px; background: rgba(22, 26, 46, 0.55); }
-.sw-overlay[hidden] { display: none; }
-.sw-card {
+.sw-overlay, .gm-overlay { position: absolute; inset: 0; z-index: 4; display: flex; overflow: auto; padding: 14px; background: rgba(22, 26, 46, 0.55); }
+:is(.sw-overlay, .gm-overlay)[hidden] { display: none; }
+.sw-card, .gm-card {
   position: relative;
   width: min(100%, 460px);
   margin: auto;
@@ -1248,13 +1253,13 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border: var(--border);
   border-radius: var(--radius-md);
 }
-.sw-card-art { display: block; }
-.sw-card-art :is(img, svg) { width: 76px; height: 76px; margin: 0 auto; object-fit: contain; }
-.sw-card-h { margin-top: 2px; font-family: var(--font-display); font-size: 1.45rem; font-weight: 400; line-height: 1.15; }
-.sw-card p { margin-top: 8px; font-size: var(--fs-small); line-height: 1.5; color: var(--ink-soft); }
-.sw-rules { display: grid; gap: 2px; width: fit-content; max-width: 100%; margin: 8px auto 0; font-size: var(--fs-small); text-align: left; }
-.sw-rules li { position: relative; padding-left: 22px; }
-.sw-rules li::before {
+.sw-card-art, .gm-card-art { display: block; }
+:is(.sw-card-art, .gm-card-art) :is(img, svg) { width: 76px; height: 76px; margin: 0 auto; object-fit: contain; }
+.sw-card-h, .gm-card-h { margin-top: 2px; font-family: var(--font-display); font-size: 1.45rem; font-weight: 400; line-height: 1.15; }
+:is(.sw-card, .gm-card) p { margin-top: 8px; font-size: var(--fs-small); line-height: 1.5; color: var(--ink-soft); }
+.sw-rules, .gm-rules { display: grid; gap: 2px; width: fit-content; max-width: 100%; margin: 8px auto 0; font-size: var(--fs-small); text-align: left; }
+:is(.sw-rules, .gm-rules) li { position: relative; padding-left: 22px; }
+:is(.sw-rules, .gm-rules) li::before {
   content: '';
   position: absolute;
   left: 1px;
@@ -1265,14 +1270,14 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border: var(--border);
   border-radius: 50%;
 }
-.sw-card .sw-keys { font-size: 0.82rem; }
-.sw-card .sw-kicker { font-family: var(--font-mono); font-size: 0.76rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
-.sw-card .sw-tally { margin-top: 4px; font-family: var(--font-mono); font-size: 0.8rem; }
-.sw-card .sw-best { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--ink); }
-.sw-card .sw-best.is-new { padding: 6px 10px; background: var(--yellow); border-radius: 9px; }
-.sw-best.is-new span { display: block; font-family: var(--font-display); font-weight: 400; }
+.sw-card .sw-keys, .gm-card .gm-keys { font-size: 0.82rem; }
+.sw-card .sw-kicker, .gm-card .gm-kicker { font-family: var(--font-mono); font-size: 0.76rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+.sw-card .sw-tally, .gm-card .gm-tally { margin-top: 4px; font-family: var(--font-mono); font-size: 0.8rem; }
+.sw-card .sw-best, .gm-card .gm-best { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--ink); }
+.sw-card .sw-best.is-new, .gm-card .gm-best.is-new { padding: 6px 10px; background: var(--yellow); border-radius: 9px; }
+:is(.sw-best, .gm-best).is-new span { display: block; font-family: var(--font-display); font-weight: 400; }
 /* What the wizard says: a speech bubble, its tail pointing at him. */
-.sw-card .sw-said {
+.sw-card .sw-said, .gm-card .gm-said {
   position: relative;
   display: inline-block;
   max-width: 100%;
@@ -1284,7 +1289,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border: var(--border);
   border-radius: var(--radius-md);
 }
-.sw-said::after {
+.sw-said::after, .gm-said::after {
   content: '';
   position: absolute;
   bottom: -9px;
@@ -1297,13 +1302,13 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border-bottom: var(--border);
   rotate: 45deg;
 }
-.sw-card .sw-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
-.sw-card .sw-go { background: var(--yellow); }
-.sw-card .sw-go:hover { background: var(--periwinkle); }
+.sw-card .sw-actions, .gm-card .gm-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
+.sw-card .sw-go, .gm-card .gm-go { background: var(--yellow); }
+.sw-card .sw-go:hover, .gm-card .gm-go:hover { background: var(--periwinkle); }
 
 /* The upgrades on offer: three cards in a row (stacked when narrow). */
-.sw-ups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-.sw-up {
+.sw-ups, .gm-ups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.sw-up, .gm-up {
   display: grid;
   align-content: start;
   justify-items: center;
@@ -1315,8 +1320,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border-radius: 12px;
   transition: background var(--transition), translate var(--transition);
 }
-.sw-up:hover { background: var(--acc-tint); translate: 0 -2px; }
-.sw-up-icon {
+:is(.sw-up, .gm-up):hover { background: var(--acc-tint); translate: 0 -2px; }
+.sw-up-icon, .gm-up-icon {
   display: grid;
   place-items: center;
   width: 46px;
@@ -1326,15 +1331,15 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border: var(--border);
   border-radius: 12px;
 }
-.sw-up-icon svg.doodle { width: 26px; height: 26px; }
-.sw-up.ink .sw-up-icon svg { fill: var(--yellow); }
-.sw-up-name { font-family: var(--font-display); font-size: 1.05rem; line-height: 1.2; }
-.sw-up-blurb { font-size: 0.78rem; line-height: 1.4; color: var(--ink-soft); }
-.sw-up-have { padding: 1px 8px; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; background: var(--acc-tint); border-radius: 6px; }
+:is(.sw-up-icon, .gm-up-icon) svg.doodle { width: 26px; height: 26px; }
+.sw-up.ink .sw-up-icon svg, .gm-up.ink .gm-up-icon svg { fill: var(--yellow); }
+.sw-up-name, .gm-up-name { font-family: var(--font-display); font-size: 1.05rem; line-height: 1.2; }
+.sw-up-blurb, .gm-up-blurb { font-size: 0.78rem; line-height: 1.4; color: var(--ink-soft); }
+.sw-up-have, .gm-up-have { padding: 1px 8px; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; background: var(--acc-tint); border-radius: 6px; }
 @container win (max-width: 540px) {
-  .sw-ups { grid-template-columns: minmax(0, 1fr); }
-  .sw-up { grid-template-columns: auto minmax(0, 1fr); justify-items: start; column-gap: 12px; row-gap: 2px; text-align: left; }
-  .sw-up-icon { grid-row: span 3; align-self: center; }
+  .sw-ups, .gm-ups { grid-template-columns: minmax(0, 1fr); }
+  .sw-up, .gm-up { grid-template-columns: auto minmax(0, 1fr); justify-items: start; column-gap: 12px; row-gap: 2px; text-align: left; }
+  .sw-up-icon, .gm-up-icon { grid-row: span 3; align-self: center; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1342,9 +1347,9 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   .sw-cell.is-lit { animation: sw-lit 0.7s ease-out backwards; animation-delay: var(--d, 0ms); }
   .sw-cell.is-starring > svg { animation: sw-star 0.34s var(--ease-bounce); }
   .sw-cell.is-jolted img, .sw-cell.is-woken img { animation: sw-jolt 0.6s ease; }
-  .sw-card { animation: sw-card-in 0.28s var(--ease-bounce); }
-  .sw-toast.is-in { animation: sw-toast-in 0.2s ease-out; }
-  .sw-toast.is-low.is-in { animation-name: sw-toast-up; }
+  .sw-card, .gm-card { animation: sw-card-in 0.28s var(--ease-bounce); }
+  :is(.sw-toast, .gm-toast).is-in { animation: sw-toast-in 0.2s ease-out; }
+  :is(.sw-toast, .gm-toast).is-low.is-in { animation-name: sw-toast-up; }
 }
 @keyframes sw-pop { from { scale: 0.5; } }
 @keyframes sw-lit { from { background: var(--yellow); scale: 0.6; } }
@@ -1359,6 +1364,336 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 @keyframes sw-card-in { from { opacity: 0; translate: 0 14px; scale: 0.96; } }
 @keyframes sw-toast-in { from { opacity: 0; translate: -50% -8px; } }
 @keyframes sw-toast-up { from { opacity: 0; translate: -50% 8px; } }
+
+/* ============================================================
+   APP: NOT RUBBISH  (rubbish.js arrives when the game opens)
+   ============================================================
+   A 7 by 8 floor of the Trash, dressed as one of the retired
+   designs (the .era- classes on the stage). The tiles size
+   themselves to the window (30 to 68px); the wizard, the gremlins
+   and the pink marks ride on a layer above them, placed by --x
+   and --y. rubbish.js knows the board's shape. */
+.nr-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: auto;
+  overscroll-behavior: contain;
+  container-type: size;
+  background: var(--blush);
+}
+.nr-board {
+  --gap: 4px;
+  --pad: 10px;
+  --cell: clamp(30px, min((100cqw - 2 * var(--pad) - 6 * var(--gap)) / 7,
+    (100cqh - 2 * var(--pad) - 7 * var(--gap)) / 8), 68px);
+  --step: calc(var(--cell) + var(--gap));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  margin: auto;
+  padding: var(--pad);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+.nr-row { display: flex; gap: var(--gap); }
+.nr-cell {
+  position: relative;
+  flex: none;
+  width: var(--cell);
+  height: var(--cell);
+  background: var(--tile, var(--white)) var(--tile-tx, none);
+  border: var(--border);
+  border-radius: var(--tile-r, 10px);
+  -webkit-tap-highlight-color: transparent;
+}
+.nr-cell:focus-visible { z-index: 2; outline: 3px solid var(--ink); outline-offset: 2px; }
+.nr-cell.is-near, .nr-cell.is-hop { cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer; }
+.nr-cell.is-near:hover::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 3px var(--yellow); }
+/* Where a hop can land: a dashed ring, filled yellow once Hop is picked. */
+.nr-cell.is-hop::after { content: ''; position: absolute; inset: 24%; border: 2px dashed var(--ink); border-radius: 50%; opacity: 0.45; }
+.nr-board.is-armed .nr-cell.is-hop::after { inset: 18%; background: var(--yellow); border-style: solid; opacity: 1; }
+.nr-cell.is-junk { background: var(--junk, var(--ink)); }
+.nr-cell.is-exit { background: var(--yellow); }
+.nr-cell.is-lid { visibility: hidden; }
+
+/* The layer over the tiles: marks, things to grab, gremlins, him. */
+.nr-layer { position: absolute; inset: var(--pad); pointer-events: none; }
+.nr-sprite, .nr-mark, .nr-item, .nr-flash, .nr-exit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cell);
+  height: var(--cell);
+  translate: calc(var(--x, 0) * var(--step)) calc(var(--y, 0) * var(--step));
+}
+/* Pink: struck after his next move. Blue dashes: a gremlin turns up. */
+.nr-mark { display: grid; place-items: center; }
+.nr-mark::before { content: ''; position: absolute; inset: 4px; background: var(--pink) var(--tx-hatch); border-radius: 8px; }
+.nr-mark.is-copy::before { background: var(--blue-tint); border: 2px dashed var(--blue-ink); }
+.nr-mark.is-lit::before { box-shadow: 0 0 0 3px var(--ink); }
+.nr-mark-x {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  display: grid;
+  place-items: center;
+  width: 38%;
+  height: 38%;
+  color: var(--white);
+  background: var(--pink-ink);
+  border-radius: 6px;
+}
+.nr-mark-x svg.doodle { width: 80%; height: 80%; stroke-width: 3px; }
+.nr-mark > svg.doodle { position: relative; width: 44%; height: 44%; color: var(--blue-ink); }
+.nr-mark-arrow { position: relative; display: grid; place-items: center; width: 46%; height: 46%; color: var(--pink-ink); rotate: var(--rot); }
+.nr-mark-arrow svg.doodle { width: 100%; height: 100%; }
+.nr-mark b {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.4;
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
+.nr-flash { background: var(--pink); border-radius: 10px; opacity: 0; }
+.nr-item, .nr-exit { display: grid; place-items: center; color: var(--ink); }
+.nr-item svg.doodle { width: 46%; height: 46%; }
+.nr-item.star svg { fill: var(--yellow); }
+.nr-item.heart svg { fill: var(--pink); }
+.nr-exit svg.doodle { width: 54%; height: 54%; stroke-width: 2.8px; }
+
+/* Him: a little taller than a tile, so his hat pokes out. */
+.nr-pet { z-index: 3; }
+.nr-pet::before { content: ''; position: absolute; inset: 6%; border-radius: 50%; opacity: 0; }
+.nr-pet-body { position: absolute; inset: -14% -3% 0; display: block; transform-origin: 50% 100%; filter: drop-shadow(2px 2px 0 rgba(22, 26, 46, 0.25)); }
+.nr-pet-body > :is(img, svg) { width: 100%; height: 100%; object-fit: contain; }
+.nr-pet.is-left img { scale: -1 1; }
+
+/* The gremlins. Until there's a drawing, each is a stand-in: a blob in
+   its colour with eyes and its doodle. */
+.nr-g { --gc: var(--teal); z-index: 2; }
+.nr-g.popup { --gc: var(--pink); }
+.nr-g.bunny { --gc: var(--grey-tint); }
+.nr-g.spinner { --gc: var(--yellow); }
+.nr-g.spam { --gc: var(--blue); }
+.nr-g-body { position: absolute; inset: 9%; display: block; }
+.nr-g-body > img { width: 100%; height: 100%; object-fit: contain; }
+.nr-token {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding-bottom: 9%;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--gc);
+  border: var(--border);
+  border-radius: 38%;
+}
+.nr-token svg.doodle { width: 38%; height: 38%; }
+.nr-g.popup .nr-token { border-radius: 16%; }
+.nr-g.spinner .nr-token { border-radius: 50%; }
+.nr-g.bunny .nr-token { border-radius: 48% 48% 40% 40%; }
+.nr-token-bar { position: absolute; inset: 0 0 auto; height: 24%; background: var(--ink); }
+.nr-eyes { position: absolute; top: 22%; left: 50%; display: flex; justify-content: center; gap: 10%; width: 72%; translate: -50% 0; }
+.nr-g.popup .nr-eyes { top: 32%; }
+.nr-eyes i { position: relative; width: 28%; aspect-ratio: 1; background: var(--white); border: 2px solid var(--ink); border-radius: 50%; }
+.nr-eyes i::after { content: ''; position: absolute; inset: 26%; background: var(--ink); border-radius: 50%; }
+/* About to strike his tile: a cross look and a pink ring. */
+.nr-g.is-angry .nr-token { box-shadow: 0 0 0 3px var(--pink-ink); }
+.nr-g.is-angry .nr-eyes i { border-top-width: 4px; }
+/* Napping: eyes shut. Dizzy: a tilt. */
+.nr-g.is-napping .nr-eyes i { aspect-ratio: auto; height: 3px; margin-top: 12%; background: var(--ink); border: 0; }
+.nr-g.is-napping .nr-eyes i::after { display: none; }
+.nr-g.is-dizzy .nr-g-body { rotate: -12deg; }
+.nr-hp { position: absolute; left: 50%; bottom: 0; display: flex; gap: 2px; translate: -50% 0; }
+.nr-hp i { width: 9px; height: 9px; background: var(--pink); border: 2px solid var(--ink); border-radius: 50%; }
+.nr-hp i.is-gone { background: var(--white); }
+.nr-state {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: grid;
+  place-items: center;
+  width: 40%;
+  height: 40%;
+  font-family: var(--font-display);
+  font-size: calc(var(--cell) * 0.22);
+  line-height: 1;
+  color: var(--ink);
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.nr-state:empty { display: none; }
+.nr-state svg.doodle { width: 72%; height: 72%; }
+.nr-g.is-dizzy .nr-state svg { fill: var(--yellow); }
+
+/* The lid: the Empty Recycle Bin dialog across the top two rows. */
+.nr-lid {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  width: calc(5 * var(--cell) + 4 * var(--gap));
+  height: calc(2 * var(--cell) + var(--gap));
+  translate: var(--step) 0;
+}
+.nr-lid .os-shadow { inset: 6px -6px -6px 6px; border-radius: 12px; }
+.nr-lid-frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--white);
+  border: var(--border);
+  border-radius: 12px;
+}
+.nr-lid .os-bar { min-height: 0; height: max(22px, 24%); padding: 0 8px; gap: 6px; }
+.nr-lid .os-title { font-size: max(0.62rem, calc(var(--cell) * 0.16)); }
+.nr-lid .os-app svg { width: 16px; height: 16px; }
+.nr-lid.is-angry { --acc: var(--pink); }
+.nr-lid-msg {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 0;
+  padding: 0 8px;
+  font-family: var(--font-display);
+  font-size: max(0.68rem, calc(var(--cell) * 0.21));
+  line-height: 1.15;
+  text-align: center;
+}
+.nr-lid-hp { display: flex; justify-content: center; gap: 4px; }
+.nr-lid-hp i { width: 9px; height: 9px; background: var(--pink); border: 2px solid var(--ink); border-radius: 50%; }
+.nr-lid-hp i.is-gone { background: var(--white); }
+.nr-lid-btns { display: flex; justify-content: center; gap: 6px; padding: 4px 8px 6px; }
+.nr-lid-btns span { padding: 0 10px; font-family: var(--font-display); font-size: max(0.62rem, calc(var(--cell) * 0.16)); background: var(--white); border: var(--border); border-radius: 7px; }
+.nr-lid.is-beaten .nr-lid-btns span { background: var(--yellow); }
+
+/* His moves, along the bottom: big enough for a thumb. */
+.nr-dock { display: flex; flex: none; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 6px 10px; background: var(--white); border-top: var(--border); }
+.nr-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 11px;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  line-height: 1.1;
+  background: var(--white);
+  border: var(--border);
+  border-radius: 10px;
+  transition: background var(--transition);
+}
+.nr-act[hidden] { display: none; }
+.nr-act svg.doodle { width: 18px; height: 18px; }
+.nr-act:hover:not(:disabled) { background: var(--grey-tint); }
+.nr-act[aria-pressed="true"] { background: var(--yellow); }
+.nr-act:disabled { opacity: 0.5; cursor: default; }
+.nr-act b { min-width: 1.6em; padding: 0 5px; font-family: var(--font-mono); font-size: 0.74rem; text-align: center; background: var(--grey-tint); border-radius: 6px; }
+.nr-act.is-ready b { background: var(--teal); }
+.nr-act kbd { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-muted); }
+.gm-toast.is-mid { top: 44%; }
+.nr-hearts { gap: 1px; }
+.nr-hearts .is-full svg { fill: var(--pink); }
+/* The program card's look ahead: the next floor's design, from the Trash. */
+.gm-card .nr-next { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink); }
+.nr-next img { width: 72px; height: 45px; flex: none; object-fit: cover; object-position: top; border: var(--border); border-radius: 6px; }
+
+/* The floors, oldest first, each dressed as a retired design. */
+.era-boxes .nr-cell { box-shadow: 3px 3px 0 var(--ink); border-radius: 12px; }
+.era-boxes .nr-cell.is-junk { --junk: var(--periwinkle); border-radius: 999px; scale: 0.86; }
+.era-folders .nr-cell { border-radius: 4px 10px 10px; }
+.era-folders .nr-cell[data-t="0"] { --tile: var(--blue-tint); }
+.era-folders .nr-cell[data-t="1"] { --tile: var(--periwinkle-tint); }
+.era-folders .nr-cell[data-t="2"] { --tile: var(--yellow-tint); }
+.era-folders .nr-cell[data-t="3"] { --tile: var(--pink-tint); }
+.era-folders .nr-cell[data-t="4"] { --tile: var(--teal-tint); }
+.era-folders .nr-cell.is-junk { --junk: var(--blue); height: calc(var(--cell) * 0.82); margin-top: calc(var(--cell) * 0.18); border-radius: 0 10px 10px; }
+.era-folders .nr-cell.is-junk::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--line));
+  bottom: 100%;
+  width: 52%;
+  height: calc(var(--cell) * 0.2);
+  background: var(--blue);
+  border: var(--border);
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+}
+.nr-stage.era-cards { background: var(--teal-tint); }
+.era-cards .nr-cell { --tile: #FFFDF6; --tile-tx: var(--tx-ruled); border-radius: 3px; }
+.era-cards .nr-cell::before { content: ''; position: absolute; top: 0; bottom: 0; left: 18%; width: 2px; background: var(--periwinkle); }
+.era-cards .nr-cell.is-junk { --junk: var(--periwinkle-tint); border: 3px double var(--periwinkle-ink); border-radius: 8px; rotate: -8deg; scale: 0.86; }
+.era-cards .nr-cell.is-junk::before {
+  content: 'RE-WRITE';
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: auto;
+  font-family: var(--font-mono);
+  font-size: max(7px, calc(var(--cell) * 0.14));
+  font-weight: 700;
+  color: var(--periwinkle-ink);
+  background: none;
+}
+.era-polaroids .nr-cell { box-shadow: inset 0 0 0 calc(var(--cell) * 0.1) var(--pc, var(--yellow)), 2px 2px 0 var(--ink); border-radius: 4px; rotate: var(--tilt, 0deg); }
+.era-polaroids .nr-cell[data-t="0"] { --pc: var(--yellow); --tilt: -2deg; }
+.era-polaroids .nr-cell[data-t="1"] { --pc: var(--pink); --tilt: 1.5deg; }
+.era-polaroids .nr-cell[data-t="2"] { --pc: var(--teal); --tilt: -1deg; }
+.era-polaroids .nr-cell[data-t="3"] { --pc: var(--blue); --tilt: 2deg; }
+.era-polaroids .nr-cell[data-t="4"] { --pc: var(--periwinkle); --tilt: 0.5deg; }
+.era-polaroids .nr-cell.is-junk { --junk: var(--ink); --pc: #2E3350; }
+.era-about .nr-cell { border-radius: 14px; }
+.era-about .nr-cell[data-t="2"] { --tile: var(--yellow-tint); }
+.era-about .nr-cell.is-junk { --junk: var(--yellow); border-radius: 999px; box-shadow: 3px 3px 0 var(--ink); scale: 0.86; }
+.nr-stage.era-lid { background: var(--ink) var(--tx-stars); }
+.era-lid .nr-cell { --tile: var(--grey-tint); }
+.era-lid .nr-cell.is-junk { --junk: var(--grey); }
+.era-lid .nr-cell:focus-visible { outline-color: var(--yellow); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .nr-sprite { transition: translate 0.16s cubic-bezier(0.3, 0.7, 0.4, 1); }
+  .nr-g.is-rolling { transition-duration: 0.28s; transition-timing-function: cubic-bezier(0.5, 0, 0.5, 1); }
+  .nr-board.is-still .nr-sprite { transition: none; }
+  .nr-pet.is-hopping .nr-pet-body { animation: nr-hop 0.3s ease-out; }
+  .nr-pet.is-bonking .nr-pet-body { animation: nr-bonk 0.24s ease-out; }
+  .nr-pet.is-nudged .nr-pet-body { animation: nr-nudge 0.22s ease-out; }
+  .nr-pet.is-hit .nr-pet-body { animation: nr-hit 0.45s ease; }
+  .nr-pet.is-hit::before { background: var(--pink); animation: nr-ring 0.5s ease-out; }
+  .nr-pet.is-blocked::before { background: var(--teal); animation: nr-ring 0.5s ease-out; }
+  .nr-g.is-bonked .nr-g-body { animation: nr-bonked 0.3s ease; }
+  .nr-g.is-new .nr-g-body { animation: nr-new 0.32s var(--ease-bounce); }
+  .nr-g.is-dying { animation: nr-die 0.3s ease-in forwards; }
+  .nr-g.is-rolling .nr-g-body { animation: nr-spin 0.28s linear; }
+  .nr-g.is-dizzy .nr-state svg { animation: nr-spin 1.2s linear infinite; }
+  .nr-flash { animation: nr-flash 0.35s ease-out forwards; }
+  .nr-lid.is-bonked .nr-lid-frame { animation: nr-bonked 0.3s ease; }
+}
+@keyframes nr-hop { 45% { translate: 0 -38%; } }
+@keyframes nr-bonk { 40% { translate: calc(var(--dx, 0) * 30%) calc(var(--dy, 0) * 30%); } }
+@keyframes nr-nudge { 40% { translate: calc(var(--dx, 0) * 10%) calc(var(--dy, 0) * 10%); } }
+@keyframes nr-hit { 15% { translate: -7% 0; } 35% { translate: 6% 0; } 55% { translate: -4% 0; } 75% { translate: 2% 0; } }
+@keyframes nr-ring { from { opacity: 0.9; scale: 0.6; } to { opacity: 0; scale: 1.25; } }
+@keyframes nr-bonked { 30% { translate: 0 -8%; scale: 1.12 0.88; } 60% { scale: 0.94 1.06; } }
+@keyframes nr-new { from { opacity: 0; scale: 0.2; } }
+@keyframes nr-die { to { opacity: 0; scale: 0.2; rotate: 40deg; } }
+@keyframes nr-spin { to { rotate: 360deg; } }
+@keyframes nr-flash { from { opacity: 0.9; scale: 0.7; } to { opacity: 0; scale: 1.1; } }
 
 /* ============================================================
    THE 404 DIALOG AND SMALL DIALOGS
@@ -1825,10 +2160,10 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   .art-card-name { font-size: 0.8rem; padding: 2px 8px; }
   .art-card-type { font-size: 0.64rem; }
   .art-card-face { padding: 6px; gap: 5px; }
-  .sw-hud { gap: 5px; padding: 6px 8px; }
-  .sw-stat, .sw-chip { height: 30px; }
-  .sw-stat { padding: 0 8px; }
-  .sw-menu button { padding: 7px 10px; }
+  .sw-hud, .gm-hud { gap: 5px; padding: 6px 8px; }
+  .sw-stat, .sw-chip, .gm-stat, .gm-chip { height: 30px; }
+  .sw-stat, .gm-stat { padding: 0 8px; }
+  :is(.sw-menu, .gm-menu) button { padding: 7px 10px; }
 }
 @media (max-width: 380px) {
   .desk-icons { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -11,8 +11,9 @@
      apps.js        what each window shows
      pet.js         the wizard who lives on the desktop
      kasai-os.js    the desktop, windows, taskbar and Start menu (starts it all)
-   and later, only once someone opens the game:
-     sweeper.js     Wizard Sweeper, in the Games window
+   and later, only once someone opens that game (from the Games window):
+     sweeper.js     Wizard Sweeper
+     rubbish.js     Not Rubbish
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {

@@ -532,48 +532,61 @@
   };
 
   /* ══════════════════════════════════════════════════════════════════════
-     GAMES  (a folder; Wizard Sweeper lives here)
+     GAMES  (a folder: Wizard Sweeper and Not Rubbish)
      ══════════════════════════════════════════════════════════════════════
-     The game is its own script, sweeper.js, fetched the first time it
-     opens so the desktop never waits for it. The build stamps the address
-     below with a version (like the page's own script links), so a
-     returning visitor never gets a stale copy of the game. */
-  const sleepyWizard = () => {
-    if (K.pet && K.pet.frame) return K.pet.frame('asleep');
+     Each game is its own script, fetched the first time it opens so the
+     desktop never waits for it. The build stamps the addresses below with
+     a version (like the page's own script links), so a returning visitor
+     never gets a stale copy of a game. `pose` is the pet wizard's drawing
+     on the game's file; `prefix` names its window's classes. */
+  const GAMES = {
+    sweeper: {
+      label: 'Wizard Sweeper', file: 'sweeper.exe', colour: 'ink', size: [600, 680], minSize: [340, 420],
+      sub: "Don't wake the wizards", pose: 'asleep', script: '/sweeper.js', prefix: 'sw',
+    },
+    rubbish: {
+      label: 'Not Rubbish', file: 'rubbish.exe', colour: 'grey', size: [560, 760], minSize: [340, 480],
+      sub: 'Climb out of the Trash', pose: 'hurt', script: '/rubbish.js', prefix: 'gm',
+    },
+  };
+  const wizardPose = (name) => {
+    if (K.pet && K.pet.frame) return K.pet.frame(name);
     const frames = (C.wizard && C.wizard.frames) || {};
-    return frames.asleep ? webSrc(frames.asleep) : '';
+    return frames[name] ? webSrc(frames[name]) : frames.idle ? webSrc(frames.idle) : '';
   };
-  let sweeperLoad = null;
-  const loadSweeper = () => {
-    if (K.sweeper) return Promise.resolve(K.sweeper);
-    sweeperLoad = sweeperLoad || new Promise((resolve, reject) => {
+  const loads = {};
+  const loadGame = (id) => {
+    if (K[id]) return Promise.resolve(K[id]);
+    loads[id] = loads[id] || new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = '/sweeper.js';
-      s.onload = () => (K.sweeper ? resolve(K.sweeper) : reject(new Error('sweeper.js loaded but did not start')));
-      s.onerror = () => { s.remove(); reject(new Error('sweeper.js did not load')); };
+      s.src = GAMES[id].script;
+      s.onload = () => (K[id] ? resolve(K[id]) : reject(new Error(`${GAMES[id].script} loaded but did not start`)));
+      s.onerror = () => { s.remove(); reject(new Error(`${GAMES[id].script} did not load`)); };
       document.head.appendChild(s);
-    }).catch((err) => { sweeperLoad = null; throw err; });
-    return sweeperLoad;
+    }).catch((err) => { loads[id] = null; throw err; });
+    return loads[id];
   };
-  const openSweeper = (from) => {
+  const openGame = (id, from) => {
+    const g = GAMES[id];
+    if (!g) return;
     K.wm.open({
-      id: 'sweeper',
+      id,
       parent: 'games',
-      label: 'Wizard Sweeper',
-      file: 'sweeper.exe',
-      colour: 'ink',
+      label: g.label,
+      file: g.file,
+      colour: g.colour,
       doodle: 'controller',
-      size: [600, 680],
-      minSize: [340, 420],
+      size: g.size,
+      minSize: g.minSize,
       render(win) {
-        win.body.classList.add('sw-body');
-        win.body.innerHTML = `<h2 class="vh" id="${win.headingId}" tabindex="-1">Wizard Sweeper</h2>
-          <div class="sw-loading" role="status"></div>`;
-        const wait = win.body.querySelector('.sw-loading');
+        win.body.classList.add(`${g.prefix}-body`);
+        win.body.innerHTML = `<h2 class="vh" id="${win.headingId}" tabindex="-1">${esc(g.label)}</h2>
+          <div class="${g.prefix}-loading" role="status"></div>`;
+        const wait = win.body.querySelector(`.${g.prefix}-loading`);
         const start = () => {
-          const pic = sleepyWizard();
-          wait.innerHTML = `${pic ? `<img src="${esc(pic)}" alt="" />` : ''}<p>Loading Wizard Sweeper...</p>`;
-          loadSweeper().then((game) => { if (wait.isConnected) game.mount(win); }).catch((err) => {
+          const pic = wizardPose(g.pose);
+          wait.innerHTML = `${pic ? `<img src="${esc(pic)}" alt="" />` : ''}<p>Loading ${esc(g.label)}...</p>`;
+          loadGame(id).then((game) => { if (wait.isConnected) game.mount(win); }).catch((err) => {
             console.error(err);
             if (!wait.isConnected) return; // the window was closed meanwhile
             wait.innerHTML = `<p>The game didn't load. Check your connection, then try again.</p>
@@ -584,10 +597,11 @@
         start();
       },
       // Closing keeps the run where it was, ready for next time.
-      onClose(win) { if (K.sweeper) K.sweeper.unmount(win); },
+      onClose(win) { if (K[id]) K[id].unmount(win); },
     }, { from });
   };
-  K.openSweeper = openSweeper; // a secret code opens it too (kasai-os.js)
+  K.openGame = openGame;
+  K.openSweeper = (from) => openGame('sweeper', from); // a secret code opens it too (kasai-os.js)
 
   const games = {
     label: 'Games',
@@ -597,15 +611,19 @@
     size: [620, 440],
     head: () => copy('games', { heading: 'Games', sub: 'Things to play when you should be working.' }),
     render(win) {
-      win.body.innerHTML = `<ul class="folder-grid">
-          <li><button class="file-tile game-tile" type="button" data-game="sweeper">
-            <span class="tile-thumb tile-thumb--sprite">${sleepyWizard() ? `<img src="${esc(sleepyWizard())}" alt="" draggable="false" />` : doodleIcon('controller')}</span>
-            <span class="tile-name">Wizard Sweeper</span>
-            <span class="tile-sub">Don't wake the wizards</span>
-          </button></li>
-        </ul>`;
-      K.openable(win.body, '.file-tile', (el) => openSweeper(el));
-      win.setStatus(`1 game${K.hint('Double-click to play', 'Tap to play')}`);
+      const ids = Object.keys(GAMES);
+      win.body.innerHTML = `<ul class="folder-grid">${ids.map((id) => {
+        const g = GAMES[id];
+        const pic = wizardPose(g.pose);
+        return `
+          <li><button class="file-tile game-tile" type="button" data-game="${id}">
+            <span class="tile-thumb tile-thumb--sprite ${g.colour}">${pic ? `<img src="${esc(pic)}" alt="" draggable="false" />` : doodleIcon('controller')}</span>
+            <span class="tile-name">${esc(g.label)}</span>
+            <span class="tile-sub">${esc(g.sub)}</span>
+          </button></li>`;
+      }).join('')}</ul>`;
+      K.openable(win.body, '.file-tile', (el) => openGame(el.dataset.game, el));
+      win.setStatus(`${plural(ids.length, 'game')}${K.hint('Double-click to play', 'Tap to play')}`);
     },
   };
 
