@@ -239,8 +239,11 @@
         // sizes starts as the window's width; sizeShot corrects it once the
         // window is on screen, before the lazy picture loads.
         const set = p.img ? srcset(p.img) : '';
+        // A click (or Enter, Space, a tap) opens the whole uncropped picture.
         const shot = p.img
-          ? `<img class="os-shot" src="${esc(webSrc(p.img))}"${set ? ` srcset="${esc(set)}" sizes="560px"` : ''}${dims(p.img)} alt="${esc(p.title || '')}" loading="lazy" decoding="async" draggable="false" />`
+          ? `<button class="os-shot-open" type="button" data-full="${esc(largeSrc(p.img))}" data-img="${esc(p.img)}"` +
+            ` data-file="${esc(slug(name) + '.png')}" data-caption="${esc(p.title || name)}" aria-label="View the ${esc(name)} screenshot full size">` +
+            `<img class="os-shot" src="${esc(webSrc(p.img))}"${set ? ` srcset="${esc(set)}" sizes="560px"` : ''}${dims(p.img)} alt="${esc(p.title || '')}" loading="lazy" decoding="async" draggable="false" /></button>`
           : `<div class="os-shot">${doodleIcon('laptop')}</div>`;
         // Someone else's project I've built on: a GitHub-style "Forked from" line.
         const fork = p.forkOf && p.forkOf.label
@@ -259,6 +262,8 @@
         const links = (p.links || []).filter((l) => l && l.label)
           .map((l) => `<a href="${esc(l.url || '#')}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('');
         win.setStatus(`<span class="os-state">${statusLed(busy)}</span>${links ? `<span class="os-links">${links}</span>` : ''}`);
+        const open = win.body.querySelector('.os-shot-open');
+        if (open) open.addEventListener('click', () => K.openViewer(open));
       },
       onShow: sizeShot,
       onResize: sizeShot, // maximised, restored, resized or a new screen size

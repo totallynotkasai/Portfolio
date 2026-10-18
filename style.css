@@ -823,6 +823,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border-radius: var(--radius-sm);
 }
 .os-shot svg { width: 44px; height: 44px; }
+/* The screenshot opens full size in the image viewer: no button look. */
+.os-shot-open { display: block; width: 100%; padding: 0; border-radius: var(--radius-sm); cursor: zoom-in; }
 .os-name { margin-top: 14px; font-family: var(--font-display); font-size: 1.6rem; font-weight: 400; line-height: 1.15; }
 .os-path { margin-top: 3px; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.45; color: var(--ink-soft); overflow-wrap: anywhere; }
 .os-fork { margin-top: 8px; font-size: var(--fs-small); color: var(--ink-soft); }
