@@ -8,11 +8,12 @@
    never waits for it.
 
    Minesweeper, but the mines are sleeping wizards. A number counts the
-   wizards asleep beside its tile, a star marks a tile you think hides one,
-   and clearing every safe tile finishes the level. The first move of each
-   level is always safe. A run is a string of levels, each a little bigger
-   and sleepier, with an upgrade to pick after every one. Wake a wizard
-   with no Shield left and the run is over. Each visitor's best is kept.
+   wizards asleep on the 8 tiles touching it, a star marks a tile you think
+   hides one, and clearing every safe tile finishes the level. The first
+   move of each level is always safe. A run is a string of levels, each a
+   little bigger and sleepier, with an upgrade to pick after every one.
+   Wake a wizard with no Shield left and the run is over. Each visitor's
+   best is kept.
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -720,12 +721,11 @@
         <section class="sw-card" aria-labelledby="sw-card-h">
           <span class="sw-card-art">${wizardPic('asleep')}</span>
           <h3 class="sw-card-h" id="sw-card-h">Wizard Sweeper</h3>
-          <p>Clear every safe tile without waking the sleeping wizards. Levels get bigger and sleepier, with an upgrade to pick after each one.</p>
+          <p>Clear every safe tile without waking the sleeping wizards. Levels get bigger and sleepier, with an upgrade after each.</p>
           <ul class="sw-rules">
-            <li>A number counts the wizards asleep beside it.</li>
-            <li>Star the tiles you think hide a wizard.</li>
-            <li>Your first move on every level is always safe.</li>
-            <li>Finish quickly for a speed bonus.</li>
+            <li>A number counts the wizards on the 8 tiles touching it, corners too, even starred, spotted or shielded ones.</li>
+            <li>Star the tiles you think hide a wizard. Not every covered tile beside a number does, so read the numbers together.</li>
+            <li>Each level's first move is safe, and speed earns a bonus.</li>
           </ul>
           <p class="sw-keys"><span class="hint-mouse">Click to clear a tile, right-click to star it.</span><span class="hint-touch">Tap to clear a tile. Hold it (or use Star mode) to star it.</span>
             Keys: arrows, Enter to clear, F to star.</p>
