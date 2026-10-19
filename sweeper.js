@@ -623,10 +623,10 @@
       case 'known': return { cls: 'is-known', html: wizardPic('sweeperTile'), what: 'Sleeping wizard' };
       case 'calm': return {
         cls: 'is-calm',
-        html: wizardPic(c.jolt ? 'startled' : 'sweeperTile') + `<span class="sw-badge">${doodleIcon('shield')}</span>`,
+        html: wizardPic(c.jolt ? 'sweeperAwake' : 'sweeperTile') + `<span class="sw-badge">${doodleIcon('shield')}</span>`,
         what: 'Wizard, sent back to sleep by your shield',
       };
-      case 'woken': return { cls: 'is-woken', html: wizardPic('startled'), what: 'The wizard you woke' };
+      case 'woken': return { cls: 'is-woken', html: wizardPic('sweeperAwake'), what: 'The wizard you woke' };
       case 'asleep': return { cls: 'is-asleep', html: wizardPic('sweeperTile'), what: 'Sleeping wizard' };
       case 'wrong': return { cls: 'is-wrong', html: STAR + `<span class="sw-cross">${doodleIcon('close')}</span>`, what: 'Star, but no wizard here' };
       default: return { cls: 'is-hidden', html: '', what: 'Hidden' };

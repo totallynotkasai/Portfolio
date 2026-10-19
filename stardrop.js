@@ -250,7 +250,18 @@
      then drawn a little faster than life. */
   const W = 100;
   const H = 100;
-  const HAT = { x: 50, y: 4.3 }; // the star on his hat, where every shot starts
+  const HAT = { x: 50, y: 4.3 }; // where every shot starts (as the sums see it)
+  // He stands on the sky's top edge, in TOP units of room above it, WIZ
+  // across, his feet at WIZ_FEET. His hat's star (its centre and outer
+  // radius, from his drawing) is the size a star is drawn at: a star waits
+  // there, then leaves for HAT in the first LEAVE seconds of a shot.
+  const TOP = 16;
+  const WIZ = 30;
+  const WIZ_FEET = 13;
+  const WIZ_Y = WIZ_FEET - WIZ * (1172 / 1254);
+  const HAT_STAR = { y: WIZ_Y + WIZ * (367 / 1254), r: WIZ * (89.5 / 1254) };
+  const LEAVE = 0.15;
+  const STAR_TIP = 1.3;  // a star's points reach this many times its size (drawn a little bigger than it is)
   const PEG_R = 1.5;
   const MOON_R = 2.4;    // the blue moon is bigger than a peg (and easier to hit)
   const BURST_LAG = 0.005; // seconds a firework's burst takes to reach each unit further out
@@ -1111,15 +1122,16 @@
           </div>
           <div class="sd-sky" data-sky tabindex="0" role="slider" aria-label="Aim the star"
               aria-valuemin="${-AIM_MOST}" aria-valuemax="${AIM_MOST}" aria-valuenow="0">
-            <svg class="sd-svg" viewBox="-1 -1 ${W + 2} ${H + 2}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+            <svg class="sd-svg" viewBox="-1 ${-TOP} ${W + 2} ${H + 1 + TOP}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
               <rect class="sd-frame" data-frame x="0" y="0" width="${W}" height="${H}" rx="2.5" />
               <line class="sd-floor" data-floor x1="0" y1="${H}" x2="${W}" y2="${H}" />
               <g data-trail></g>
               <circle class="sd-halo" data-halo cx="0" cy="0" r="${MOON_R + 1.3}" visibility="hidden" />
               <g data-pegs></g>
-              <path class="sd-aim" data-aim d="" />
+              <clipPath id="sd-below-wiz"><rect x="-1" y="${WIZ_FEET + 1.5}" width="${W + 2}" height="${H}" /></clipPath>
+              <path class="sd-aim" data-aim d="" clip-path="url(#sd-below-wiz)" />
               <g data-marks></g>
-              <image class="sd-wiz" data-wiz x="42" y="-1" width="16" height="16" href="" />
+              <image class="sd-wiz" data-wiz x="${W / 2 - WIZ / 2}" y="${WIZ_Y.toFixed(2)}" width="${WIZ}" height="${WIZ}" href="" />
               <g data-balls></g>
               <g data-fx></g>
             </svg>
@@ -1238,10 +1250,12 @@
   const STAR_PATHS = {};
   const starPath = (r) => STAR_PATHS[r] || (STAR_PATHS[r] = range(10).map((k) => {
     const a = (k * Math.PI) / 5 - Math.PI / 2;
-    const d = k % 2 ? r * 0.72 : r * 1.6; // drawn a little bigger than it is
+    const d = k % 2 ? r * STAR_TIP * 0.45 : r * STAR_TIP;
     return `${k ? 'L' : 'M'}${(Math.cos(a) * d).toFixed(2)} ${(Math.sin(a) * d).toFixed(2)}`;
   }).join('') + 'Z');
   const ballHtml = (id) => `<g class="sd-ball ${STARS[id].colour}"><path d="${starPath(STARS[id].r)}" /></g>`;
+  // How much smaller (or bigger) a star is drawn while it waits on his hat.
+  const onHat = (id) => HAT_STAR.r / (STAR_TIP * STARS[id].r);
   const pathOf = (pts) => 'M' + pts.map((v) => v.toFixed(1)).join(' ');
 
   // Each new kind of peg has a shape of its own, so its colour is never
@@ -1356,7 +1370,7 @@
     if (!view.anim) view.ballBox.innerHTML = on ? ballHtml(f.stars[0]) : '';
     if (on) {
       const b = view.ballBox.firstElementChild;
-      if (b) b.setAttribute('transform', `translate(${HAT.x} ${HAT.y})`);
+      if (b) b.setAttribute('transform', `translate(${HAT.x} ${HAT_STAR.y}) scale(${onHat(f.stars[0]).toFixed(3)})`);
     }
     // Only the pegs whose ring changed need touching.
     if (view.pegEls.length && (was.size || view.aimed.size)) {
@@ -1585,10 +1599,18 @@
       const t1 = j + 3 < p.length ? p[j + 3] : p[j];
       const u = t1 > p[j] ? (t - p[j]) / (t1 - p[j]) : 0;
       const x = p[j + 1] + ((j + 4 < p.length ? p[j + 4] : p[j + 1]) - p[j + 1]) * u;
-      const y = p[j + 2] + ((j + 5 < p.length ? p[j + 5] : p[j + 2]) - p[j + 2]) * u;
+      let y = p[j + 2] + ((j + 5 < p.length ? p[j + 5] : p[j + 2]) - p[j + 2]) * u;
       let r = st.r;
       for (let s = 0; s < b.sizes.length && b.sizes[s] <= t; s += 2) r = b.sizes[s + 1];
-      el.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${Math.round(t * 400) % 360})${r !== st.r ? ` scale(${(r / st.r).toFixed(3)})` : ''}`);
+      let size = r / st.r;
+      // Leaving his hat: from the hat star's size and place to its own.
+      if (!b.from && t < LEAVE) {
+        const e = 1 - (1 - t / LEAVE) ** 2;
+        const k = onHat(shot.star);
+        size *= k + (1 - k) * e;
+        y += (HAT_STAR.y - HAT.y) * (1 - e);
+      }
+      el.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${Math.round(t * 400) % 360})${size !== 1 ? ` scale(${size.toFixed(3)})` : ''}`);
     });
   }
 

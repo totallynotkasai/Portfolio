@@ -46,13 +46,13 @@
     half: 'idle', blink: 'idle', happy: 'idle', asleep: 'blink',
     walk1: 'idle', walk2: 'walk1', held: 'startled', startled: 'idle',
     dizzy: 'half', party: 'happy', wave: 'happy',
-    sweeperTile: 'asleep',
+    sweeperTile: 'asleep', sweeperAwake: 'startled',
     hop: 'walk2', bonk: 'idle', hurt: 'startled',
     aim: 'idle', hatless: 'idle',
   };
   const FRAMES = ['idle'].concat(Object.keys(BORROW));
   // Only ever worn in the games, never by him on the desktop.
-  const GAME_ONLY = ['sweeperTile', 'hop', 'bonk', 'hurt', 'aim', 'hatless'];
+  const GAME_ONLY = ['sweeperTile', 'sweeperAwake', 'hop', 'bonk', 'hurt', 'aim', 'hatless'];
 
   // content.js paths become the small copies the build makes (worked out
   // the first time a picture is wanted).

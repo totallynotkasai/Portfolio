@@ -409,19 +409,17 @@ window.CONTENT = {
       walk1: 'assets/Wizard Sprite/svg/walk1.svg',        // a step, left foot up (Not Rubbish)
       walk2: 'assets/Wizard Sprite/svg/walk2.svg',        // a step, right foot up (Not Rubbish)
 
-      // Not drawn yet. Draw one to match the drawings above (him in the same
-      // size and place, hat tip near the top and feet near the bottom), drop
-      // it in the folder and put its path between the quotes.
-      // A tiny sleeping wizard for Wizard Sweeper's board. Bold, simple
-      // shapes read best: it shows at about 32px.  (until drawn: asleep, shrunk)
-      sweeperTile: '',
-
       // Only the games use these (he never wears them on the desktop).
-      hop: '',       // mid-hop, in the air (Not Rubbish)  (until drawn: walk2)
-      bonk: '',      // bonking a gremlin with his hat (Not Rubbish)  (until drawn: idle)
-      hurt: '',      // "ouch!" when a gremlin hits him (Not Rubbish)  (until drawn: startled)
-      aim: '',       // aiming, ready to flick the star off his hat (Star Drop)  (until drawn: idle)
-      hatless: '',   // his hat without its star, while the star flies (Star Drop)  (until drawn: idle)
+      // A tiny sleeping wizard for Wizard Sweeper's board: just his hat and
+      // head, bold and simple, as it shows at about 32px.  (if emptied: asleep)
+      sweeperTile: 'assets/Wizard Sprite/svg/sweeperTile.svg',
+      // The same, woken: the wizard you woke, or one a Shield caught waking.  (if emptied: startled)
+      sweeperAwake: 'assets/Wizard Sprite/svg/sweeperAwake.svg',
+      hop: 'assets/Wizard Sprite/svg/hop.svg',          // mid-hop, in the air (Not Rubbish)  (if emptied: walk2)
+      bonk: 'assets/Wizard Sprite/svg/bonk.svg',        // bonking a gremlin with his hat (Not Rubbish)  (if emptied: idle)
+      hurt: 'assets/Wizard Sprite/svg/hurt.svg',        // "ouch!" when a gremlin hits him (Not Rubbish)  (if emptied: startled)
+      aim: 'assets/Wizard Sprite/svg/aim.svg',          // his star glowing, ready to flick it off his hat (Star Drop)  (if emptied: idle)
+      hatless: 'assets/Wizard Sprite/svg/hatless.svg',  // his hat without its star, watching it fall (Star Drop)  (if emptied: idle)
     },
     sleepAfter: 60,               // seconds of being ignored before he naps (half that from 10pm to 6am)
     waveAway: 10,                 // seconds on another tab before he waves when you come back (at most every 30 seconds)
