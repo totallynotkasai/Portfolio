@@ -14,6 +14,7 @@
    and later, only once someone opens that game (from the Games window):
      sweeper.js     Wizard Sweeper
      rubbish.js     Not Rubbish
+     stardrop.js    Star Drop
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {

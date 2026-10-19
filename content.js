@@ -19,6 +19,7 @@
      8. PET WIZARD     his drawings and everything he says
      9. WIZARD SWEEPER a game in the Games window
     10. NOT RUBBISH    a game in the Games window
+    11. STAR DROP      a game in the Games window
 
    TO ADD ARTWORK: just drop the file into a category folder and push:
      assets/art/Poster/My Piece.png   →  a new spell card in the Art
@@ -327,10 +328,11 @@ window.CONTENT = {
        desktop, or the button at the bottom of the Start menu).
      • "newFolder": the joke when someone picks New folder on the desktop menu.
      • Secret codes (just so you know them): typing "wizard" throws the
-       wizard a party, "kasai" makes it rain doodles, and "sweep" and
-       "rubbish" open the games; the Konami code (up up down down left
-       right left right B A) gets the party and the rain together. On a
-       phone, swipe the arrows part of the Konami code on the home screen. */
+       wizard a party, "kasai" makes it rain doodles, and "sweep",
+       "rubbish" and "stardrop" open the games; the Konami code (up up
+       down down left right left right B A) gets the party and the rain
+       together. On a phone, swipe the arrows part of the Konami code on
+       the home screen. */
   os: {
     windows: {
       coding: { heading: 'Projects', sub: "Apps, experiments & tools I've built." },
@@ -384,7 +386,7 @@ window.CONTENT = {
      • FRAMES: his drawings, 960×960 transparent PNGs in assets/Wizard
        Sprite/. The first five are drawn. The rest are optional: until one
        exists he borrows another drawing (noted beside each), so nothing
-       ever looks broken. The games (sections 9 and 10), the Shut down
+       ever looks broken. The games (sections 9 to 11), the Shut down
        screen and the page-not-found box wear these drawings too, even if
        he's retired.                                                       */
   wizard: {
@@ -417,6 +419,8 @@ window.CONTENT = {
       hop: '',       // mid-hop, in the air (Not Rubbish)  (until drawn: walk2)
       bonk: '',      // bonking a gremlin with his hat (Not Rubbish)  (until drawn: idle)
       hurt: '',      // "ouch!" when a gremlin hits him (Not Rubbish)  (until drawn: startled)
+      aim: '',       // aiming, ready to flick the star off his hat (Star Drop)  (until drawn: idle)
+      hatless: '',   // his hat without its star, while the star flies (Star Drop)  (until drawn: idle)
     },
     sleepAfter: 60,               // seconds of being ignored before he naps (half that from 10pm to 6am)
     quietPages: ['coding'],       // windows where he won't speak unprompted (see "lines" below)
@@ -575,6 +579,77 @@ window.CONTENT = {
       antivirus:   { name: 'Antivirus',     blurb: 'Bonks do double damage.' },
       snooze:      { name: 'Snooze button', blurb: 'One more nap on every floor.' },
       popper:      { name: 'Party popper',  blurb: 'Once a floor, every gremlin round you gets dizzy. Using it costs no turn.' },
+    },
+  },
+
+  /* ──────────────────────────────────────────────────────────────────────
+     11. STAR DROP  (a game in the Games window)
+     ──────────────────────────────────────────────────────────────────────
+     The pet wizard is asleep, and his nightmares creep along a lane
+     towards his bed. In his dream he flicks the star off his hat down
+     through a sky of pegs: every peg it pops is damage for the nightmare
+     in the ring, then they all step closer. A run is a week of nights,
+     Monday to Sunday (the Bogeyman's), with a new star or a charm to pick
+     each morning. A visitor's best run is remembered on their computer.
+     • He wears his own drawings from section 8: "aim" (aiming the star),
+       "hatless" (his hat without its star, while it flies), "asleep" (in
+       bed), "startled" (a nightmare reaching the bed, and the run
+       ending), "happy" (a night survived) and "party" (the whole week).
+     • "nightmares": a drawing for each one, a 960×960 transparent PNG in
+       assets/Games/, e.g.  shadow: 'assets/Games/Shadow.png',  Until one
+       is drawn, a stand-in shows (a coloured blob with eyes and a doodle).
+     • Each list of lines is said one at random. Empty a list, e.g.
+       loseLines: [],  to keep him quiet.
+     • "stars" and "charms" are the names and blurbs on the cards he picks
+       from each morning. Reword them freely, but keep them true: changing
+       them here doesn't change the game.                                */
+  stardrop: {
+    nightmares: {
+      shadow: '',     // creeps one square closer every turn
+      spider: '',     // scuttles two squares every turn
+      wardrobe: '',   // a wardrobe monster: big and slow, it rests every other turn
+      cloud: '',      // a storm cloud that strikes the bed with lightning
+      bogeyman: '',   // Sunday night's boss, who calls up shadows
+    },
+
+    // Each morning, after a night he gets through.
+    nightLines: ['phew. what a night.', 'five more minutes...', 'one night down.'],
+
+    // When the nightmares wake him (the run ends).
+    loseLines: ['AAAH! ...oh. it was only a dream.', 'i am sleeping with the light on.'],
+
+    // When he gets through Sunday night.
+    winLines: ['a whole week of sweet dreams!', 'the Bogeyman? never heard of him.'],
+
+    // When a run beats your best.
+    bestLines: ['a new best! sweet dreams indeed.'],
+
+    // What he tells the desktop after a run. {night} becomes the night he
+    // reached, like "Thursday".
+    deskLines: {
+      lose: ['i made it to {night} night in Star Drop!', '{night} night was too scary.'],
+      win: ['i slept through a whole week of nightmares!'],
+    },
+
+    stars: {
+      plain:    { name: 'Plain star',   blurb: 'One damage for every peg it pops.' },
+      split:    { name: 'Split star',   blurb: 'Splits in two on the first peg it touches.' },
+      heavy:    { name: 'Heavy star',   blurb: 'Crashes straight through pegs for 2 damage each, so its whole path shows as you aim.' },
+      bouncy:   { name: 'Bouncy star',  blurb: 'Extra bouncy, and it bounces back up off the bottom once.' },
+      lullaby:  { name: 'Lullaby star', blurb: 'Every nightmare it hits nods off and loses its next turn.' },
+      starfall: { name: 'Starfall',     blurb: 'Every nightmare takes the hit, at half damage.' },
+      big:      { name: 'Big star',     blurb: 'Half as big again, so it pops more pegs.' },
+    },
+
+    charms: {
+      nightlight:   { name: 'Night light',   blurb: 'Your aiming line shows the second bounce too.' },
+      teddy:        { name: 'Teddy bear',    blurb: 'Guards the bed: the first nightmare or lightning to reach it each night does no harm.' },
+      cocoa:        { name: 'Hot cocoa',     blurb: 'One more heart, and all your hearts back.' },
+      socks:        { name: 'Lucky socks',   blurb: 'One more yellow peg in the sky.' },
+      dreamcatcher: { name: 'Dreamcatcher',  blurb: 'The green peg also hits every nightmare for 5.' },
+      stardust:     { name: 'Stardust',      blurb: 'Every star does one more damage for each peg it pops.' },
+      story:        { name: 'Bedtime story', blurb: 'A yellow peg triples the shot instead of doubling it.' },
+      alarm:        { name: 'Alarm clock',   blurb: 'Once a night, ring it to push every nightmare back two squares. It costs no shot.' },
     },
   },
 

@@ -532,7 +532,7 @@
   };
 
   /* ══════════════════════════════════════════════════════════════════════
-     GAMES  (a folder: Wizard Sweeper and Not Rubbish)
+     GAMES  (a folder: Wizard Sweeper, Not Rubbish and Star Drop)
      ══════════════════════════════════════════════════════════════════════
      Each game is its own script, fetched the first time it opens so the
      desktop never waits for it. The build stamps the addresses below with
@@ -547,6 +547,10 @@
     rubbish: {
       label: 'Not Rubbish', file: 'rubbish.exe', colour: 'grey', size: [560, 760], minSize: [340, 480],
       sub: 'Climb out of the Trash', pose: 'hurt', script: '/rubbish.js', prefix: 'gm',
+    },
+    stardrop: {
+      label: 'Star Drop', file: 'stardrop.exe', colour: 'blue', size: [560, 760], minSize: [340, 480],
+      sub: 'Chase off his nightmares', pose: 'aim', script: '/stardrop.js', prefix: 'gm',
     },
   };
   const wizardPose = (name) => {
