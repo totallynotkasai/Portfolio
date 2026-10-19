@@ -88,6 +88,13 @@ p, h1, h2, h3, li { cursor: auto; }
   --coral-ink:       #BE2D18;
   --grey-ink:        #5F647F;
 
+  /* What windows, menus and labels are made of, and the words on them.
+     Ink stays ink (outlines, night skies, text on the bright colours);
+     these two are what dark mode swaps. */
+  --surface: var(--white);
+  --paper:   #FFFDF8;   /* the Writing notepad */
+  --text:    var(--ink);
+
   /* Typography */
   --font-display: 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
   --font-body:    'Inter', 'Arial Rounded MT Bold', sans-serif;
@@ -106,10 +113,10 @@ p, h1, h2, h3, li { cursor: auto; }
   /* The OS. The wallpaper is a colour and a pattern (dots, grid or none). */
   --taskbar-h: 56px;
   --safe-b: env(safe-area-inset-bottom, 0px);
-  --wall: var(--periwinkle);
+  --wall: var(--wall-lavender);
   --wall-dots: var(--tx-dots);
   --wall-grid: var(--tx-grid);
-  --wall-tx: var(--wall-dots);
+  --wall-tx: var(--wall-grid);
 
   --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -140,14 +147,81 @@ p, h1, h2, h3, li { cursor: auto; }
 .ink      { --acc: var(--ink);        --acc-tint: #ECEBF3;                --acc-ink: var(--ink); --acc-text: var(--white); --acc-button: var(--yellow); }
 
 /* The visitor's wallpaper (Start > Wallpaper), set before first paint by head.js. */
-html[data-wall="blue"]   { --wall: var(--blue); }
-html[data-wall="yellow"] { --wall: var(--yellow); }
-html[data-wall="teal"]   { --wall: var(--teal); }
-html[data-wall="pink"]   { --wall: var(--pink); }
-html[data-wall="navy"]   { --wall: var(--ink); --wall-dots: var(--tx-dots-light); --wall-grid: var(--tx-grid-light); }
-html[data-wall="blush"]  { --wall: var(--blush); }
-html[data-pattern="grid"]  { --wall-tx: var(--wall-grid); }
+/* Each colour is a token, so its chip in Wallpaper shows the shade you'd get. */
+:root {
+  --wall-lavender: var(--periwinkle);
+  --wall-blue:     var(--blue);
+  --wall-yellow:   var(--yellow);
+  --wall-teal:     var(--teal);
+  --wall-pink:     var(--pink);
+  --wall-navy:     var(--ink);
+  --wall-blush:    #FEF6FE;
+}
+html[data-wall="blue"]   { --wall: var(--wall-blue); }
+html[data-wall="yellow"] { --wall: var(--wall-yellow); }
+html[data-wall="teal"]   { --wall: var(--wall-teal); }
+html[data-wall="pink"]   { --wall: var(--wall-pink); }
+html[data-wall="navy"]   { --wall: var(--wall-navy); --wall-dots: var(--tx-dots-light); --wall-grid: var(--tx-grid-light); }
+html[data-wall="blush"]  { --wall: var(--wall-blush); }
+html[data-pattern="dots"]  { --wall-tx: var(--wall-dots); }
 html[data-pattern="plain"] { --wall-tx: none; }
+
+/* ---------- DARK MODE ----------
+   head.js sets data-theme="dark" before the first paint: when the
+   computer is in dark mode, or the visitor picked Dark in Wallpaper.
+   Windows and menus turn a deep navy with light words, the wallpaper
+   a deeper shade of itself; the bright colours, the ink outlines and
+   the wizard stay as they are. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #262A42;
+  --paper:   #2A2E48;
+  --blush:   #1E2135;
+  --text:    #EDEBF7;
+  --ink-soft:  #C2C4D4;
+  --ink-muted: #A9ACBE;
+
+  --periwinkle-tint: #352F5C;
+  --yellow-tint:     #3D3520;
+  --blue-tint:       #1E3050;
+  --teal-tint:       #19393A;
+  --pink-tint:       #432740;
+  --coral-tint:      #452A2A;
+  --grey-tint:       #303347;
+
+  --periwinkle-ink:  #C7BBFB;
+  --yellow-ink:      #FEDA74;
+  --blue-ink:        #93BDFC;
+  --teal-ink:        #7FD9CA;
+  --pink-ink:        #FDB0D0;
+  --coral-ink:       #FCA597;
+  --grey-ink:        #B8BCD0;
+
+  --wall-lavender: #3D3474;
+  --wall-blue:     #1D3A66;
+  --wall-yellow:   #5A4515;
+  --wall-teal:     #154A43;
+  --wall-pink:     #5A2643;
+  --wall-blush:    #2E2538;
+  --wall-dots: var(--tx-dots-light);
+  --wall-grid: var(--tx-grid-light);
+  --tx-checker: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' fill='%23262A42'/%3E%3Cpath d='M0 0h8v8H0zM8 8h8v8H8z' fill='%23302C52'/%3E%3C/svg%3E");
+  --tx-ruled: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='28'%3E%3Crect y='22' width='10' height='1' fill='%23414868'/%3E%3C/svg%3E");
+}
+html[data-theme="dark"] .ink { --acc-tint: #2B2E44; --acc-ink: var(--text); }
+/* Words on the bright colours (and the pink-ink badges, which go light
+   pink) stay ink. */
+html[data-theme="dark"] :is(.skip-link, .os-min:hover, .os-max:hover, .os-close:hover, .os-button:hover,
+  .start-btn[aria-expanded="true"], .start-btn:has(+ .start-menu:popover-open), .start-head, .hl, .mini-bar,
+  .os-links a:hover, .os-dialog-icon, .desk-menu-panel button:focus, .desk-icon.is-selected .desk-ico,
+  .sw-level, .gm-level, .sw-best.is-new, .gm-best.is-new, .sw-go, .gm-go, .sw-up-icon, .gm-up-icon,
+  .sw-board.is-lucky .sw-cell.is-hidden:hover, .sw-cell.is-woken,
+  .nr-cell.is-exit, .nr-lid.is-beaten .nr-lid-btns span, .nr-act[aria-pressed="true"], .nr-act.is-ready b, .nr-mark-x,
+  .sd-next.is-hot, .sd-pop, .sd-tally i, .sd-drop, .sd-warn, .sd-m.is-danger .sd-next) {
+  --text: var(--ink); --ink-soft: #4A4E63; --ink-muted: #5E6175; color: var(--ink);
+}
+/* Focus rings go light, so they still show on the dark windows. */
+html[data-theme="dark"] :focus-visible { outline-color: var(--text); }
 
 /* ============================================================
    THE PAGE ITSELF  (it never scrolls: windows scroll inside)
@@ -158,7 +232,7 @@ body {
   font-family: var(--font-body);
   font-size: var(--fs-body);
   line-height: 1.6;
-  color: var(--ink);
+  color: var(--text);
   background: var(--wall) var(--wall-tx);
 }
 
@@ -197,7 +271,7 @@ body {
   z-index: 300;
   padding: 1.5rem;
   text-align: center;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: var(--radius-md);
 }
@@ -234,8 +308,8 @@ body {
   place-items: center;
   width: 28px;
   height: 28px;
-  color: var(--ink);
-  background: var(--white);
+  color: var(--text);
+  background: var(--surface);
   border: var(--border);
   border-radius: 8px;
   transition: background var(--transition), rotate var(--transition);
@@ -270,8 +344,8 @@ svg.doodle :is(path, circle, rect) { vector-effect: non-scaling-stroke; }
   font-family: var(--font-display);
   font-size: 0.92rem;
   line-height: 1.2;
-  color: var(--ink);
-  background: var(--white);
+  color: var(--text);
+  background: var(--surface);
   border: var(--border);
   border-radius: 9px;
   transition: background var(--transition);
@@ -307,35 +381,38 @@ a:hover > .card-arrow, a:hover .card-arrow { translate: 4px 0; }
 /* On wider screens the icons sit wherever they've been dragged to (script). */
 .desktop.is-free .desk-icons > li { position: absolute; }
 
+/* The icons grow with the browser window: 48px on a small laptop, up to
+   96px on a big screen (a phone's home screen keeps 48px, below). */
+.desktop { --desk-ico: clamp(48px, min(5.6vw, 8vh), 96px); }
 .desk-icon {
   display: grid;
   justify-items: center;
   gap: 5px;
-  width: 84px;
+  width: calc(var(--desk-ico) * 1.75);
   padding: 6px 4px 8px;
   text-align: center;
   border-radius: 12px;
   user-select: none;
   -webkit-user-drag: none;
 }
-.desk-ico { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; }
-.desk-ico .nav-icon { width: 48px; height: 48px; stroke-width: var(--line); transition: translate var(--transition); }
+.desk-ico { display: grid; place-items: center; width: calc(var(--desk-ico) + 4px); height: calc(var(--desk-ico) + 4px); border-radius: 12px; }
+.desk-ico .nav-icon { width: var(--desk-ico); height: var(--desk-ico); stroke-width: var(--line); transition: translate var(--transition); }
 .desk-icon:hover .desk-ico .nav-icon { translate: 0 -2px; }
 .desk-label {
   max-width: 100%;
   padding: 1px 7px;
-  font-size: 0.8rem;
+  font-size: calc(0.5rem + var(--desk-ico) * 0.1);
   font-weight: 600;
   line-height: 1.35;
-  background: var(--white);
+  background: var(--surface);
   border-radius: 6px;
 }
 .desk-icon.is-selected .desk-label { color: var(--white); background: var(--ink); }
 /* Selected, an icon sits on a tile in its own colour (its accent class). */
-.desk-icon.is-selected .desk-ico { background: var(--acc, var(--white)); border: var(--border); }
+.desk-icon.is-selected .desk-ico { background: var(--acc, var(--surface)); border: var(--border); }
 /* On the navy wallpaper each icon sits on a light tile, so its dark
    outlines don't vanish into it (and the focus ring turns yellow). */
-html[data-wall="navy"] .desk-ico { background: var(--blush); border-radius: 14px; }
+html[data-wall="navy"] .desk-ico { background: #FEF6FE; border-radius: 14px; }
 html[data-wall="navy"] .desktop :focus-visible { outline-color: var(--yellow); }
 .is-dragging .desk-icon { cursor: grabbing; }
 li.is-dragging { z-index: 5; }
@@ -360,12 +437,12 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: var(--radius-md);
 }
 /* The window in front wears its colour; the others go white. */
-.win:not(.is-active) .win-bar { color: var(--ink); background: var(--white); }
+.win:not(.is-active) .win-bar { color: var(--text); background: var(--surface); }
 .win-bar { cursor: grab; touch-action: none; }
 .os.is-dragging, .os.is-dragging .win-bar { cursor: grabbing; }
 .os.is-resizing { cursor: nwse-resize; }
@@ -386,7 +463,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-family: var(--font-mono);
   font-size: 0.78rem;
   white-space: nowrap;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 7px;
 }
@@ -454,7 +531,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   gap: 8px;
   height: calc(var(--taskbar-h) + var(--safe-b));
   padding: 0 max(10px, env(safe-area-inset-right, 0px)) var(--safe-b) max(10px, env(safe-area-inset-left, 0px));
-  background: var(--white);
+  background: var(--surface);
   border-top: var(--border);
 }
 /* Start: just the flame in a white box. It lights up yellow while open. */
@@ -464,7 +541,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   flex: none;
   width: 40px;
   height: 40px;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 10px;
   transition: background var(--transition);
@@ -506,7 +583,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   white-space: nowrap;
 }
 /* Each open window is a white box like Start; the front one fills with its colour. */
-.task-win { background: var(--white); border-color: var(--ink); }
+.task-win { background: var(--surface); border-color: var(--ink); }
 .task-btn:hover, .task-win:hover { background: var(--acc-tint); }
 /* Dock icons of open apps get an underline in their colour. */
 .task-btn.is-open::after {
@@ -534,7 +611,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   place-items: center;
   width: 38px;
   height: 38px;
-  color: var(--ink);
+  color: var(--text);
   border-radius: 10px;
   transition: background var(--transition);
 }
@@ -566,7 +643,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   margin: 0;
   padding: 0;
   overflow: visible;
-  color: var(--ink);
+  color: var(--text);
   background: transparent;
   border: 0;
 }
@@ -576,7 +653,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   max-height: calc(100vh - var(--taskbar-h) - 40px);
   max-height: calc(100dvh - var(--taskbar-h) - var(--safe-b) - 40px);
   overflow: auto;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: var(--radius-md);
 }
@@ -595,7 +672,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   width: 48px;
   height: 48px;
   overflow: hidden;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 50%;
 }
@@ -643,8 +720,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   gap: 5px;
   padding: 2px 8px 2px 5px;
   font-weight: 700;
-  color: var(--ink);
-  background: var(--white);
+  color: var(--text);
+  background: var(--surface);
   border: var(--border);
   border-radius: 7px;
   transition: background var(--transition);
@@ -728,7 +805,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .about-contact { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 22px; }
 .about-email { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-soft); }
 /* The photo sits in its own little picture window. */
-.about-photo { overflow: hidden; background: var(--white); border: var(--border); border-radius: 12px; rotate: 1.5deg; }
+.about-photo { overflow: hidden; background: var(--surface); border: var(--border); border-radius: 12px; rotate: 1.5deg; }
 .about-photo img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
 .about-photo-empty { display: grid; place-items: center; aspect-ratio: 3 / 4; color: var(--periwinkle); background: var(--periwinkle-tint); }
 .about-photo-empty svg { width: 56px; height: 56px; }
@@ -778,7 +855,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   overflow: hidden;
   aspect-ratio: 16 / 10;
   margin-bottom: 6px;
-  color: var(--acc-ink, var(--ink));
+  color: var(--acc-ink, var(--text));
   background: var(--acc-tint, var(--periwinkle-tint));
   border: var(--border);
   border-radius: 8px;
@@ -796,9 +873,9 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .tile-state .os-led { width: 10px; height: 10px; }
 
 .folder-empty { display: grid; justify-items: center; gap: 6px; max-width: 420px; margin: 0 auto; padding: 48px 24px; text-align: center; color: var(--ink-soft); }
-.folder-empty-icon { display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 6px; color: var(--ink); background: var(--acc-tint, var(--blush)); border: var(--border); border-radius: 18px; }
+.folder-empty-icon { display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 6px; color: var(--text); background: var(--acc-tint, var(--blush)); border: var(--border); border-radius: 18px; }
 .folder-empty-icon svg { width: 36px; height: 36px; }
-.folder-empty-title { font-family: var(--font-display); font-size: 1.25rem; color: var(--ink); }
+.folder-empty-title { font-family: var(--font-display); font-size: 1.25rem; color: var(--text); }
 .folder-empty-hint { font-size: 0.8rem; }
 .folder-empty code { padding: 0 6px; background: var(--yellow-tint); border-radius: 5px; }
 
@@ -841,7 +918,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-family: var(--font-display);
   font-size: 0.82rem;
   white-space: nowrap;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 8px;
   transition: background var(--transition);
@@ -920,7 +997,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   line-height: 1.3;
   white-space: nowrap;
   text-overflow: ellipsis;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 9px;
 }
@@ -972,7 +1049,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   top: -40%;
   left: var(--gx, 40%);
   height: 180%;
-  background: var(--white);
+  background: var(--surface);
   rotate: 24deg;
 }
 .art-card-glint::before { width: 24%; opacity: 0.2; }
@@ -982,9 +1059,9 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 /* ============================================================
    APP: THE IMAGE VIEWER
    ============================================================ */
-.viewer-body { display: grid; padding: 14px; overflow: hidden; background: var(--white) var(--tx-checker); }
+.viewer-body { display: grid; padding: 14px; overflow: hidden; background: var(--surface) var(--tx-checker); }
 .viewer-canvas { display: grid; place-items: center; min-height: 0; }
-.viewer-img { width: auto; max-width: 100%; height: auto; max-height: 100%; border: var(--border); background: var(--white); }
+.viewer-img { width: auto; max-width: 100%; height: auto; max-height: 100%; border: var(--border); background: var(--surface); }
 .viewer-swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .viewer-swatches i { width: 18px; height: 18px; background: var(--s); border: var(--border); border-radius: 5px; }
 .viewer-swatches code { margin-right: 6px; }
@@ -1035,7 +1112,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   position: relative;
   padding: var(--rule) 26px 22px 3.4rem;
   line-height: var(--rule);
-  background: #FFFDF8 var(--tx-ruled);
+  background: var(--paper) var(--tx-ruled);
   border: var(--border);
   border-radius: 6px;
 }
@@ -1063,7 +1140,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--acc-ink);
-  background: var(--white);
+  background: var(--surface);
   border: var(--line) solid currentColor;
   border-radius: 8px;
   rotate: 8deg;
@@ -1120,7 +1197,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border: var(--border);
   border-radius: 9px;
 }
-.sw-stat, .gm-stat { gap: 6px; padding: 0 10px; background: var(--white); }
+.sw-stat, .gm-stat { gap: 6px; padding: 0 10px; background: var(--surface); }
 :is(.sw-stat, .gm-stat) b { font-size: 0.95rem; }
 :is(.sw-stat, .sw-chip, .gm-stat, .gm-chip) svg.doodle { width: 18px; height: 18px; }
 .sw-stat-wiz { width: 22px; height: 22px; object-fit: contain; }
@@ -1182,14 +1259,14 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 }
 .sw-cell.is-hidden:hover { background: #BCAEF6; }
 .sw-board.is-lucky .sw-cell.is-hidden:hover { background: var(--yellow); }
-.sw-cell.is-open { background: var(--white); }
+.sw-cell.is-open { background: var(--surface); }
 .sw-board.can-chord .sw-cell.is-num { cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer; }
 .sw-cell.n1 { color: var(--blue-ink); }
 .sw-cell.n2 { color: var(--teal-ink); }
 .sw-cell.n3 { color: var(--pink-ink); }
 .sw-cell.n4 { color: var(--periwinkle-ink); }
 .sw-cell.n5 { color: var(--yellow-ink); }
-.sw-cell.n6, .sw-cell.n7, .sw-cell.n8 { color: var(--ink); }
+.sw-cell.n6, .sw-cell.n7, .sw-cell.n8 { color: var(--text); }
 .sw-cell > svg.doodle { width: 64%; height: 64%; }
 .sw-cell.is-star > svg { color: var(--ink); fill: var(--yellow); }
 /* A Lucky star's wizard: a gold star on the night sky. */
@@ -1199,7 +1276,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .sw-cell.is-known, .sw-cell.is-asleep { background: var(--periwinkle-tint); }
 .sw-cell.is-calm { background: var(--blue-tint); }
 .sw-cell.is-woken { z-index: 1; background: var(--pink); }
-.sw-cell.is-wrong { background: var(--white); }
+.sw-cell.is-wrong { background: var(--surface); }
 .sw-cell.is-wrong > svg { color: var(--ink-muted); fill: var(--yellow-tint); }
 .sw-cross { display: grid; place-items: center; width: 100%; height: 100%; color: var(--pink-ink); }
 .sw-cross > svg.doodle { width: 80%; height: 80%; }
@@ -1212,7 +1289,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   width: 48%;
   height: 48%;
   color: var(--blue-ink);
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 50%;
 }
@@ -1231,7 +1308,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-size: var(--fs-small);
   line-height: 1.35;
   text-align: center;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: var(--radius-md);
   translate: -50% 0;
@@ -1249,7 +1326,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   margin: auto;
   padding: 18px 20px 20px;
   text-align: center;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: var(--radius-md);
 }
@@ -1271,9 +1348,9 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border-radius: 50%;
 }
 .sw-card .sw-keys, .gm-card .gm-keys { font-size: 0.82rem; }
-.sw-card .sw-kicker, .gm-card .gm-kicker { font-family: var(--font-mono); font-size: 0.76rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+.sw-card .sw-kicker, .gm-card .gm-kicker { font-family: var(--font-mono); font-size: 0.76rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
 .sw-card .sw-tally, .gm-card .gm-tally { margin-top: 4px; font-family: var(--font-mono); font-size: 0.8rem; }
-.sw-card .sw-best, .gm-card .gm-best { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--ink); }
+.sw-card .sw-best, .gm-card .gm-best { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--text); }
 .sw-card .sw-best.is-new, .gm-card .gm-best.is-new { padding: 6px 10px; background: var(--yellow); border-radius: 9px; }
 :is(.sw-best, .gm-best).is-new span { display: block; font-family: var(--font-display); font-weight: 400; }
 /* What the wizard says: a speech bubble, its tail pointing at him. */
@@ -1284,8 +1361,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   margin: 0 auto 12px;
   padding: 6px 12px;
   font-family: var(--font-display);
-  color: var(--ink);
-  background: var(--white);
+  color: var(--text);
+  background: var(--surface);
   border: var(--border);
   border-radius: var(--radius-md);
 }
@@ -1297,7 +1374,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   width: 13px;
   height: 13px;
   margin-left: -6px;
-  background: var(--white);
+  background: var(--surface);
   border-right: var(--border);
   border-bottom: var(--border);
   rotate: 45deg;
@@ -1315,7 +1392,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   gap: 6px;
   padding: 12px 10px 14px;
   text-align: center;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 12px;
   transition: background var(--transition), translate var(--transition);
@@ -1405,7 +1482,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   flex: none;
   width: var(--cell);
   height: var(--cell);
-  background: var(--tile, var(--white)) var(--tile-tx, none);
+  background: var(--tile, var(--surface)) var(--tile-tx, none);
   border: var(--border);
   border-radius: var(--tile-r, 10px);
   -webkit-tap-highlight-color: transparent;
@@ -1459,7 +1536,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-family: var(--font-mono);
   font-size: 0.68rem;
   line-height: 1.4;
-  background: var(--white);
+  background: var(--surface);
   border: 2px solid var(--ink);
   border-radius: 6px;
 }
@@ -1528,8 +1605,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-family: var(--font-display);
   font-size: calc(var(--cell) * 0.22);
   line-height: 1;
-  color: var(--ink);
-  background: var(--white);
+  color: var(--text);
+  background: var(--surface);
   border: 2px solid var(--ink);
   border-radius: 50%;
 }
@@ -1556,7 +1633,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 12px;
 }
@@ -1579,11 +1656,11 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .nr-lid-hp i { width: 9px; height: 9px; background: var(--pink); border: 2px solid var(--ink); border-radius: 50%; }
 .nr-lid-hp i.is-gone { background: var(--white); }
 .nr-lid-btns { display: flex; justify-content: center; gap: 6px; padding: 4px 8px 6px; }
-.nr-lid-btns span { padding: 0 10px; font-family: var(--font-display); font-size: max(0.62rem, calc(var(--cell) * 0.16)); background: var(--white); border: var(--border); border-radius: 7px; }
+.nr-lid-btns span { padding: 0 10px; font-family: var(--font-display); font-size: max(0.62rem, calc(var(--cell) * 0.16)); background: var(--surface); border: var(--border); border-radius: 7px; }
 .nr-lid.is-beaten .nr-lid-btns span { background: var(--yellow); }
 
 /* His moves, along the bottom: big enough for a thumb. */
-.nr-dock { display: flex; flex: none; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 6px 10px; background: var(--white); border-top: var(--border); }
+.nr-dock { display: flex; flex: none; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 6px 10px; background: var(--surface); border-top: var(--border); }
 .nr-act {
   display: inline-flex;
   align-items: center;
@@ -1593,7 +1670,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-family: var(--font-display);
   font-size: 0.88rem;
   line-height: 1.1;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 10px;
   transition: background var(--transition);
@@ -1610,7 +1687,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .nr-hearts { gap: 1px; }
 .nr-hearts .is-full svg { fill: var(--pink); }
 /* The program card's look ahead: the next floor's design, from the Trash. */
-.gm-card .nr-next { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink); }
+.gm-card .nr-next { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text); }
 .nr-next img { width: 72px; height: 45px; flex: none; object-fit: cover; object-position: top; border: var(--border); border-radius: 6px; }
 
 /* The floors, oldest first, each dressed as a retired design. */
@@ -1836,7 +1913,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   bottom: -3px;
   height: max(14px, 26%);
   overflow: hidden;
-  background: var(--white);
+  background: var(--surface);
   border: 2px solid var(--ink);
   border-radius: 6px;
 }
@@ -1866,7 +1943,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 1;
-  background: var(--white);
+  background: var(--surface);
   border: 2px solid var(--ink);
   border-radius: 9px;
 }
@@ -1935,8 +2012,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-family: var(--font-mono);
   font-size: 0.8rem;
   line-height: 1.6;
-  color: var(--ink);
-  background: var(--white);
+  color: var(--text);
+  background: var(--surface);
   border: var(--border);
   border-radius: 9px;
   pointer-events: none;
@@ -1957,8 +2034,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-size: var(--fs-small);
   line-height: 1.3;
   text-align: center;
-  color: var(--ink);
-  background: var(--white);
+  color: var(--text);
+  background: var(--surface);
   border: var(--border);
   border-radius: var(--radius-md);
   translate: -50% 10px;
@@ -1973,14 +2050,14 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   width: 12px;
   height: 12px;
   margin-left: -6px;
-  background: var(--white);
+  background: var(--surface);
   border-top: var(--border);
   border-left: var(--border);
   rotate: 45deg;
 }
 
 /* The stars, along the bottom, and what you can do. */
-.sd-dock { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 10px; background: var(--white); border-top: var(--border); }
+.sd-dock { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 10px; background: var(--surface); border-top: var(--border); }
 .sd-bag { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: 2px 12px; min-width: 0; font-size: 0.86rem; line-height: 1.2; }
 .sd-acts { display: flex; flex: none; gap: 6px; margin-left: auto; }
 .sd-now, .sd-then { display: inline-flex; align-items: center; gap: 5px; }
@@ -2002,7 +2079,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   font-family: var(--font-display);
   font-size: 0.88rem;
   line-height: 1.1;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: 10px;
   transition: background var(--transition);
@@ -2030,10 +2107,10 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .gm-up-icon.sd-up-star { background: var(--ink); }
 .gm-up-icon.sd-up-star .sd-star-ico { width: auto; height: auto; background: none; }
 .gm-up-icon.sd-up-star .sd-star-ico svg.doodle { width: 30px; height: 30px; }
-.gm-card .sd-next-night { margin-top: 14px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--ink); }
+.gm-card .sd-next-night { margin-top: 14px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--text); }
 /* The Help card's key to the pegs: each one on a bit of night sky. */
 .sd-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; max-width: 420px; margin: 10px auto 0; }
-.sd-legend li { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 2px; font-family: var(--font-mono); font-size: 0.74rem; color: var(--ink); background: var(--periwinkle-tint); border-radius: 8px; }
+.sd-legend li { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 2px; font-family: var(--font-mono); font-size: 0.74rem; color: var(--text); background: var(--periwinkle-tint); border-radius: 8px; }
 .sd-swatch { flex: none; width: 22px; height: 22px; background: var(--ink); border-radius: 6px; }
 /* Too short to play (a phone on its side): a note instead of a sliver of sky. */
 .sd-cramped { display: none; }
@@ -2111,12 +2188,12 @@ dialog.os-dialog {
   padding: 0;
   max-width: min(440px, calc(100vw - 32px));
   overflow: visible;
-  color: var(--ink);
+  color: var(--text);
   background: transparent;
   border: 0;
 }
 dialog.os-dialog::backdrop { background: rgba(22, 26, 46, 0.35); }
-.os-dialog-frame { position: relative; overflow: hidden; background: var(--white); border: var(--border); border-radius: var(--radius-md); }
+.os-dialog-frame { position: relative; overflow: hidden; background: var(--surface); border: var(--border); border-radius: var(--radius-md); }
 .os-dialog-body { display: flex; gap: 14px; align-items: flex-start; padding: 20px 20px 8px; }
 .os-dialog-icon { display: grid; place-items: center; flex: none; width: 44px; height: 44px; background: var(--yellow); border: var(--border); border-radius: 12px; }
 .os-dialog-icon svg { width: 24px; height: 24px; }
@@ -2249,13 +2326,13 @@ dialog.shutdown::backdrop { background: transparent; }
   margin: 0;
   padding: 0;
   overflow: visible;
-  color: var(--ink);
+  color: var(--text);
   background: transparent;
   border: 0;
 }
 .desk-menu[hidden] { display: none; }
 .desk-menu .os-shadow { inset: 6px -6px -6px 6px; border-radius: 12px; }
-.desk-menu-panel { position: relative; padding: 5px; background: var(--white); border: var(--border); border-radius: 12px; }
+.desk-menu-panel { position: relative; padding: 5px; background: var(--surface); border: var(--border); border-radius: 12px; }
 .desk-menu-panel:focus { outline: none; }
 .desk-menu-panel button {
   display: flex;
@@ -2292,13 +2369,13 @@ dialog.shutdown::backdrop { background: transparent; }
   background: var(--wall) var(--wall-tx);
   border: var(--border);
   border-radius: 10px;
-  box-shadow: 0 0 0 7px var(--white), 0 0 0 calc(7px + var(--line)) var(--ink);
+  box-shadow: 0 0 0 7px var(--surface), 0 0 0 calc(7px + var(--line)) var(--ink);
 }
 .wall-icons { position: absolute; left: 9px; top: 9px; display: grid; gap: 7px; }
-.wall-icons i { display: block; width: 14px; height: 14px; background: var(--white); border: var(--line) solid var(--ink); border-radius: 4px; }
-.wall-window { position: absolute; right: 16px; bottom: 14px; width: 52%; height: 54%; background: var(--white); border: var(--line) solid var(--ink); border-radius: 6px; }
+.wall-icons i { display: block; width: 14px; height: 14px; background: var(--surface); border: var(--line) solid var(--ink); border-radius: 4px; }
+.wall-window { position: absolute; right: 16px; bottom: 14px; width: 52%; height: 54%; background: var(--surface); border: var(--line) solid var(--ink); border-radius: 6px; }
 .wall-window::before { content: ''; position: absolute; inset: 0 0 auto; height: 22%; background: var(--yellow); border-bottom: var(--line) solid var(--ink); border-radius: 3px 3px 0 0; }
-.wall-stand { width: 54px; height: 18px; margin-top: 9px; background: var(--white); border: var(--border); border-radius: 4px 4px 9px 9px; }
+.wall-stand { width: 54px; height: 18px; margin-top: 9px; background: var(--surface); border: var(--border); border-radius: 4px 4px 9px 9px; }
 .wall-set { min-width: 0; border: 0; }
 .wall-set legend { padding: 0; font-family: var(--font-mono); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
 .wall-options { display: flex; flex-wrap: wrap; gap: 6px 4px; margin-top: 8px; }
@@ -2317,8 +2394,8 @@ dialog.shutdown::backdrop { background: transparent; }
 .wall-chip svg.doodle { width: 22px; height: 22px; opacity: 0; }
 .wall-choice:hover .wall-chip { translate: 0 -2px; }
 .wall-choice input:checked + .wall-chip svg { opacity: 1; }
-.wall-choice input:checked + .wall-chip { box-shadow: 0 0 0 3px var(--white), 0 0 0 calc(3px + var(--line)) var(--ink); }
-.wall-choice input:focus-visible + .wall-chip { outline: 3px solid var(--ink); outline-offset: 6px; }
+.wall-choice input:checked + .wall-chip { box-shadow: 0 0 0 3px var(--surface), 0 0 0 calc(3px + var(--line)) var(--text); }
+.wall-choice input:focus-visible + .wall-chip { outline: 3px solid var(--text); outline-offset: 6px; }
 .wall-choice input:checked ~ .wall-label { font-weight: 700; }
 /* The check stays readable on navy. */
 .wall-chip.is-dark { color: var(--white); }
@@ -2326,6 +2403,12 @@ dialog.shutdown::backdrop { background: transparent; }
 .wall-tile.is-grid { background: var(--wall) var(--wall-grid); }
 .wall-tile.is-plain { background: var(--wall); }
 html[data-wall="navy"] .wall-tile { color: var(--white); }
+/* In dark mode every wallpaper is a deep shade: white checks. */
+html[data-theme="dark"] .wall-chip:not(.wall-mode) { color: var(--white); }
+/* Mode: a white chip, a navy one, and Auto half of each. */
+.wall-mode.is-light { background: var(--white); }
+.wall-mode.is-dark { color: var(--white); background: #262A42; }
+.wall-mode.is-auto { background: linear-gradient(135deg, var(--white) 50%, #262A42 50%); }
 .wall-actions { display: flex; justify-content: flex-start; }
 
 /* ============================================================
@@ -2374,7 +2457,7 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   font-size: var(--fs-small);
   line-height: 1.35;
   text-align: center;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: var(--radius-md);
   translate: calc(-50% + var(--shift, 0px)) 0;
@@ -2388,7 +2471,7 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   width: 13px;
   height: 13px;
   margin-left: -6px;
-  background: var(--white);
+  background: var(--surface);
   border-right: var(--border);
   border-bottom: var(--border);
   rotate: 45deg;
@@ -2461,7 +2544,7 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   font-size: var(--fs-small);
   line-height: 1.35;
   text-align: center;
-  background: var(--white);
+  background: var(--surface);
   border: var(--border);
   border-radius: var(--radius-md);
   translate: -50% 0;
@@ -2474,7 +2557,7 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   width: 13px;
   height: 13px;
   margin-left: -6px;
-  background: var(--white);
+  background: var(--surface);
   border-right: var(--border);
   border-bottom: var(--border);
   rotate: 45deg;
@@ -2543,6 +2626,7 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
      (smaller, so he leaves room for them). */
   .desktop { display: flex; flex-direction: column; overflow-y: auto; padding: 16px 14px 10px; }
   .desk-icons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 4px; justify-items: center; }
+  .desktop { --desk-ico: 48px; }
   .desk-icon { width: 78px; }
   .desk-pet { --pet-size: 150px; }
 

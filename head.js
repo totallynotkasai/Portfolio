@@ -18,6 +18,29 @@
       if (/^(dots|grid|plain)$/.test(wall.pattern)) html.setAttribute('data-pattern', wall.pattern);
     }
   } catch (e) { /* storage blocked: the default wallpaper */ }
+  // Light or dark: the visitor's pick in Wallpaper (kasai:theme), or the
+  // computer's own setting ("auto"), which it follows as it changes.
+  var darkOS = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  var mode = 'auto';
+  try {
+    var saved = JSON.parse(localStorage.getItem('kasai:theme') || 'null');
+    if (saved && saved.v === 1 && /^(light|dark)$/.test(saved.mode)) mode = saved.mode;
+  } catch (e) { /* storage blocked: follow the computer */ }
+  var applyTheme = function () {
+    var dark = mode === 'dark' || (mode === 'auto' && !!darkOS && darkOS.matches);
+    html.setAttribute('data-theme', dark ? 'dark' : 'light');
+  };
+  applyTheme();
+  if (darkOS) {
+    var follow = function () { if (mode === 'auto') applyTheme(); };
+    if (darkOS.addEventListener) darkOS.addEventListener('change', follow);
+    else if (darkOS.addListener) darkOS.addListener(follow);
+  }
+  // kasai-os.js's Wallpaper window reads and sets it here.
+  window.KasaiTheme = {
+    get: function () { return mode; },
+    set: function (m) { mode = /^(light|dark)$/.test(m) ? m : 'auto'; applyTheme(); }
+  };
   // The boot screen plays once per visit (per tab), never with reduced
   // motion. kasai-os.js plays it; html.booting keeps the screen navy until then.
   try {

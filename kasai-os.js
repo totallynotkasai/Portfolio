@@ -677,10 +677,13 @@
       el.style.left = clamp(px, 4, d.width - el.offsetWidth - 4) + 'px';
       el.style.top = clamp(py, 4, d.height - el.offsetHeight - 4) + 'px';
     };
-    const slot = 96;
+    // The icons grow with the window (style.css), so their slots do too.
+    const first = $('#desk-icons > li');
+    const slot = first ? first.offsetHeight + 8 : 96;
+    const col = first ? first.offsetWidth + 12 : 96;
     const perColumn = Math.max(1, Math.floor((d.height - 16) / slot));
     $$('#desk-icons > li').forEach((li, i) => {
-      put(li, li.dataset.dragId, 12 + Math.floor(i / perColumn) * 96, 12 + (i % perColumn) * slot);
+      put(li, li.dataset.dragId, 12 + Math.floor(i / perColumn) * col, 12 + (i % perColumn) * slot);
     });
   }
 
@@ -1011,11 +1014,14 @@
      WALLPAPER  (Start > Wallpaper, or Change wallpaper on the desktop menu)
      ══════════════════════════════════════════════════════════════════════
      Saved in kasai:wallpaper; head.js puts it back before anything is
-     drawn, so it never flashes. Lavender dots is the default. */
-  const WALL_COLOURS = [['lavender', 'Lavender', 'periwinkle'], ['blue', 'Blue'], ['yellow', 'Yellow'], ['teal', 'Teal'],
-    ['pink', 'Pink'], ['navy', 'Navy', 'ink'], ['blush', 'Blush']];
+     drawn, so it never flashes. Lavender grid is the default. */
+  const WALL_COLOURS = [['lavender', 'Lavender'], ['blue', 'Blue'], ['yellow', 'Yellow'], ['teal', 'Teal'],
+    ['pink', 'Pink'], ['navy', 'Navy'], ['blush', 'Blush']];
   const WALL_PATTERNS = [['dots', 'Dots'], ['grid', 'Grid'], ['plain', 'Plain']];
-  const wallNow = () => ({ colour: root.getAttribute('data-wall') || 'lavender', pattern: root.getAttribute('data-pattern') || 'dots' });
+  // Light or dark (head.js applies it): Auto follows the computer.
+  const MODES = [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']];
+  const modeNow = () => (window.KasaiTheme ? window.KasaiTheme.get() : 'auto');
+  const wallNow = () => ({ colour: root.getAttribute('data-wall') || 'lavender', pattern: root.getAttribute('data-pattern') || 'grid' });
   const wallName = (w) => `${(WALL_COLOURS.find((c) => c[0] === w.colour) || [0, w.colour])[1]}, ${w.pattern}`;
 
   function openWallpaper(opts) {
@@ -1025,10 +1031,10 @@
       file: 'wallpaper.exe',
       colour: 'blue',
       doodle: 'palette',
-      size: [480, 640],
+      size: [480, 720],
       minSize: [320, 420],
       render(win) {
-        const now = wallNow();
+        const now = Object.assign(wallNow(), { mode: modeNow() });
         const choice = (name, id, label, look) => `
           <label class="wall-choice">
             <input class="vh" type="radio" name="${name}" value="${id}"${now[name] === id ? ' checked' : ''} />
@@ -1043,22 +1049,35 @@
             </div>
             <fieldset class="wall-set">
               <legend>Colour</legend>
-              <div class="wall-options">${WALL_COLOURS.map(([id, label, token]) =>
-                choice('colour', id, label, `<span class="wall-chip${id === 'navy' ? ' is-dark' : ''}" style="--chip: var(--${token || id})">${doodleIcon('check')}</span>`)).join('')}</div>
+              <div class="wall-options">${WALL_COLOURS.map(([id, label]) =>
+                choice('colour', id, label, `<span class="wall-chip${id === 'navy' ? ' is-dark' : ''}" style="--chip: var(--wall-${id})">${doodleIcon('check')}</span>`)).join('')}</div>
             </fieldset>
             <fieldset class="wall-set">
               <legend>Pattern</legend>
               <div class="wall-options">${WALL_PATTERNS.map(([id, label]) =>
                 choice('pattern', id, label, `<span class="wall-chip wall-tile is-${id}">${doodleIcon('check')}</span>`)).join('')}</div>
             </fieldset>
-            <p class="wall-actions"><button class="os-button" type="button" data-reset>${doodleIcon('refresh')}Back to lavender dots</button></p>
+            <fieldset class="wall-set">
+              <legend>Mode</legend>
+              <div class="wall-options">${MODES.map(([id, label]) =>
+                choice('mode', id, label, `<span class="wall-chip wall-mode is-${id}">${doodleIcon('check')}</span>`)).join('')}</div>
+            </fieldset>
+            <p class="wall-actions"><button class="os-button" type="button" data-reset>${doodleIcon('refresh')}Back to lavender grid</button></p>
           </form>`;
         const form = $('form', win.body);
         const status = () => win.setStatus(`<span>${esc(wallName(wallNow()))}</span><span class="status-hint">Remembered in this browser</span>`);
         form.addEventListener('submit', (e) => e.preventDefault());
-        form.addEventListener('change', () => {
+        form.addEventListener('change', (e) => {
+          if (e.target.name === 'mode') {
+            const mode = e.target.value;
+            if (window.KasaiTheme) window.KasaiTheme.set(mode);
+            if (mode === 'auto') K.store.del('kasai:theme');
+            else K.store.set('kasai:theme', { mode });
+            announce(mode === 'auto' ? 'Light or dark, as your computer is' : `${mode === 'dark' ? 'Dark' : 'Light'} mode`);
+            return;
+          }
           const colour = (form.querySelector('[name="colour"]:checked') || {}).value || 'lavender';
-          const pattern = (form.querySelector('[name="pattern"]:checked') || {}).value || 'dots';
+          const pattern = (form.querySelector('[name="pattern"]:checked') || {}).value || 'grid';
           root.setAttribute('data-wall', colour);
           root.setAttribute('data-pattern', pattern);
           K.store.set('kasai:wallpaper', { colour, pattern });
@@ -1069,9 +1088,9 @@
           root.removeAttribute('data-pattern');
           K.store.del('kasai:wallpaper');
           form.querySelector('[name="colour"][value="lavender"]').checked = true;
-          form.querySelector('[name="pattern"][value="dots"]').checked = true;
+          form.querySelector('[name="pattern"][value="grid"]').checked = true;
           status();
-          announce('Wallpaper back to lavender dots');
+          announce('Wallpaper back to lavender grid');
         });
         status();
       },
