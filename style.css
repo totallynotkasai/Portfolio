@@ -1798,6 +1798,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .sd-m.wardrobe { --mc: var(--teal); }
 .sd-m.cloud { --mc: var(--grey); }
 .sd-m.bogeyman { --mc: var(--coral); }
+.sd-m.bat { --mc: var(--blue); }
+.sd-m.jack { --mc: var(--yellow); }
 .sd-m-body { position: absolute; inset: 2% 9% 22%; display: block; }
 .sd-m-body > img { width: 100%; height: 100%; object-fit: contain; }
 .sd-m.bogeyman .sd-m-body { inset: -16% -8% 20%; }
@@ -1818,6 +1820,8 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .sd-m.wardrobe .sd-token { border-radius: 14%; }
 .sd-m.cloud .sd-token { border-radius: 50%; }
 .sd-m.bogeyman .sd-token { border-radius: 34% 34% 26% 26%; }
+.sd-m.bat .sd-token { border-radius: 50% 50% 30% 30%; }
+.sd-m.jack .sd-token { border-radius: 16%; }
 .sd-eyes { position: absolute; top: 20%; left: 50%; display: flex; justify-content: center; gap: 10%; width: 72%; translate: -50% 0; }
 .sd-eyes i { position: relative; width: 28%; aspect-ratio: 1; background: var(--white); border: 2px solid var(--ink); border-radius: 50%; }
 .sd-eyes i::after { content: ''; position: absolute; inset: 26%; background: var(--ink); border-radius: 50%; }
@@ -1897,15 +1901,32 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .sd-frame { fill: rgba(255, 255, 255, 0.04); stroke: rgba(174, 157, 243, 0.5); stroke-width: 0.5; }
 .sd-floor { stroke: var(--pink); stroke-width: 0.9; stroke-linecap: round; visibility: hidden; }
 .sd-floor.is-on { visibility: visible; }
-.sd-peg { fill: var(--periwinkle); }
+/* The pegs: plain lavender, and the kinds that light up before each
+   shot, each with its own shape (stardrop.js draws them; the ring's
+   hole and the moon's shadow are cut out by evenodd). */
+.sd-peg { fill: var(--periwinkle); fill-rule: evenodd; }
 .sd-peg.is-crit { fill: var(--yellow); }
 .sd-peg.is-refresh { fill: var(--teal); }
+.sd-peg.is-pink { fill: var(--pink); }
+.sd-peg.is-coral { fill: var(--coral); }
+.sd-peg.is-white { fill: var(--white); }
+.sd-peg.is-moon { fill: var(--blue); }
 .sd-peg.is-out { visibility: hidden; }
 .sd-peg.is-aimed { stroke: var(--white); stroke-width: 0.7; }
+.sd-peg.is-white.is-aimed { stroke: var(--yellow); }
+/* The blue moon's ring, while it's up. */
+.sd-halo { fill: none; stroke: var(--blue); stroke-width: 0.5; stroke-dasharray: 1.1 0.9; }
 .sd-aim { fill: none; stroke: var(--white); stroke-width: 0.9; stroke-linecap: round; stroke-dasharray: 0 2.4; }
 .sd-ghost { fill: none; stroke: var(--white); stroke-width: 0.35; stroke-dasharray: 0.9 0.7; }
+/* The firework's reach on the aiming line, and its burst. */
+.sd-ring { fill: rgba(249, 135, 118, 0.1); stroke: var(--coral); stroke-width: 0.45; stroke-dasharray: 1.2 0.9; }
+.sd-boom { fill: none; stroke: var(--coral); stroke-width: 1; opacity: 0; }
 .sd-trail { fill: none; stroke: var(--periwinkle); stroke-width: 0.5; stroke-linejoin: round; opacity: 0.5; }
 .sd-ball path { fill: var(--acc); stroke: var(--ink); stroke-width: 0.45; stroke-linejoin: round; }
+/* What a pink, coral or white peg was worth, floating off it; the
+   sparkles off the blue moon. */
+.sd-plus { font-family: var(--font-display); font-size: 3.8px; fill: var(--white); stroke: var(--ink); stroke-width: 0.8px; paint-order: stroke; text-anchor: middle; opacity: 0; }
+.sd-sparks path { fill: var(--yellow); stroke: var(--ink); stroke-width: 0.3; opacity: 0; }
 .sd-tally {
   position: absolute;
   top: 10px;
@@ -1923,7 +1944,40 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .sd-tally[hidden] { display: none; }
 .sd-tally b { font-size: 0.95rem; }
 .sd-tally i { padding: 0 5px; font-style: normal; font-weight: 700; background: var(--yellow); border-radius: 5px; }
+.sd-tally i.is-moon { background: var(--blue); }
 .sd-tally span { font-weight: 700; }
+/* What he says (the blue moon): a bubble under him, its tail his way. */
+.sd-said {
+  position: absolute;
+  z-index: 2;
+  width: max-content;
+  max-width: min(260px, calc(100% - 24px));
+  padding: 5px 12px;
+  font-family: var(--font-display);
+  font-size: var(--fs-small);
+  line-height: 1.3;
+  text-align: center;
+  color: var(--ink);
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  translate: -50% 10px;
+  pointer-events: none;
+}
+.sd-said[hidden] { display: none; }
+.sd-said::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  background: var(--white);
+  border-top: var(--border);
+  border-left: var(--border);
+  rotate: 45deg;
+}
 
 /* The stars, along the bottom, and what you can do. */
 .sd-dock { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 10px; background: var(--white); border-top: var(--border); }
@@ -1977,6 +2031,10 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .gm-up-icon.sd-up-star .sd-star-ico { width: auto; height: auto; background: none; }
 .gm-up-icon.sd-up-star .sd-star-ico svg.doodle { width: 30px; height: 30px; }
 .gm-card .sd-next-night { margin-top: 14px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--ink); }
+/* The Help card's key to the pegs: each one on a bit of night sky. */
+.sd-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; max-width: 420px; margin: 10px auto 0; }
+.sd-legend li { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 2px; font-family: var(--font-mono); font-size: 0.74rem; color: var(--ink); background: var(--periwinkle-tint); border-radius: 8px; }
+.sd-swatch { flex: none; width: 22px; height: 22px; background: var(--ink); border-radius: 6px; }
 /* Too short to play (a phone on its side): a note instead of a sliver of sky. */
 .sd-cramped { display: none; }
 @container (max-height: 200px) {
@@ -2009,6 +2067,14 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   .sd-peg { transform-box: fill-box; transform-origin: center; }
   .sd-peg.is-popping { animation: sd-peg-pop 0.3s ease-out forwards; }
   .sd-peg.is-back { animation: sd-peg-back 0.45s ease-out; }
+  .sd-m.is-pushed .sd-m-body { animation: sd-pushed 0.4s ease; }
+  .sd-peg.is-moon.is-rising { animation: sd-rise 0.7s var(--ease-bounce); }
+  .sd-halo { transform-box: fill-box; transform-origin: center; animation: sd-halo 8s linear infinite; }
+  .sd-boom { transform-box: fill-box; transform-origin: center; animation: sd-boom 0.6s ease-out; }
+  .sd-plus { animation: sd-plus 0.9s ease-out; }
+  .sd-sparks path { transform-box: fill-box; transform-origin: center; animation: sd-spark 0.9s ease-out; }
+  .sd-sky.is-moonlit .sd-frame { animation: sd-moonlit 1s ease-out; }
+  .sd-said.is-in { animation: sd-said 0.3s var(--ease-bounce); }
 }
 @keyframes sd-new { from { opacity: 0; scale: 0.3; } }
 @keyframes sd-hit { 30% { translate: 0 -10%; scale: 1.12 0.86; } 60% { scale: 0.94 1.06; } }
@@ -2020,6 +2086,14 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 @keyframes sd-warn { 50% { scale: 1.15; } }
 @keyframes sd-peg-pop { from { fill: var(--white); transform: scale(1.5); } to { opacity: 0; transform: scale(2.2); } }
 @keyframes sd-peg-back { from { opacity: 0; transform: scale(0.3); } }
+@keyframes sd-pushed { 30% { translate: 12% 0; scale: 0.88 1.1; } }
+@keyframes sd-rise { from { opacity: 0; transform: scale(0.2) rotate(-60deg); } }
+@keyframes sd-halo { to { transform: rotate(360deg); } }
+@keyframes sd-boom { from { opacity: 1; transform: scale(0.15); } 70% { opacity: 0.8; } to { opacity: 0; transform: scale(1); } }
+@keyframes sd-plus { from { opacity: 1; } 60% { opacity: 1; } to { opacity: 0; transform: translateY(-5px); } }
+@keyframes sd-spark { from { opacity: 1; } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.5) rotate(90deg); } }
+@keyframes sd-moonlit { from { fill: var(--blue); fill-opacity: 0.4; stroke: var(--blue); } }
+@keyframes sd-said { from { opacity: 0; scale: 0.8; } }
 
 /* ============================================================
    THE 404 DIALOG AND SMALL DIALOGS

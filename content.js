@@ -588,9 +588,13 @@ window.CONTENT = {
      The pet wizard is asleep, and his nightmares creep along a lane
      towards his bed. In his dream he flicks the star off his hat down
      through a sky of pegs: every peg it pops is damage for the nightmare
-     in the ring, then they all step closer. A run is a week of nights,
-     Monday to Sunday (the Bogeyman's), with a new star or a charm to pick
-     each morning. A visitor's best run is remembered on their computer.
+     in the ring (pink, coral and white pegs count as 2, 3 and 5, and once
+     in a blue moon a moon rises that makes the shot count ten times
+     over), then they all step closer. A run is a week of nights, Monday
+     to Sunday (the Bogeyman's), with a new star or a charm to pick each
+     morning; endless runs carry on into harder and harder weeks. A
+     visitor's best week and best endless run are remembered on their
+     computer.
      • He wears his own drawings from section 8: "aim" (aiming the star),
        "hatless" (his hat without its star, while it flies), "asleep" (in
        bed), "startled" (a nightmare reaching the bed, and the run
@@ -598,6 +602,8 @@ window.CONTENT = {
      • "nightmares": a drawing for each one, a 960×960 transparent PNG in
        assets/Games/, e.g.  shadow: 'assets/Games/Shadow.png',  Until one
        is drawn, a stand-in shows (a coloured blob with eyes and a doodle).
+       The bat and the jack-in-the-box only come in endless runs, from the
+       second week.
      • Each list of lines is said one at random. Empty a list, e.g.
        loseLines: [],  to keep him quiet.
      • "stars" and "charms" are the names and blurbs on the cards he picks
@@ -610,6 +616,8 @@ window.CONTENT = {
       wardrobe: '',   // a wardrobe monster: big and slow, it rests every other turn
       cloud: '',      // a storm cloud that strikes the bed with lightning
       bogeyman: '',   // Sunday night's boss, who calls up shadows
+      bat: '',        // endless only: flutters one square a turn, over anything in its way
+      jack: '',       // endless only: a jack-in-the-box that winds up, then springs three squares
     },
 
     // Each morning, after a night he gets through.
@@ -621,35 +629,50 @@ window.CONTENT = {
     // When he gets through Sunday night.
     winLines: ['a whole week of sweet dreams!', 'the Bogeyman? never heard of him.'],
 
-    // When a run beats your best.
+    // Endless runs: each Monday morning after he gets through another week.
+    weekLines: ['another whole week!', 'Monday again already?'],
+
+    // In a speech bubble, when a shot pops the blue moon.
+    moonLines: ['once in a blue moon!', 'a blue moon! make a wish!'],
+
+    // When a run beats your best (of its kind: week or endless).
     bestLines: ['a new best! sweet dreams indeed.'],
 
     // What he tells the desktop after a run. {night} becomes the night he
-    // reached, like "Thursday".
+    // reached: like "Thursday" in a week, or a number in an endless run.
     deskLines: {
       lose: ['i made it to {night} night in Star Drop!', '{night} night was too scary.'],
       win: ['i slept through a whole week of nightmares!'],
+      endless: ['i made it to night {night} of endless Star Drop!'],
     },
 
     stars: {
-      plain:    { name: 'Plain star',   blurb: 'One damage for every peg it pops.' },
-      split:    { name: 'Split star',   blurb: 'Splits in two on the first peg it touches.' },
-      heavy:    { name: 'Heavy star',   blurb: 'Crashes straight through pegs for 2 damage each, so its whole path shows as you aim.' },
-      bouncy:   { name: 'Bouncy star',  blurb: 'Extra bouncy, and it bounces back up off the bottom once.' },
-      lullaby:  { name: 'Lullaby star', blurb: 'Every nightmare it hits nods off and loses its next turn.' },
-      starfall: { name: 'Starfall',     blurb: 'Every nightmare takes the hit, at half damage.' },
-      big:      { name: 'Big star',     blurb: 'Half as big again, so it pops more pegs.' },
+      plain:    { name: 'Plain star',    blurb: 'One damage for every peg it pops.' },
+      split:    { name: 'Split star',    blurb: 'Splits in two on the first peg it touches.' },
+      heavy:    { name: 'Heavy star',    blurb: 'Crashes straight through pegs for 2 damage each, so its whole path shows as you aim.' },
+      bouncy:   { name: 'Bouncy star',   blurb: 'Extra bouncy, and it bounces back up off the bottom once.' },
+      lullaby:  { name: 'Lullaby star',  blurb: 'Every nightmare it hits nods off and loses its next turn.' },
+      starfall: { name: 'Starfall',      blurb: 'Every nightmare takes the hit, at half damage.' },
+      big:      { name: 'Big star',      blurb: 'Half as big again, so it pops more pegs.' },
+      north:    { name: 'North star',    blurb: 'Flies dead straight until it touches a peg, then falls like the rest.' },
+      firework: { name: 'Firework',      blurb: 'Bursts on the first peg it touches and pops every peg round it. The aiming line shows which.' },
+      snowball: { name: 'Snowball star', blurb: 'Starts small and grows with every peg it pops.' },
+      pillow:   { name: 'Pillow star',   blurb: 'Knocks every nightmare it hits back 2 squares, if there\'s room. The Bogeyman is too heavy to budge.' },
     },
 
     charms: {
-      nightlight:   { name: 'Night light',   blurb: 'Your aiming line shows the second bounce too.' },
-      teddy:        { name: 'Teddy bear',    blurb: 'Guards the bed: the first nightmare or lightning to reach it each night does no harm.' },
-      cocoa:        { name: 'Hot cocoa',     blurb: 'One more heart, and all your hearts back.' },
-      socks:        { name: 'Lucky socks',   blurb: 'One more yellow peg in the sky.' },
-      dreamcatcher: { name: 'Dreamcatcher',  blurb: 'The green peg also hits every nightmare for 5.' },
-      stardust:     { name: 'Stardust',      blurb: 'Every star does one more damage for each peg it pops.' },
-      story:        { name: 'Bedtime story', blurb: 'A yellow peg triples the shot instead of doubling it.' },
-      alarm:        { name: 'Alarm clock',   blurb: 'Once a night, ring it to push every nightmare back two squares. It costs no shot.' },
+      nightlight:   { name: 'Night light',     blurb: 'Your aiming line shows the second bounce too.' },
+      teddy:        { name: 'Teddy bear',      blurb: 'Guards the bed: the first nightmare or lightning to reach it each night does no harm.' },
+      cocoa:        { name: 'Hot cocoa',       blurb: 'One more heart, and all your hearts back.' },
+      socks:        { name: 'Lucky socks',     blurb: 'One more yellow peg in the sky.' },
+      dreamcatcher: { name: 'Dreamcatcher',    blurb: 'The green peg also hits every nightmare for 5.' },
+      stardust:     { name: 'Stardust',        blurb: 'Every star does one more damage for each peg it pops.' },
+      story:        { name: 'Bedtime story',   blurb: 'A yellow peg triples the shot instead of doubling it.' },
+      alarm:        { name: 'Alarm clock',     blurb: 'Once a night, ring it to push every nightmare back two squares. It costs no shot.' },
+      jar:          { name: 'Star jar',        blurb: 'Pink, coral and white pegs each count as one more peg.' },
+      telescope:    { name: 'Telescope',       blurb: 'Spots the blue moon 3 times as often.' },
+      slippers:     { name: 'Fluffy slippers', blurb: 'One more star swap each night.' },
+      sheep:        { name: 'Counting sheep',  blurb: 'Every fourth turn, the nightmare nearest the bed nods off and misses it.' },
     },
   },
 

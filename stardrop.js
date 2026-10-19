@@ -9,14 +9,17 @@
 
    The pet wizard is asleep, and his nightmares are creeping along a lane
    towards his bed. In his dream he flicks the star off his hat down
-   through a sky of pegs: every peg it touches pops and adds damage, a
-   yellow peg doubles the shot and the green one lights every peg again.
-   The damage lands on the nightmare in the ring (pick another to change
+   through a sky of pegs: every peg it touches pops and adds damage (a
+   pink, coral or white one counts as several), a yellow peg doubles the
+   shot and the green one lights every peg again. Once in a blue moon a
+   moon rises, and the shot that pops it counts ten times over. The
+   damage lands on the nightmare in the ring (pick another to change
    that), then every nightmare steps closer. One that reaches the bed
    costs hearts. Nothing moves while you aim, and a shot can be skipped
    to its end. A run is a week of nights, Monday to Sunday (the
-   Bogeyman's), with a new star or a charm to pick each morning. Lose
-   every heart and the run is over. Each visitor's best is kept.
+   Bogeyman's), with a new star or a charm to pick each morning; endless
+   runs carry on into harder weeks until his hearts run out. Lose every
+   heart and the run is over. Each visitor's best is kept, one for each.
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -30,21 +33,42 @@
   const RM = K.REDUCE_MOTION;
 
   /* ---------- the rules, in numbers ---------- */
-  const STORE_KEY = 'kasai:stardrop'; // { best: { score, night, won, at } }
+  const STORE_KEY = 'kasai:stardrop'; // { best: { score, night, won, at }, endless: { score, night, at } }
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const NIGHTS = DAYS.length; // a week; Sunday night is the Bogeyman's
   const LANE = 7;             // squares between the dark and his bed
   const HEARTS = 5;           // at the start of a run
   const MOST_HEARTS = 8;      // Hot cocoa stops offering itself here
-  const SWAPS = 1;            // star swaps each night
+  const SWAPS = 1;            // star swaps each night (Fluffy slippers add more)
   const MOST_POLISH = 2;      // times a kind of star can be polished (one more damage a peg each time)
-  const CRITS = 2;            // yellow pegs in the sky (Lucky socks add more)
   const REFILL = 0.3;         // every peg comes back once fewer than this share are left
   const CLOUD_STOP = 3;       // storm clouds come no closer than four squares from the bed
   const CLOUD_EVERY = 3;      // turns between a storm cloud's lightning strikes
   const CATCH = 5;            // the Dreamcatcher's damage to every nightmare
   const CALLED_HP = 36;       // a shadow the Bogeyman calls up
-  const POINTS = { peg: 1, nightmare: 10, bogeyman: 200, night: 100, win: 300, heart: 50 };
+  const PUSH = 2;             // squares the Pillow star knocks a nightmare back
+  const SHEEP = 4;            // Counting sheep: a nightmare nods off every this many turns
+  const MOON = 10;            // the blue moon multiplies the shot by this...
+  const MOON_ODDS = 100;      // ...and rises before about one shot in this many
+  const SPOTTED = 3;          // ...or this many times as often with the Telescope
+  const GROW = 1.1;           // endless: nightmares get this much tougher every night after the first week
+  const POINTS = { peg: 1, moon: 100, nightmare: 10, bogeyman: 200, night: 100, win: 300, heart: 50 };
+
+  /* ---------- the pegs ----------
+     Most are plain (lavender, worth one peg each). Before every shot a
+     few light up as something else, each in its own colour and shape, so
+     colour is never the only clue. n: how many light up. worth: how many
+     pegs it counts as. times: what it multiplies the whole shot by. The
+     blue moon is rare: it rises now and then and stays up until it's
+     popped (or the night's over). */
+  const KINDS = {
+    crit:    { n: 2, times: 2, said: 'a yellow peg' },  // Lucky socks add more; the Bedtime story makes it 3
+    refresh: { n: 1, said: 'the green peg' },           // every peg comes back after the shot
+    pink:    { n: 3, worth: 2, said: 'a pink peg' },
+    coral:   { n: 2, worth: 3, said: 'a coral peg' },
+    white:   { n: 1, worth: 5, said: 'a white peg' },
+    moon:    { times: MOON, said: 'the blue moon' },
+  };
 
   /* ---------- the stars (one comes out of the bag for every shot) ----------
      dmg: damage for each peg it pops. r: its size, in the sky's units.
@@ -58,6 +82,13 @@
     lullaby: { colour: 'lavender', name: 'Lullaby star', blurb: 'Every nightmare it hits nods off and loses its next turn.', dmg: 1, r: 1.7, lull: true },
     starfall: { colour: 'blue', name: 'Starfall', blurb: 'Every nightmare takes the hit, at half damage.', dmg: 1, r: 1.7, all: true },
     big: { colour: 'yellow', name: 'Big star', blurb: 'Half as big again, so it pops more pegs.', dmg: 1, r: 2.6 },
+    // straight: no falling until its first peg. burst: how far round its
+    // first peg the firework pops. grow/most: the snowball's growth with
+    // each peg, and its biggest. push: squares a hit knocks a nightmare back.
+    north: { colour: 'grey', name: 'North star', blurb: 'Flies dead straight until it touches a peg, then falls like the rest.', dmg: 1, r: 2.2, straight: true },
+    firework: { colour: 'coral', name: 'Firework', blurb: 'Bursts on the first peg it touches and pops every peg round it. The aiming line shows which.', dmg: 1, r: 1.7, burst: 15 },
+    snowball: { colour: 'blue', name: 'Snowball star', blurb: 'Starts small and grows with every peg it pops.', dmg: 1, r: 1.4, grow: 0.3, most: 3.6 },
+    pillow: { colour: 'lavender', name: 'Pillow star', blurb: `Knocks every nightmare it hits back ${PUSH} squares, if there's room. The Bogeyman is too heavy to budge.`, dmg: 1, r: 1.7, push: PUSH },
   };
   const STAR_IDS = Object.keys(STARS);
 
@@ -71,6 +102,10 @@
     stardust: { colour: 'ink', icon: 'star', name: 'Stardust', blurb: 'Every star does one more damage for each peg it pops.', most: 2 },
     story: { colour: 'blue', icon: 'book', name: 'Bedtime story', blurb: 'A yellow peg triples the shot instead of doubling it.', most: 1 },
     alarm: { colour: 'grey', icon: 'alarm', name: 'Alarm clock', blurb: 'Once a night, ring it to push every nightmare back two squares. It costs no shot.', most: 2 },
+    jar: { colour: 'yellow', icon: 'jar', name: 'Star jar', blurb: 'Pink, coral and white pegs each count as one more peg.', most: 2 },
+    telescope: { colour: 'blue', icon: 'telescope', name: 'Telescope', blurb: `Spots the blue moon ${SPOTTED} times as often.`, most: 1 },
+    slippers: { colour: 'pink', icon: 'slipper', name: 'Fluffy slippers', blurb: 'One more star swap each night.', most: 2 },
+    sheep: { colour: 'grey', icon: 'sheep', name: 'Counting sheep', blurb: 'Every fourth turn, the nightmare nearest the bed nods off and misses it.', most: 1 }, // fourth: SHEEP
   };
   const CHARM_IDS = Object.keys(CHARMS);
   // The names and blurbs can be reworded in content.js.
@@ -93,6 +128,9 @@
     wardrobe: { name: 'Wardrobe monster', hp: 40, hearts: 2, icon: 'door', rule: 'Big and slow: it rests, then steps, turn about. It costs two hearts if it reaches the bed.' },
     cloud: { name: 'Storm cloud', hp: 20, hearts: 1, icon: 'cloud', rule: 'Drifts in to four squares from the bed, and strikes the bed with lightning every third turn.' },
     bogeyman: { name: 'The Bogeyman', hp: 480, hearts: 0, icon: 'eye', rule: 'Takes a step every third turn and calls up a shadow every other turn. If he reaches the bed, the run is over.' },
+    // Endless only, from the second week.
+    bat: { name: 'Bat', hp: 12, hearts: 1, icon: 'bat', rule: 'Flutters one square closer every turn, and flies straight over anything in its way.' },
+    jack: { name: 'Jack-in-the-box', hp: 30, hearts: 1, icon: 'jack', rule: 'Winds up for two turns, then springs three squares.' },
   };
   // Who comes each night, in order, and the earliest turn each can creep
   // in (one at a time, onto the far square once it's free).
@@ -105,7 +143,25 @@
     [['wardrobe', 0], ['cloud', 1], ['spider', 2], ['shadow', 3], ['spider', 4], ['wardrobe', 5], ['cloud', 6]],
     [['bogeyman', 0], ['cloud', 5]],
   ];
-  const TOUGHER = [1, 1.35, 1.8, 2.3, 2.85, 3.1, 3.1]; // their hit points, night by night (not the Bogeyman's)
+  const TOUGHER = [1.25, 1.6, 2.05, 2.5, 2.9, 3, 3.1]; // their hit points, night by night (not the Bogeyman's)
+
+  // Endless: after the first week each night is that weekday's nightmares
+  // again, plus a newcomer for every week gone (up to three), in a fresh
+  // order. Sunday is the Bogeyman's every week. Everything, him included,
+  // gets a little tougher every night.
+  const NEWCOMERS = ['bat', 'jack'];
+  const weekOf = (n) => Math.ceil(n / NIGHTS);
+  const extrasOn = (n) => (n > NIGHTS && n % NIGHTS ? Math.min(3, weekOf(n) - 1) : 0);
+  const tougher = (n) => (n <= NIGHTS ? 1 : Math.pow(GROW, n - NIGHTS));
+  const hpOn = (n, type) => Math.round(TYPES[type].hp * (type === 'bogeyman' ? 1 : TOUGHER[Math.min(n, NIGHTS) - 1]) * tougher(n));
+  const comingOn = (n) => PLAN[(n - 1) % NIGHTS].length + extrasOn(n);
+  function planFor(n) {
+    const plan = PLAN[(n - 1) % NIGHTS];
+    if (n <= NIGHTS || n % NIGHTS === 0) return plan;
+    const types = plan.map(([type]) => type);
+    for (let k = 0; k < extrasOn(n); k++) types.push(NEWCOMERS[(n + k) % NEWCOMERS.length]);
+    return shuffle(types).map((type, k) => [type, k]);
+  }
 
   /* ---------- the game's own doodles (they join the shared set) ---------- */
   const ICONS = {
@@ -123,6 +179,12 @@
     alarm: '<circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.4 1.6M4.5 6.6 7.2 4M19.5 6.6 16.8 4M7.4 19l-1.6 2M16.6 19l1.6 2"/>',
     swap: '<path d="M5 8h13M14.5 4.5 18 8l-3.5 3.5M19 16H6M9.5 12.5 6 16l3.5 3.5"/>',
     skip: '<path d="M4.5 6.5 11 12l-6.5 5.5zM12.5 6.5 19 12l-6.5 5.5z"/>',
+    jar: '<rect x="7.5" y="3" width="9" height="3.2" rx="1"/><path d="M8.5 6.2v1.6A3.5 3.5 0 0 0 6 11.2V18a2.5 2.5 0 0 0 2.5 2.5h7A2.5 2.5 0 0 0 18 18v-6.8a3.5 3.5 0 0 0-2.5-3.4V6.2"/><path d="M12 11.2l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3z"/>',
+    telescope: '<path d="M3.5 13.6 14.6 7.5l2.1 3.9-11.1 6.1z"/><path d="M14.6 7.5 18 5.6l2.6 4.8-3.9 1"/><path d="M10.4 14.4 7.4 21M11 14.2l3.4 6.8"/>',
+    slipper: '<path d="M3.5 17.2c0-2 1.6-3.6 3.6-3.6h2.6c1.4 0 2.7-.6 3.7-1.5l1.7-1.6a3.4 3.4 0 0 1 5.4 1.1c.3.6.5 1.3.5 2v3.6c0 1.2-1 2.2-2.2 2.2H5.7a2.2 2.2 0 0 1-2.2-2.2z"/><path d="M12.6 12.4c1.2 1.4 3 2.2 4.8 2"/>',
+    sheep: '<path d="M8.2 17.2a3 3 0 0 1-1.6-5.5 3 3 0 0 1 4.6-3.4 3 3 0 0 1 5 .7 2.9 2.9 0 0 1 1 5.4 2.9 2.9 0 0 1-2.8 2.8z"/><path d="M17.4 10.2l1.7-.5a1.6 1.6 0 0 1 .9 3.1l-1.8.4M9.2 17.2v3.2M14 17.2v3.2"/>',
+    bat: '<path d="M12 9c-1.1 0-1.9.9-2 2-1.6-1.4-3.7-2.1-6.3-1.8 1.1 1.3 1.4 2.8 1.1 4.4 1.3-.6 2.6-.5 3.7.4.3-1 1.3-1.6 2.3-1.2.2 1 .6 1.8 1.2 2.3.6-.5 1-1.3 1.2-2.3 1-.4 2 .2 2.3 1.2 1.1-.9 2.4-1 3.7-.4-.3-1.6 0-3.1 1.1-4.4-2.6-.3-4.7.4-6.3 1.8-.1-1.1-.9-2-2-2z"/><path d="M10.9 9.3 10.4 7M13.1 9.3l.5-2.3"/>',
+    jack: '<rect x="5" y="13.5" width="14" height="7.5" rx="1.5"/><path d="M12 13.5 9.8 12.4l4.4-1.3-4.4-1.3L12 8.7"/><circle cx="12" cy="5.8" r="2.3"/>',
   };
   Object.keys(ICONS).forEach((k) => { if (!K.DOODLE_ICONS[k]) K.DOODLE_ICONS[k] = ICONS[k]; });
 
@@ -147,9 +209,15 @@
     nightLines: ['phew. what a night.', 'five more minutes...', 'one night down.'],
     loseLines: ['AAAH! ...oh. it was only a dream.', 'i am sleeping with the light on.'],
     winLines: ['a whole week of sweet dreams!', 'the Bogeyman? never heard of him.'],
+    weekLines: ['another whole week!', 'Monday again already?'],
+    moonLines: ['once in a blue moon!', 'a blue moon! make a wish!'],
     bestLines: ['a new best! sweet dreams indeed.'],
   };
-  const DESK_LINES = { lose: ['i made it to {night} night in Star Drop!'], win: ['i slept through a whole week of nightmares!'] };
+  const DESK_LINES = {
+    lose: ['i made it to {night} night in Star Drop!'],
+    win: ['i slept through a whole week of nightmares!'],
+    endless: ['i made it to night {night} of endless Star Drop!'],
+  };
   const rand = (n) => Math.floor(Math.random() * n);
   const pick = (list) => (list.length ? list[rand(list.length)] : '');
   const shuffle = (list) => {
@@ -166,9 +234,10 @@
     : typeof v === 'string' ? (v ? [v] : []) : fallback);
   const lineOf = (key) => pick(linesOf(S[key], DEFAULT_LINES[key]));
 
-  /* ---------- the best run (kept per visitor) ---------- */
-  const bestRun = () => {
-    const b = (K.store.get(STORE_KEY, null) || {}).best;
+  /* ---------- the best runs (kept per visitor: one for the week, one endless) ---------- */
+  const SLOTS = { week: 'best', endless: 'endless' };
+  const bestRun = (mode) => {
+    const b = (K.store.get(STORE_KEY, null) || {})[SLOTS[mode] || 'best'];
     return b && Number.isFinite(b.score) && b.score > 0 ? b : null;
   };
 
@@ -183,6 +252,8 @@
   const H = 100;
   const HAT = { x: 50, y: 4.3 }; // the star on his hat, where every shot starts
   const PEG_R = 1.5;
+  const MOON_R = 2.4;    // the blue moon is bigger than a peg (and easier to hit)
+  const BURST_LAG = 0.005; // seconds a firework's burst takes to reach each unit further out
   const GRAVITY = 95;
   const LAUNCH = 58;     // how fast he flicks it
   const BOUNCE = 0.62;   // the share of its speed a peg gives back
@@ -257,9 +328,11 @@
   };
   const SKY_NAMES = Object.keys(SKIES);
 
-  // One step of a falling star: gravity, then the sides and the top.
-  function move(b, r) {
-    b.vy += GRAVITY * DT;
+  // One step of a falling star: gravity (not for the North star until its
+  // first peg), then the sides and the top. b.r is its size right now.
+  function move(b) {
+    const r = b.r;
+    if (!b.straight) b.vy += GRAVITY * DT;
     b.x += b.vx * DT;
     b.y += b.vy * DT;
     if (b.x < r) { b.x = r; b.vx = Math.abs(b.vx) * WALL; }
@@ -267,27 +340,28 @@
     if (b.y < r) { b.y = r; b.vy = Math.abs(b.vy) * WALL; }
   }
   // The bouncy star's one bounce off the bottom.
-  function floorBounce(b, r) {
-    if (!b.floor || b.y <= H - r || b.vy <= 0) return false;
+  function floorBounce(b) {
+    if (!b.floor || b.y <= H - b.r || b.vy <= 0) return false;
     b.floor--;
-    b.y = H - r;
+    b.y = H - b.r;
     b.vy = -b.vy * 0.95;
     return true;
   }
+  const pegR = (f, i) => (i === f.moon ? MOON_R : PEG_R);
   // The first lit peg it's touching (-1 for none).
-  function touching(f, live, b, r) {
-    const reach = (r + PEG_R) * (r + PEG_R);
+  function touching(f, live, b) {
     for (let i = 0; i < live.length; i++) {
       if (!live[i]) continue;
       const p = f.pegs[i];
       const dx = b.x - p.x;
       const dy = b.y - p.y;
-      if (dx * dx + dy * dy < reach) return i;
+      const reach = b.r + pegR(f, i);
+      if (dx * dx + dy * dy < reach * reach) return i;
     }
     return -1;
   }
   // Off a peg: it comes away along the line between them, a little slower.
-  function bounce(b, p, r, give) {
+  function bounce(b, p, give, pr) {
     const dx = b.x - p.x;
     const dy = b.y - p.y;
     const d = Math.hypot(dx, dy) || 1;
@@ -298,8 +372,19 @@
       b.vx -= (1 + give) * vn * nx;
       b.vy -= (1 + give) * vn * ny;
     }
-    b.x = p.x + nx * (r + PEG_R);
-    b.y = p.y + ny * (r + PEG_R);
+    b.x = p.x + nx * (b.r + pr);
+    b.y = p.y + ny * (b.r + pr);
+  }
+  // A firework's burst: every other lit peg round peg i, nearest first.
+  function burstRound(f, live, i, reach) {
+    const c = f.pegs[i];
+    const out = [];
+    for (let j = 0; j < live.length; j++) {
+      if (!live[j] || j === i) continue;
+      const d = Math.hypot(f.pegs[j].x - c.x, f.pegs[j].y - c.y);
+      if (d <= reach) out.push({ j, d });
+    }
+    return out.sort((a, b) => a.d - b.d);
   }
   // A split star's two halves leave the peg either side of the bounce.
   function halve(b, extra) {
@@ -317,19 +402,26 @@
   }
   const flick = (angle, st) => {
     const a = (angle * Math.PI) / 180;
-    return { x: HAT.x, y: HAT.y, vx: Math.sin(a) * LAUNCH, vy: Math.cos(a) * LAUNCH, floor: st.floor || 0 };
+    return { x: HAT.x, y: HAT.y, vx: Math.sin(a) * LAUNCH, vy: Math.cos(a) * LAUNCH, floor: st.floor || 0, r: st.r, straight: !!st.straight };
+  };
+  // What a peg does to a star that touches it, before the star moves on:
+  // the North star starts falling, and the snowball grows.
+  const touched = (b, st) => {
+    b.straight = false;
+    if (st.grow) b.r = Math.min(st.most, b.r + st.grow);
   };
 
   // A whole shot: every star's path (points of [time, x, y], to draw it
-  // by), the pegs it pops and when, and when it's over.
+  // by), its size as it grows ([time, size], the snowball's), the pegs it
+  // pops and when, the firework's burst, and when it's all over.
   function fly(f, angle, id) {
     const st = STARS[id];
-    const r = st.r;
     const live = f.live.slice();
-    const first = Object.assign(flick(angle, st), { from: 0, until: 0, pts: [0, HAT.x, HAT.y] });
+    const first = Object.assign(flick(angle, st), { from: 0, until: 0, pts: [0, HAT.x, HAT.y], sizes: [] });
     const balls = [first];
     const pops = [];
     const floors = [];
+    let burst = null;
     let split = !!st.split;
     let n = 0;
     while (n * DT < LONGEST && balls.some((b) => !b.until)) {
@@ -338,54 +430,75 @@
       for (let k = 0; k < balls.length; k++) {
         const b = balls[k];
         if (b.until) continue;
-        move(b, r);
-        if (floorBounce(b, r)) floors.push({ t, x: b.x });
-        if (b.y > H + r) { b.until = t; b.pts.push(t, b.x, b.y); continue; }
+        move(b);
+        if (floorBounce(b)) floors.push({ t, x: b.x });
+        if (b.y > H + b.r) { b.until = t; b.pts.push(t, b.x, b.y); continue; }
         // The heavy star pops everything in its way; the others bounce.
-        for (let i = touching(f, live, b, r); i >= 0; i = st.heavy ? touching(f, live, b, r) : -1) {
+        for (let i = touching(f, live, b); i >= 0; i = st.heavy ? touching(f, live, b) : -1) {
           live[i] = false;
           pops.push({ t, i });
+          // The firework bursts on its first peg, and that's the end of it.
+          if (st.burst) {
+            const p = f.pegs[i];
+            burst = { t, x: p.x, y: p.y, r: st.burst };
+            burstRound(f, live, i, st.burst).forEach(({ j, d }) => { live[j] = false; pops.push({ t: t + d * BURST_LAG, i: j }); });
+            b.until = t;
+            b.pts.push(t, b.x, b.y);
+            break;
+          }
+          touched(b, st);
+          if (st.grow) b.sizes.push(t, b.r);
           if (st.heavy) continue;
-          bounce(b, f.pegs[i], r, st.give || BOUNCE);
+          bounce(b, f.pegs[i], st.give || BOUNCE, pegR(f, i));
           if (split) {
             split = false;
-            balls.push(halve(b, { from: t, until: 0, pts: [t, b.x, b.y] }));
+            balls.push(halve(b, { from: t, until: 0, pts: [t, b.x, b.y], sizes: [] }));
           }
         }
       }
       if (n % SAMPLE === 0) balls.forEach((b) => { if (!b.until) b.pts.push(t, b.x, b.y); });
     }
-    const end = n * DT;
-    balls.forEach((b) => { if (!b.until) { b.until = end; b.pts.push(end, b.x, b.y); } });
-    return { star: id, angle, balls, pops, floors, end };
+    const end = Math.max(n * DT, pops.length ? pops[pops.length - 1].t : 0);
+    balls.forEach((b) => { if (!b.until) { b.until = n * DT; b.pts.push(n * DT, b.x, b.y); } });
+    return { star: id, angle, balls, pops, floors, burst, end };
   }
 
   // The aiming line: from his hat to the first peg it would touch (the
   // second with the Night light), then a little way along the bounce. The
-  // heavy star never bounces, so its line runs all the way down.
+  // heavy star never bounces, so its line runs all the way down; the
+  // firework's stops where it bursts, with a ring round every peg it pops.
   function aimLine(f, angle, id) {
     const st = STARS[id];
-    const r = st.r;
     const live = f.live.slice();
     const sees = st.heavy ? Infinity : 1 + (run && run.have.nightlight ? 1 : 0);
-    const out = { lines: [], touched: [], marks: [] };
+    const out = { lines: [], touched: [], marks: [], ring: null };
     let split = !!st.split;
     const trace = (b, seen) => {
       const pts = [b.x, b.y];
       let stub = -1; // steps left once it has seen enough
       for (let n = 1; n * DT < LONGEST; n++) {
-        move(b, r);
-        floorBounce(b, r);
+        move(b);
+        floorBounce(b);
         if (n % 2 === 0) pts.push(b.x, b.y);
-        if (b.y > H + r || (stub >= 0 && --stub < 0)) break;
-        const i = touching(f, live, b, r);
+        if (b.y > H + b.r || (stub >= 0 && --stub < 0)) break;
+        const i = touching(f, live, b);
         if (i < 0) continue;
         if (stub >= 0) break; // the stub stops short of the next peg
         live[i] = false;
         out.touched.push(i);
+        if (st.burst) {
+          const p = f.pegs[i];
+          out.marks.push([b.x, b.y, b.r]);
+          out.ring = { x: p.x, y: p.y, r: st.burst };
+          burstRound(f, live, i, st.burst).forEach(({ j }) => { live[j] = false; out.touched.push(j); });
+          pts.push(b.x, b.y);
+          break;
+        }
+        const r = b.r;
+        touched(b, st);
         if (st.heavy) continue;
-        out.marks.push([b.x, b.y]);
-        bounce(b, f.pegs[i], r, st.give || BOUNCE);
+        out.marks.push([b.x, b.y, r]);
+        bounce(b, f.pegs[i], st.give || BOUNCE, pegR(f, i));
         pts.push(b.x, b.y);
         seen++;
         if (split) {
@@ -401,9 +514,9 @@
     // Just the short stub, for the second half of a split star.
     const stubOf = (b, pts) => {
       for (let n = 1; n <= STUB; n++) {
-        move(b, r);
+        move(b);
         if (n % 2 === 0) pts.push(b.x, b.y);
-        if (touching(f, live, b, r) >= 0) break;
+        if (touching(f, live, b) >= 0) break;
       }
     };
     trace(flick(angle, st), 0);
@@ -423,16 +536,23 @@
   const alive = (m) => m.hp > 0 && !m.gone;
   const at = (f, sq) => f.ms.find((m) => m.sq === sq && alive(m)) || null;
   const byLane = (f) => f.ms.filter(alive).sort((a, b) => a.sq - b.sq);
-  const dayOf = (n) => DAYS[Math.max(0, Math.min(NIGHTS, n) - 1)];
+  const dayOf = (n) => DAYS[(Math.max(1, n) - 1) % NIGHTS];
+  const endless = () => !!(run && run.mode === 'endless');
+  // "Thursday night" in a week; "night 11 (Thursday)" when it's endless.
+  const nightName = (n) => (endless() ? `night ${n} (${dayOf(n)})` : `${dayOf(n)} night`);
   const critTimes = () => (run.have.story ? 3 : 2);
   const perPeg = (id) => STARS[id].dmg + run.level[id] + run.have.stardust;
+  // What a popped peg counts as: one, or more for a pink, coral or white
+  // one (and one more each with every Star jar).
+  const worthOf = (kind) => (KINDS[kind] && KINDS[kind].worth ? KINDS[kind].worth + run.have.jar : 1);
   const away = (m) => plural(m.sq + 1, 'square');
 
-  function newRun() {
+  // mode: 'week' (Monday to Sunday) or 'endless'.
+  function newRun(mode) {
     if (run && !run.recorded && run.score > 0) finishRun(false); // a run left halfway still counts
     // step: 'aim', 'shot' (the star's falling), 'busy' (the nightmares'
     // turn), 'pick' (a star or a charm), 'over' or 'won'.
-    run = { n: 1, score: 0, hearts: HEARTS, max: HEARTS, bag: ['plain', 'plain', 'plain'], level: {}, have: {}, step: 'aim', night: null, shot: null, offer: null, sky: '', beaten: 0, pegs: 0 };
+    run = { mode: mode === 'endless' ? 'endless' : 'week', n: 1, score: 0, hearts: HEARTS, max: HEARTS, bag: ['plain', 'plain', 'plain'], level: {}, have: {}, step: 'aim', night: null, shot: null, offer: null, sky: '', beaten: 0, pegs: 0, moons: 0, seen: {} };
     CHARM_IDS.forEach((id) => { run.have[id] = 0; });
     STAR_IDS.forEach((id) => { run.level[id] = 0; });
     if (view) { view.help = false; view.peek = false; }
@@ -447,13 +567,14 @@
       n,
       pegs,
       live: pegs.map(() => true),
-      kinds: {},     // peg -> 'crit' (yellow) or 'refresh' (green)
+      kinds: {},     // peg -> its kind, when it isn't plain (see KINDS)
+      moon: -1,      // the peg the blue moon is on, while it's up
       ms: [],        // the nightmares
       nextId: 1,
-      queue: PLAN[n - 1].map(([type, when]) => ({ type, when })),
+      queue: planFor(n).map(([type, when]) => ({ type, when })),
       turn: 0,
       stars: shuffle(run.bag.slice()), // the bag: the first one is next to drop
-      swaps: SWAPS,
+      swaps: SWAPS + run.have.slippers,
       alarms: run.have.alarm,
       guards: run.have.teddy,
       lost: 0,       // hearts lost tonight
@@ -465,7 +586,7 @@
     run.offer = null;
     run.shot = null;
     arrive(f, []);
-    roll(f);
+    const moon = roll(f);
     deal(f);
     target(f);
     if (view) {
@@ -474,8 +595,19 @@
       syncCard(false);
       focusSky();
     }
-    if (n === NIGHTS) say("Sunday night. The Bogeyman is coming, and he's calling up shadows as he goes.", 4600);
-    else say(`${dayOf(n)} night: ${plural(f.queue.length + f.ms.length, 'nightmare')} to fight off.`, 3200);
+    // Newcomers get a word the first night they turn up.
+    const tonight = f.ms.map((m) => m.type).concat(f.queue.map((q) => q.type));
+    const fresh = NEWCOMERS.filter((type) => !run.seen[type] && tonight.indexOf(type) !== -1);
+    tonight.forEach((type) => { run.seen[type] = true; });
+    const news = fresh.length ? ` New tonight: ${fresh.map((type) => `the ${TYPES[type].name.toLowerCase()}, which ${TYPES[type].rule.charAt(0).toLowerCase()}${TYPES[type].rule.slice(1, -1)}`).join('; and ')}.` : '';
+    const count = plural(f.queue.length + f.ms.length, 'nightmare');
+    const up = moon ? ' And a blue moon is up!' : '';
+    if (n % NIGHTS === 0) {
+      say(n === NIGHTS
+        ? `${endless() ? 'Night 7: ' : ''}Sunday night. The Bogeyman is coming, and he's calling up shadows as he goes.${up}`
+        : `Night ${n}: Sunday again. The Bogeyman is back, tougher than last week.${up}`, 4600);
+    } else if (endless()) say(`Night ${n}, ${dayOf(n)}${n > NIGHTS ? ` of week ${weekOf(n)}` : ''}: ${count} to fight off.${news}${up}`, news ? 6400 : 3200);
+    else say(`${dayOf(n)} night: ${count} to fight off.${up}`, 3200);
   }
 
   // Keep at least two stars in sight: the one to drop and the next.
@@ -483,17 +615,26 @@
     while (f.stars.length < 2) f.stars.push(...shuffle(run.bag.slice()));
   }
 
-  // The yellow and green pegs move to new spots before every shot.
+  // The coloured pegs move to new spots before every shot. The blue moon
+  // stays where it is until it's popped; while it's down, there's a small
+  // chance it rises (true when it does).
   function roll(f) {
     f.kinds = {};
-    const lit = shuffle(range(f.pegs.length).filter((i) => f.live[i]));
-    const crits = Math.min(lit.length, CRITS + run.have.socks);
-    lit.slice(0, crits).forEach((i) => { f.kinds[i] = 'crit'; });
-    if (lit.length > crits) f.kinds[lit[crits]] = 'refresh';
+    if (f.moon >= 0 && f.live[f.moon]) f.kinds[f.moon] = 'moon';
+    else f.moon = -1;
+    const lit = shuffle(range(f.pegs.length).filter((i) => f.live[i] && i !== f.moon));
+    let k = 0;
+    const light = (kind, n) => { for (let j = 0; j < n && k < lit.length; j++) f.kinds[lit[k++]] = kind; };
+    light('crit', KINDS.crit.n + run.have.socks);
+    ['refresh', 'pink', 'coral', 'white'].forEach((kind) => light(kind, KINDS[kind].n));
+    if (f.moon >= 0 || k >= lit.length || Math.random() * MOON_ODDS >= (run.have.telescope ? SPOTTED : 1)) return false;
+    f.moon = lit[k];
+    f.kinds[f.moon] = 'moon';
+    return true;
   }
 
   function add(f, type, called) {
-    const hp = type === 'bogeyman' ? TYPES.bogeyman.hp : called ? CALLED_HP : Math.round(TYPES[type].hp * TOUGHER[f.n - 1]);
+    const hp = called ? Math.round(CALLED_HP * tougher(f.n)) : hpOn(f.n, type);
     const m = { id: f.nextId++, type, sq: LANE - 1, hp, max: hp, tick: 0, charge: CLOUD_EVERY, sleep: 0, gone: false };
     f.ms.push(m);
     return m;
@@ -525,14 +666,25 @@
     if (m.type === 'wardrobe') return { steps: m.tick % 2 ? 1 : 0 };
     if (m.type === 'cloud') return { steps: m.sq > CLOUD_STOP ? 1 : 0, zap: m.charge <= 1 };
     if (m.type === 'bogeyman') return { steps: m.tick % 3 === 2 ? 1 : 0, call: m.tick % 2 === 1 };
+    if (m.type === 'jack') return { steps: m.tick % 3 === 2 ? 3 : 0, spring: 3 - (m.tick % 3) };
     return { steps: 1 };
   }
 
+  // Counting sheep: the one that nods off on their next turn (if it's a
+  // sheep's turn): the nearest the bed that's still awake.
+  const sheepNext = (f) => (run.have.sheep && (f.turn + 1) % SHEEP === 0 ? byLane(f).find((m) => m.sleep <= 0) || null : null);
+
   // The nightmares' turn, nearest the bed first: each steps (no further
-  // than the square behind the next one), storm clouds count down, and
-  // new ones creep in. `dry`: a look ahead, so the hearts stay put.
+  // than the square behind the next one, except a bat), storm clouds
+  // count down, and new ones creep in. `dry`: a look ahead, so the hearts
+  // stay put.
   function creep(f, ev, dry) {
+    const sheep = sheepNext(f);
     f.turn++;
+    if (sheep) {
+      sheep.sleep = 1;
+      ev.push({ t: 'sheep', id: sheep.id, type: sheep.type });
+    }
     let calls = 0;
     byLane(f).forEach((m) => {
       if (!alive(m)) return;
@@ -540,7 +692,13 @@
       const p = plan(m);
       m.tick++;
       const from = m.sq;
-      for (let k = p.steps; k > 0; k--) {
+      if (m.type === 'bat') {
+        // It flies over anything in its way, onto the next free square.
+        let to = m.sq - 1;
+        while (to >= 0 && at(f, to)) to--;
+        if (to < 0) reachBed(f, m, ev, dry);
+        else m.sq = to;
+      } else for (let k = p.steps; k > 0; k--) {
         if (m.sq === 0) { reachBed(f, m, ev, dry); break; }
         if (at(f, m.sq - 1)) break;
         m.sq--;
@@ -617,12 +775,16 @@
     if (!playing()) return;
     const f = run.night;
     run.shot = fly(f, f.aim, f.stars[0]);
+    // What he'll say if it pops the blue moon.
+    if (run.shot.pops.some((p) => f.kinds[p.i] === 'moon')) run.shot.said = lineOf('moonLines');
     run.step = 'shot';
     if (view && !RM) play(run.shot);
     else land();
   }
 
-  // The star's gone: its pegs pop, the damage lands.
+  // The star's gone: its pegs pop, the damage lands. Each peg counts as
+  // its worth (one, unless it's pink, coral or white); a yellow peg and
+  // the blue moon multiply the lot.
   function land() {
     const f = run.night;
     const shot = run.shot;
@@ -631,16 +793,22 @@
     const ev = [];
     const pops = shot.pops.map((p) => p.i);
     pops.forEach((i) => { f.live[i] = false; });
-    const crit = pops.some((i) => f.kinds[i] === 'crit');
-    const fresh = pops.some((i) => f.kinds[i] === 'refresh');
-    const dmg = pops.length * perPeg(shot.star) * (crit ? critTimes() : 1);
-    run.score += pops.length * POINTS.peg;
+    const has = (kind) => pops.some((i) => f.kinds[i] === kind);
+    const crit = has('crit');
+    const fresh = has('refresh');
+    const moon = has('moon');
+    const worth = pops.reduce((sum, i) => sum + worthOf(f.kinds[i]), 0);
+    const times = (crit ? critTimes() : 1) * (moon ? MOON : 1);
+    const dmg = worth * perPeg(shot.star) * times;
+    run.score += worth * POINTS.peg + (moon ? POINTS.moon : 0);
     run.pegs += pops.length;
-    ev.push({ t: 'shot', star: shot.star, pegs: pops.length, crit, fresh, dmg });
+    if (moon) { f.moon = -1; run.moons++; }
+    ev.push({ t: 'shot', star: shot.star, pegs: pops.length, worth, crit, fresh, moon, times, dmg, said: shot.said || '' });
     const boss = f.ms.some((m) => m.type === 'bogeyman' && alive(m));
     if (fresh && run.have.dreamcatcher) byLane(f).forEach((m) => hurt(f, m, CATCH * run.have.dreamcatcher, ev, 'catch'));
     if (st.all) byLane(f).forEach((m) => hurt(f, m, Math.ceil(dmg / 2), ev, 'star', st.lull));
     else strike(f, dmg, st.lull, ev);
+    if (st.push) knock(f, st.push, ev);
     f.ms = f.ms.filter(alive);
     // With the Bogeyman beaten, his shadows (and the rest) scatter.
     if (boss && !f.ms.some((m) => m.type === 'bogeyman')) {
@@ -656,7 +824,10 @@
     }
     if (view) {
       view.trail = shot;
-      showTally(pops.length, crit, dmg);
+      showTally(ev[0]);
+      // (Already told if the shot was drawn; with reduced motion, now.)
+      if (moon) moonMoment(f.pegs[pops.find((i) => f.kinds[i] === 'moon')], shot.said);
+      view.moonShown = false;
     }
     if (!f.ms.length && !f.queue.length) { dawn(ev); return; }
     target(f);
@@ -695,6 +866,18 @@
     }
   }
 
+  // The Pillow star: everything it hit that's still standing is knocked
+  // back (furthest first, so each has room), all but the Bogeyman.
+  function knock(f, squares, ev) {
+    const hit = new Set(ev.filter((e) => e.t === 'hurt' && e.how === 'star' && !e.dead).map((e) => e.id));
+    byLane(f).reverse().forEach((m) => {
+      if (!hit.has(m.id) || m.type === 'bogeyman') return;
+      const from = m.sq;
+      for (let k = 0; k < squares && m.sq < LANE - 1 && !at(f, m.sq + 1); k++) m.sq++;
+      if (m.sq !== from) ev.push({ t: 'push', id: m.id, type: m.type, from, to: m.sq });
+    });
+  }
+
   // Their turn, then yours again (with the next star out of the bag).
   // `before`: what the shot did, when it's all told in one go.
   function theirTurn(before) {
@@ -702,7 +885,7 @@
     const ev = [];
     creep(f, ev, false);
     if (run.hearts <= 0) { lose(ev, before); return; }
-    roll(f);
+    if (roll(f)) ev.push({ t: 'moonrise' });
     f.stars.shift();
     deal(f);
     target(f);
@@ -780,32 +963,45 @@
   /* ══════════════════════════════════════════════════════════════════════
      NIGHTS AND RUNS
      ══════════════════════════════════════════════════════════════════════ */
-  // Morning: the night's beaten. A night without losing a heart wins one back.
+  // Morning: the night's beaten. A night without losing a heart wins one
+  // back. Sunday's is the end of the week (endless runs carry on, with
+  // what winning the week is worth).
   function dawn(ev) {
     const f = run.night;
     run.score += POINTS.night;
-    if (f.n >= NIGHTS) { won(ev); return; }
-    const soundly = f.lost === 0;
-    const healed = soundly && run.hearts < run.max;
-    if (healed) run.hearts++;
-    run.last = { n: f.n, line: lineOf('nightLines'), soundly, healed };
-    run.offer = offer();
-    run.step = 'pick';
+    const sunday = f.n % NIGHTS === 0;
+    if (sunday && !endless()) { won(ev); return; }
+    const week = sunday ? POINTS.win + run.hearts * POINTS.heart : 0;
+    run.score += week;
+    morning(f, sunday ? 'weekLines' : 'nightLines', week);
     if (view) {
       show(ev);
       later(() => syncCard(true), RM ? 0 : 700);
     }
-    announce(`${dayOf(f.n)} night is over. Pick a star or a charm.`);
+    announce(`${cap(nightName(f.n))} is over.${sunday ? ` Week ${weekOf(f.n)} survived!` : ''} Pick a star or a charm.`);
+  }
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  // The morning's card: a heart back after a sound night, and a pick.
+  function morning(f, lines, week) {
+    const soundly = f.lost === 0;
+    const healed = soundly && run.hearts < run.max;
+    if (healed) run.hearts++;
+    run.last = { n: f.n, line: lineOf(lines), soundly, healed, week };
+    run.offer = offer();
+    run.step = 'pick';
   }
 
-  // Two stars (new kinds, or polish for ones you have) and a charm.
+  // Two stars (new kinds, or polish for ones you have) and a charm. A long
+  // endless run can use up the lot; then any star can be polished again.
   function offer() {
-    const stars = shuffle(STAR_IDS.filter((id) => run.level[id] < MOST_POLISH));
+    let stars = shuffle(STAR_IDS.filter((id) => run.level[id] < MOST_POLISH));
     const charms = shuffle(CHARM_IDS.filter((id) => {
       if (CHARMS[id].most && run.have[id] >= CHARMS[id].most) return false;
       if (id === 'cocoa' && run.max >= MOST_HEARTS) return false;
       return true;
     }));
+    if (stars.length < 2) stars = stars.concat(shuffle(STAR_IDS.filter((id) => stars.indexOf(id) === -1)));
     const out = stars.slice(0, charms.length ? 2 : 3);
     if (charms.length) out.push(charms[0]);
     return out;
@@ -820,7 +1016,7 @@
       later(() => syncCard(true), RM ? 0 : 1100);
     }
     const all = (before || []).concat(ev);
-    announce(`${all.some((e) => e.t === 'bed' && e.all) ? 'The Bogeyman reached the bed.' : 'Out of hearts.'} He woke up on ${dayOf(run.n)} night. The run is over.`);
+    announce(`${all.some((e) => e.t === 'bed' && e.all) ? 'The Bogeyman reached the bed.' : 'Out of hearts.'} He woke up on ${nightName(run.n)}. The run is over.`);
     tellDesktop(false);
   }
 
@@ -833,27 +1029,48 @@
       show(ev);
       later(() => syncCard(true), RM ? 0 : 1100);
     }
-    announce('The Bogeyman is beaten. A whole week of sweet dreams!');
+    announce('The Bogeyman is beaten. A whole week of sweet dreams! Keep dreaming to carry on into endless nights, or start a new run.');
     tellDesktop(true);
   }
 
-  // A finished run (lost, won, or left for a new one): kept if it's the best.
+  // After a won week: carry on into endless nights, from Monday's pick.
+  // The week's best is already kept; from here the run counts as endless.
+  function keepDreaming() {
+    if (!run || run.step !== 'won') return;
+    run.mode = 'endless';
+    run.recorded = false;
+    run.newBest = false;
+    morning(run.night, 'nightLines', 0);
+    run.last.line = '';
+    run.last.onwards = true;
+    if (view) { view.peek = false; syncCard(true); }
+    announce('Endless nights: they go on, harder and harder, until his hearts run out. Pick a star or a charm.');
+  }
+
+  // A finished run (lost, won, or left for a new one): kept if it's the
+  // best of its kind.
   function finishRun(out) {
     if (!run || run.recorded) return;
     run.recorded = true;
-    const prev = bestRun();
+    const prev = bestRun(run.mode);
     run.newBest = run.score > 0 && (!prev || run.score > prev.score);
     run.bestLine = run.newBest ? lineOf('bestLines') : '';
-    if (run.newBest) K.store.set(STORE_KEY, { best: { score: run.score, night: run.n, won: !!out, at: Date.now() } });
+    if (!run.newBest) return;
+    const all = K.store.get(STORE_KEY, null) || {};
+    const keep = { best: all.best, endless: all.endless };
+    keep[SLOTS[run.mode]] = endless()
+      ? { score: run.score, night: run.n, at: Date.now() }
+      : { score: run.score, night: run.n, won: !!out, at: Date.now() };
+    K.store.set(STORE_KEY, keep);
   }
 
   // The pet wizard on the desktop tells everyone how it went (and throws
   // himself a party for a new best).
   function tellDesktop(out) {
     if (!K.pet || !K.pet.say) return;
-    const key = out ? 'win' : 'lose';
+    const key = endless() ? 'endless' : out ? 'win' : 'lose';
     const lines = linesOf((S.deskLines || {})[key], DESK_LINES[key]);
-    const text = pick(lines).replace(/\{night\}/g, dayOf(run.n));
+    const text = pick(lines).replace(/\{night\}/g, endless() ? String(run.n) : dayOf(run.n));
     const best = run.newBest;
     setTimeout(() => {
       if (best && K.pet.party) {
@@ -874,7 +1091,7 @@
     root.className = 'gm sd';
     root.innerHTML = `
       <div class="gm-hud">
-        <span class="gm-stat gm-level"><b data-night>Monday</b><span class="sd-wide"> night</span></span>
+        <span class="gm-stat gm-level"><b data-night>Monday</b><span class="sd-wide" data-sub> night</span></span>
         <span class="gm-stat sd-hearts" data-hearts></span>
         <span class="gm-stat">Score <b data-score>0</b></span>
         <ul class="gm-owned" aria-label="Your charms" data-owned hidden></ul>
@@ -895,16 +1112,19 @@
           <div class="sd-sky" data-sky tabindex="0" role="slider" aria-label="Aim the star"
               aria-valuemin="${-AIM_MOST}" aria-valuemax="${AIM_MOST}" aria-valuenow="0">
             <svg class="sd-svg" viewBox="-1 -1 ${W + 2} ${H + 2}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
-              <rect class="sd-frame" x="0" y="0" width="${W}" height="${H}" rx="2.5" />
+              <rect class="sd-frame" data-frame x="0" y="0" width="${W}" height="${H}" rx="2.5" />
               <line class="sd-floor" data-floor x1="0" y1="${H}" x2="${W}" y2="${H}" />
               <g data-trail></g>
+              <circle class="sd-halo" data-halo cx="0" cy="0" r="${MOON_R + 1.3}" visibility="hidden" />
               <g data-pegs></g>
               <path class="sd-aim" data-aim d="" />
               <g data-marks></g>
               <image class="sd-wiz" data-wiz x="42" y="-1" width="16" height="16" href="" />
               <g data-balls></g>
+              <g data-fx></g>
             </svg>
             <span class="sd-tally" data-tally hidden></span>
+            <p class="sd-said" aria-hidden="true" data-said hidden></p>
           </div>
           <p class="sd-cramped">Not enough room for the sky. Make the window taller, or turn your phone upright.</p>
         </div>
@@ -944,17 +1164,22 @@
       sky: q('[data-sky]'),
       svg: q('.sd-svg'),
       floor: q('[data-floor]'),
+      frame: q('[data-frame]'),
       trailBox: q('[data-trail]'),
+      halo: q('[data-halo]'),
       pegBox: q('[data-pegs]'),
       aimPath: q('[data-aim]'),
       markBox: q('[data-marks]'),
       wiz: q('[data-wiz]'),
       ballBox: q('[data-balls]'),
+      fxBox: q('[data-fx]'),
       tally: q('[data-tally]'),
+      said: q('[data-said]'),
       overlay: q('[data-overlay]'),
       toast: q('[data-toast]'),
       live: q('[data-live]'),
       nightNo: q('[data-night]'),
+      nightSub: q('[data-sub]'),
       hearts: q('[data-hearts]'),
       score: q('[data-score]'),
       owned: q('[data-owned]'),
@@ -988,6 +1213,7 @@
     clearTimeout(view.liveTimer);
     clearTimeout(view.poseTimer);
     clearTimeout(view.sayTimer);
+    clearTimeout(view.saidTimer);
     cancelAnimationFrame(view.raf);
     view.timers.forEach(clearTimeout);
     view = null;
@@ -1005,7 +1231,7 @@
   // Before the first run: Monday's sky, empty, behind the title card.
   const nightShown = () => (run && run.night ? run.night : view.idle || (view.idle = (() => {
     const pegs = SKIES.rows();
-    return { n: 1, pegs, live: pegs.map(() => true), kinds: {}, ms: [], queue: [], stars: ['plain', 'plain'], swaps: 0, alarms: 0, guards: 0, aim: 0, target: 0, idle: true };
+    return { n: 1, pegs, live: pegs.map(() => true), kinds: {}, moon: -1, ms: [], queue: [], stars: ['plain', 'plain'], swaps: 0, alarms: 0, guards: 0, aim: 0, target: 0, idle: true };
   })()));
 
   /* ---------- drawing the sky ---------- */
@@ -1018,11 +1244,40 @@
   const ballHtml = (id) => `<g class="sd-ball ${STARS[id].colour}"><path d="${starPath(STARS[id].r)}" /></g>`;
   const pathOf = (pts) => 'M' + pts.map((v) => v.toFixed(1)).join(' ');
 
+  // Each new kind of peg has a shape of its own, so its colour is never
+  // the only clue: plain, yellow and green pegs are round, a pink one is a
+  // ring, a coral one a diamond, a white one a sparkle and the blue moon a
+  // crescent. (The ring's hole and the moon's shadow are cut out with
+  // fill-rule: evenodd, in style.css.)
+  const n2 = (v) => v.toFixed(2);
+  const roundAt = (x, y, r) => `M${n2(x - r)} ${n2(y)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0Z`;
+  const SHAPES = {
+    plain: (x, y) => roundAt(x, y, PEG_R),
+    pink: (x, y) => roundAt(x, y, 1.65) + roundAt(x, y, 0.7),
+    coral: (x, y) => `M${n2(x)} ${n2(y - 1.95)}L${n2(x + 1.95)} ${n2(y)}L${n2(x)} ${n2(y + 1.95)}L${n2(x - 1.95)} ${n2(y)}Z`,
+    white: (x, y) => {
+      const R = 2.3;
+      const a = 0.08 * R;
+      const b = 0.48 * R;
+      return `M${n2(x)} ${n2(y - R)}C${n2(x + a)} ${n2(y - b)} ${n2(x + b)} ${n2(y - a)} ${n2(x + R)} ${n2(y)}` +
+        `C${n2(x + b)} ${n2(y + a)} ${n2(x + a)} ${n2(y + b)} ${n2(x)} ${n2(y + R)}` +
+        `C${n2(x - a)} ${n2(y + b)} ${n2(x - b)} ${n2(y + a)} ${n2(x - R)} ${n2(y)}` +
+        `C${n2(x - b)} ${n2(y - a)} ${n2(x - a)} ${n2(y - b)} ${n2(x)} ${n2(y - R)}Z`;
+    },
+    // The lit part of a full moon (radius MOON_R) with a smaller circle's
+    // shadow over its top right: from the top horn round the left to the
+    // lower horn, then back in along the shadow's edge.
+    moon: (x, y) => `M${n2(x - 0.09)} ${n2(y - 2.4)}A2.4 2.4 0 1 0 ${n2(x + 2.31)} ${n2(y + 0.65)}A1.95 1.95 0 1 1 ${n2(x - 0.09)} ${n2(y - 2.4)}Z`,
+  };
+  const shapeOf = (p, kind) => (SHAPES[kind] || SHAPES.plain)(p.x, p.y);
+  const kindClass = (kind) => (kind ? ` is-${kind}` : '');
+
   function drawSky(f) {
     view.shown = f;
-    view.pegBox.innerHTML = f.pegs.map((p, i) =>
-      `<circle class="sd-peg" data-i="${i}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${PEG_R}" />`).join('');
+    view.pegBox.innerHTML = f.pegs.map((p, i) => `<path class="sd-peg" data-i="${i}" d="${shapeOf(p)}" />`).join('');
     view.pegEls = Array.prototype.slice.call(view.pegBox.children);
+    view.pegEls.forEach((el) => { el.dataset.k = ''; });
+    view.fxBox.innerHTML = '';
     view.mEls.forEach((el) => el.remove());
     view.mEls = new Map();
     view.ballBox.innerHTML = '';
@@ -1050,17 +1305,31 @@
 
   function syncPegs(f, ev) {
     const back = ev.some((e) => e.t === 'refill');
+    const rise = ev.some((e) => e.t === 'moonrise');
     view.pegEls.forEach((el, i) => {
-      const kind = f.kinds[i];
-      let cls = 'sd-peg';
+      const kind = f.kinds[i] || '';
+      if (el.dataset.k !== kind) {
+        el.setAttribute('d', shapeOf(f.pegs[i], kind));
+        el.dataset.k = kind;
+      }
+      let cls = 'sd-peg' + kindClass(kind);
       if (!f.live[i]) cls += ' is-out';
-      if (kind === 'crit') cls += ' is-crit';
-      else if (kind === 'refresh') cls += ' is-refresh';
       if (view.aimed.has(i)) cls += ' is-aimed';
       if (back && f.live[i]) cls += ' is-back';
+      if (rise && kind === 'moon') cls += ' is-rising';
       if (el.getAttribute('class') !== cls) el.setAttribute('class', cls);
     });
+    syncHalo(f);
     view.floor.classList.toggle('is-on', playing() && !!STARS[f.stars[0]].floor);
+  }
+  // A ring round the blue moon while it's up.
+  function syncHalo(f) {
+    const p = f.moon >= 0 && f.live[f.moon] ? f.pegs[f.moon] : null;
+    if (p) {
+      view.halo.setAttribute('cx', n2(p.x));
+      view.halo.setAttribute('cy', n2(p.y));
+    }
+    view.halo.setAttribute('visibility', p ? 'visible' : 'hidden');
   }
 
   // The dotted aiming line, the star waiting on his hat, and the faint
@@ -1075,8 +1344,8 @@
       const line = aimLine(f, f.aim, f.stars[0]);
       d = line.lines.map(pathOf).join('');
       line.touched.forEach((i) => view.aimed.add(i));
-      const r = STARS[f.stars[0]].r;
-      marks = line.marks.map(([x, y]) => `<circle class="sd-ghost" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" />`).join('');
+      marks = line.marks.map(([x, y, r]) => `<circle class="sd-ghost" cx="${n2(x)}" cy="${n2(y)}" r="${n2(r)}" />`).join('') +
+        (line.ring ? `<circle class="sd-ring" cx="${n2(line.ring.x)}" cy="${n2(line.ring.y)}" r="${line.ring.r}" />` : '');
       view.sky.setAttribute('aria-valuenow', String(Math.round(f.aim)));
       view.sky.setAttribute('aria-valuetext', aimText(f, line));
     }
@@ -1096,18 +1365,36 @@
     }
   }
 
+  // A peg, in words: "a pink peg (worth 2)", "the blue moon (times 10)".
+  function pegSaid(f, i) {
+    const kind = f.kinds[i];
+    if (!kind) return 'a peg';
+    const k = KINDS[kind];
+    if (k.worth) return `${k.said} (worth ${worthOf(kind)})`;
+    return kind === 'moon' ? `${k.said} (times ${MOON})` : k.said;
+  }
+  // The coloured pegs in a list, in words: "1 yellow, 2 pink and the green one".
+  function colours(f, list) {
+    const n = (kind) => list.filter((i) => f.kinds[i] === kind).length;
+    const out = [];
+    if (n('moon')) out.push(`the blue moon (times ${MOON})`);
+    ['crit', 'white', 'coral', 'pink'].forEach((kind) => { if (n(kind)) out.push(`${n(kind)} ${kind === 'crit' ? 'yellow' : kind}`); });
+    if (n('refresh')) out.push('the green one');
+    return out.length > 1 ? `${out.slice(0, -1).join(', ')} and ${out[out.length - 1]}` : out[0] || '';
+  }
+
   // The aim, in words (the slider reads it out).
   function aimText(f, line) {
     const a = Math.round(f.aim);
     const dir = a === 0 ? 'Straight down' : `${Math.abs(a)} degrees ${a < 0 ? 'left' : 'right'}`;
-    const kindOf = (i) => (f.kinds[i] === 'crit' ? 'a yellow peg' : f.kinds[i] === 'refresh' ? 'the green peg' : 'a peg');
     if (!line.touched.length) return `${dir}: it misses every peg on the way down.`;
-    if (STARS[f.stars[0]].heavy) {
-      const y = line.touched.filter((i) => f.kinds[i] === 'crit').length;
-      const g = line.touched.some((i) => f.kinds[i] === 'refresh');
-      return `${dir}: it crashes through ${plural(line.touched.length, 'peg')}${y ? `, ${y} of them yellow` : ''}${g ? ', the green one too' : ''}.`;
+    const st = STARS[f.stars[0]];
+    if (st.heavy || st.burst) {
+      const n = plural(line.touched.length, 'peg');
+      const c = colours(f, line.touched);
+      return `${dir}: ${st.heavy ? `it crashes through ${n}` : `it bursts on ${pegSaid(f, line.touched[0])} and pops ${n}`}${c ? `, among them ${c}` : ''}.`;
     }
-    return `${dir}: it touches ${kindOf(line.touched[0])} first${line.touched.length > 1 ? `, then ${kindOf(line.touched[1])}` : ''}.`;
+    return `${dir}: it touches ${pegSaid(f, line.touched[0])} first${line.touched.length > 1 ? `, then ${pegSaid(f, line.touched[1])}` : ''}.`;
   }
 
   function syncWizard() {
@@ -1123,12 +1410,15 @@
       : `<span class="sd-token"><span class="sd-eyes"><i></i><i></i></span>${doodleIcon(TYPES[type].icon)}</span>`;
   };
   // The badge on a nightmare: what it does next turn.
-  function nextOf(m) {
+  function nextOf(m, f) {
     const p = plan(m);
     if (p.asleep) return { html: 'z', text: 'asleep: it misses its next turn' };
+    if (f && sheepNext(f) === m) return { html: 'z', text: 'counting sheep: it nods off and misses its next turn' };
     if (m.type === 'cloud') {
       return { html: `${doodleIcon('bolt')}<i>${m.charge}</i>`, text: m.charge <= 1 ? 'lightning strikes the bed after your shot' : `lightning in ${plural(m.charge, 'turn')}`, hot: m.charge <= 1 };
     }
+    if (m.type === 'jack' && !p.steps) return { html: `${doodleIcon('jack')}<i>${p.spring}</i>`, text: `springs three squares in ${plural(p.spring, 'turn')}` };
+    if (m.type === 'bat') return { html: `${doodleIcon('back')}<i>1</i>`, text: 'flutters one square next, over anything in its way' };
     const call = p.call ? ' and calls up a shadow' : '';
     if (!p.steps) return { html: '<i>-</i>', text: m.type === 'bogeyman' ? `waits${call}` : 'rests next turn' };
     return { html: `${doodleIcon('back')}<i>${p.steps}</i>`, text: `steps ${p.steps} next${call}` };
@@ -1137,6 +1427,7 @@
   function syncLane(f, ev) {
     const seen = new Set();
     const fresh = new Set(ev.filter((e) => e.t === 'arrive' || e.t === 'call').map((e) => e.id));
+    const pushed = new Set(ev.filter((e) => e.t === 'push').map((e) => e.id));
     const hits = new Map();
     ev.forEach((e) => { if (e.t === 'hurt') hits.set(e.id, (hits.get(e.id) || 0) + e.d); });
     const fc = run && run.night === f && playing() ? forecast(f) : { bed: new Set() };
@@ -1160,7 +1451,7 @@
       el.classList.toggle('is-target', m.id === f.target && !f.idle);
       el.classList.toggle('is-danger', fc.bed.has(m.id));
       el.classList.toggle('is-asleep', m.sleep > 0);
-      const nx = nextOf(m);
+      const nx = nextOf(m, f);
       const badge = el.querySelector('.sd-next');
       if (badge.innerHTML !== nx.html) badge.innerHTML = nx.html;
       badge.classList.toggle('is-hot', !!nx.hot);
@@ -1169,6 +1460,7 @@
         restart(el, 'is-hit');
         pop(el, `-${hits.get(m.id)}`);
       }
+      if (pushed.has(m.id)) restart(el, 'is-pushed');
     });
     // The beaten ones fade out (with the damage that did it).
     view.mEls.forEach((el, id) => {
@@ -1231,7 +1523,8 @@
     v.trail = null;
     syncAim(run.night);
     v.ballBox.innerHTML = shot.balls.map(() => ballHtml(shot.star)).join('');
-    v.anim = { shot, start: performance.now(), popped: 0, idx: shot.balls.map(() => 0), pegs: 0, crit: false };
+    v.anim = { shot, start: performance.now(), popped: 0, idx: shot.balls.map(() => 0), worth: 0, crit: false, moon: false, boom: false };
+    v.moonShown = false;
     v.tally.hidden = false;
     v.tally.className = 'sd-tally';
     v.tally.innerHTML = '<b>0</b> pegs';
@@ -1249,7 +1542,9 @@
     v.raf = requestAnimationFrame(tick);
   }
 
-  // Everything that has happened by time t: pegs popped, the stars' places.
+  // Everything that has happened by time t: pegs popped (what each was
+  // worth floats off it), the firework's burst, the stars' places and
+  // sizes.
   function drawAt(t) {
     const a = view.anim;
     const f = run.night;
@@ -1257,14 +1552,27 @@
     let popped = false;
     while (a.popped < shot.pops.length && shot.pops[a.popped].t <= t) {
       const i = shot.pops[a.popped++].i;
+      const kind = f.kinds[i] || '';
       const el = view.pegEls[i];
-      if (el) el.setAttribute('class', `sd-peg is-popping${f.kinds[i] === 'crit' ? ' is-crit' : f.kinds[i] === 'refresh' ? ' is-refresh' : ''}`);
-      if (f.kinds[i] === 'crit') a.crit = true;
-      a.pegs++;
+      if (el) el.setAttribute('class', `sd-peg is-popping${kindClass(kind)}`);
+      const worth = worthOf(kind);
+      if (worth > 1) fx(`<text class="sd-plus" x="${n2(f.pegs[i].x)}" y="${n2(f.pegs[i].y - 2.4)}">+${worth}</text>`, 900);
+      if (kind === 'crit') a.crit = true;
+      if (kind === 'moon') {
+        a.moon = true;
+        view.halo.setAttribute('visibility', 'hidden');
+        moonMoment(f.pegs[i], shot.said);
+      }
+      a.worth += worth;
       popped = true;
     }
-    if (popped) tallyText(a.pegs, a.crit);
+    if (popped) tallyText(a.worth, a.crit, a.moon);
+    if (shot.burst && !a.boom && t >= shot.burst.t) {
+      a.boom = true;
+      fx(`<circle class="sd-boom" cx="${n2(shot.burst.x)}" cy="${n2(shot.burst.y)}" r="${shot.burst.r}" />`, 700);
+    }
     const els = view.ballBox.children;
+    const st = STARS[shot.star];
     shot.balls.forEach((b, k) => {
       const el = els[k];
       if (!el) return;
@@ -1278,23 +1586,69 @@
       const u = t1 > p[j] ? (t - p[j]) / (t1 - p[j]) : 0;
       const x = p[j + 1] + ((j + 4 < p.length ? p[j + 4] : p[j + 1]) - p[j + 1]) * u;
       const y = p[j + 2] + ((j + 5 < p.length ? p[j + 5] : p[j + 2]) - p[j + 2]) * u;
-      el.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${Math.round(t * 400) % 360})`);
+      let r = st.r;
+      for (let s = 0; s < b.sizes.length && b.sizes[s] <= t; s += 2) r = b.sizes[s + 1];
+      el.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${Math.round(t * 400) % 360})${r !== st.r ? ` scale(${(r / st.r).toFixed(3)})` : ''}`);
     });
   }
 
-  function tallyText(pegs, crit) {
-    view.tally.innerHTML = `<b>${pegs}</b> ${pegs === 1 ? 'peg' : 'pegs'}${crit ? ` <i>x${critTimes()}</i>` : ''}`;
-    view.tally.classList.toggle('is-crit', crit);
+  function tallyText(worth, crit, moon) {
+    view.tally.innerHTML = `<b>${worth}</b> ${worth === 1 ? 'peg' : 'pegs'}${crit ? ` <i>x${critTimes()}</i>` : ''}${moon ? ` <i class="is-moon">x${MOON}</i>` : ''}`;
+    view.tally.classList.toggle('is-crit', crit || moon);
   }
 
   // The shot's over: what it came to, for a moment.
-  function showTally(pegs, crit, dmg) {
+  function showTally(s) {
     const v = view;
     v.tally.hidden = false;
-    tallyText(pegs, crit);
-    v.tally.insertAdjacentHTML('beforeend', ` <span>= ${dmg}</span>`);
+    tallyText(s.worth, s.crit, s.moon);
+    v.tally.insertAdjacentHTML('beforeend', ` <span>= ${s.dmg}</span>`);
     clearTimeout(v.sayTimer);
-    v.sayTimer = setTimeout(() => { if (view === v && !v.anim) v.tally.hidden = true; }, 1600);
+    v.sayTimer = setTimeout(() => { if (view === v && !v.anim) v.tally.hidden = true; }, s.moon ? 2600 : 1600);
+  }
+
+  // A little something drawn over the sky that tidies itself away.
+  function fx(html, ms) {
+    if (!view) return;
+    view.fxBox.insertAdjacentHTML('beforeend', html);
+    const el = view.fxBox.lastElementChild;
+    setTimeout(() => el.remove(), ms);
+  }
+
+  // The blue moon pops: sparkles fly off it, the sky lights up blue for a
+  // moment, and he says something about it (with reduced motion, just
+  // that). `p`: where it was. `said`: his line.
+  function moonMoment(p, said) {
+    if (!view || view.moonShown) return;
+    view.moonShown = true;
+    if (!RM) {
+      fx(`<g class="sd-sparks" transform="translate(${n2(p.x)} ${n2(p.y)})">${range(8).map((k) => {
+        const a = (k * Math.PI) / 4;
+        return `<path style="--dx:${n2(Math.cos(a) * 15)}px;--dy:${n2(Math.sin(a) * 15)}px" d="${starPath(1.3)}" />`;
+      }).join('')}</g>`, 1000);
+      restart(view.sky, 'is-moonlit');
+    }
+    wizardSays(said);
+  }
+
+  // His words in a speech bubble, just under him at the top of the sky.
+  // Screen readers hear them in the turn's summary instead.
+  function wizardSays(text, ms) {
+    if (!view || !text) return;
+    const el = view.said;
+    el.textContent = text;
+    el.hidden = false;
+    const m = view.svg.getScreenCTM();
+    if (m) {
+      const box = view.sky.getBoundingClientRect();
+      const p = new DOMPoint(HAT.x, 15).matrixTransform(m);
+      el.style.left = `${Math.round(p.x - box.left)}px`;
+      el.style.top = `${Math.round(p.y - box.top)}px`;
+    }
+    restart(el, 'is-in');
+    clearTimeout(view.saidTimer);
+    const v = view;
+    view.saidTimer = setTimeout(() => { v.said.hidden = true; }, ms || 2800);
   }
 
   function finishShot() {
@@ -1316,7 +1670,10 @@
   function drawHud() {
     if (!view) return;
     const f = run && run.night;
-    view.nightNo.textContent = dayOf(run ? run.n : 1);
+    const n = run ? run.n : 1;
+    // A week counts the days; endless runs count the nights.
+    view.nightNo.textContent = endless() ? `Night ${n}` : dayOf(n);
+    view.nightSub.textContent = endless() ? `· ${dayOf(n)}` : ' night';
     const hearts = run ? run.hearts : HEARTS;
     const max = run ? run.max : HEARTS;
     view.hearts.innerHTML = range(max).map((k) => `<span${k < hearts ? ' class="is-full"' : ''}>${doodleIcon('heart')}</span>`).join('') +
@@ -1326,15 +1683,20 @@
     if (view.chips !== chips) { view.owned.innerHTML = chips; view.chips = chips; }
     view.owned.hidden = !chips;
   }
-  // A charm you have, as a little badge: what's left tonight, or how many.
+  // A charm you have, as a little badge: what's left tonight, how many,
+  // or (Counting sheep) the turns until the next one nods off.
   const LEFT = { alarm: 'alarms', teddy: 'guards' };
   const chip = (id) => {
     const c = CHARMS[id];
     const n = run.have[id];
     const left = LEFT[id] ? run.night[LEFT[id]] : null;
     const name = words(id).name;
-    const label = left != null ? `${name}: ${left} left tonight` : n > 1 ? `${name} x${n}` : name;
-    const count = left != null ? left : n > 1 ? n : '';
+    let label = left != null ? `${name}: ${left} left tonight` : n > 1 ? `${name} x${n}` : name;
+    let count = left != null ? left : n > 1 ? n : '';
+    if (id === 'sheep') {
+      count = SHEEP - (run.night.turn % SHEEP);
+      label = `${name}: one nods off ${count === 1 ? 'after your next shot' : `in ${plural(count, 'turn')}`}`;
+    }
     return `<li class="gm-chip ${c.colour}" title="${esc(label)}">${doodleIcon(c.icon)}` +
       `${count !== '' ? `<b aria-hidden="true">${count}</b>` : ''}<span class="vh">${esc(label)}</span></li>`;
   };
@@ -1378,11 +1740,11 @@
   function drawStatus() {
     if (!view) return;
     const f = run && run.night;
-    const where = !f ? 'Lights out' : `${dayOf(f.n)} night`;
+    const where = !f ? 'Lights out' : cap(nightName(f.n));
     const step = run ? run.step : '';
     const hint = step === 'shot' ? K.hint('Enter, Space or a click skips to the end', 'Tap Skip to see the end')
       : step === 'pick' ? '<span class="status-hint">Pick a star or a charm</span>'
-        : step === 'over' || step === 'won' ? '<span class="status-hint">New run starts the week again</span>'
+        : step === 'over' || step === 'won' ? `<span class="status-hint">New run starts ${endless() ? 'endless nights' : 'the week'} again</span>`
           : K.hint('Move the mouse to aim, click to drop', 'Drag to aim, then Drop');
     view.win.setStatus(`<span class="sd-where">${esc(where)}</span>${hint}`);
   }
@@ -1404,52 +1766,86 @@
     syncAim(nightShown());
   }
 
+  // The best runs, in words.
+  const bestWords = (mode) => {
+    const b = bestRun(mode);
+    if (!b) return '';
+    return mode === 'endless'
+      ? `Best endless run: ${b.score} points, night ${b.night}.`
+      : `Best week: ${b.score} points, ${b.won ? 'the whole week' : `${dayOf(b.night)} night`}.`;
+  };
+  // Where a run ended, in words: "Thursday night", or "night 17 (Wednesday of week 3)".
+  const endedOn = (n) => (endless() ? `night ${n} (${dayOf(n)}${n > NIGHTS ? ` of week ${weekOf(n)}` : ''})` : `${dayOf(n)} night`);
+
+  // What each peg is worth, with its shape (the Help card's key): what
+  // shows, and what a screen reader says.
+  const LEGEND = [
+    ['', '1 peg', 'A plain peg counts as 1 peg.'],
+    ['pink', `${KINDS.pink.worth} pegs`, `A pink peg, a ring, counts as ${KINDS.pink.worth} pegs.`],
+    ['coral', `${KINDS.coral.worth} pegs`, `A coral peg, a diamond, counts as ${KINDS.coral.worth} pegs.`],
+    ['white', `${KINDS.white.worth} pegs`, `A white peg, a sparkle, counts as ${KINDS.white.worth} pegs.`],
+    ['crit', 'doubles', 'A yellow peg doubles the shot.'],
+    ['refresh', 'refills', 'The green peg lights every peg again.'],
+    ['moon', `x${MOON}, rare`, `Once in a blue moon a blue moon rises, a crescent: popping it makes the shot count ${MOON} times over.`],
+  ];
+  const legendHtml = () => `<ul class="sd-legend" aria-label="What the pegs are worth">${LEGEND.map(([kind, shown, said]) =>
+    `<li><svg class="sd-swatch" viewBox="-3.2 -3.2 6.4 6.4" aria-hidden="true" focusable="false"><path class="sd-peg${kindClass(kind)}" d="${shapeOf({ x: 0, y: 0 }, kind)}" /></svg>` +
+    `<span aria-hidden="true">${esc(shown)}</span><span class="vh">${esc(said)}</span></li>`).join('')}</ul>`;
+
   function cardHtml() {
-    const best = bestRun();
-    const bestText = best ? `Best run: ${best.score} points, ${best.won ? 'the whole week' : `${dayOf(best.night)} night`}.` : '';
     if (view.help || !run) {
+      const bests = ['week', 'endless'].map(bestWords).filter(Boolean);
       return `
         <section class="gm-card" aria-labelledby="sd-card-h">
           <span class="gm-card-art">${wizardPic('asleep')}</span>
           <h3 class="gm-card-h" id="sd-card-h">Star Drop</h3>
           <p>The wizard's asleep, and his nightmares are creeping towards his bed. In his dream, he flicks the star off his hat to fight them off.</p>
           <ul class="gm-rules">
-            <li>Aim, then drop the star. Every peg it pops is a point of damage.</li>
-            <li>A yellow peg doubles the shot. The green one lights every peg again.</li>
+            <li>Aim, then drop the star. Every peg it pops is a point of damage, and coloured pegs count for more (below).</li>
             <li>The damage goes to the nightmare in the yellow ring. Then they all step closer.</li>
-            <li>One that reaches the bed costs hearts. Last the week, Monday to Sunday.</li>
+            <li>One that reaches the bed costs hearts. Last the week, Monday to Sunday, or play endless nights: they get harder and harder until his hearts run out.</li>
           </ul>
+          ${legendHtml()}
           <p class="gm-keys"><span class="hint-mouse">Move the mouse to aim and click to drop. Click a nightmare to aim the damage at it.
             Keys: left and right arrows to aim (Shift for small steps), Enter or Space to drop and to skip ahead, T to pick a nightmare, X to swap stars, L to look around.</span><span class="hint-touch">Drag on the sky to aim, then press Drop. Tap a nightmare to aim the damage at it and learn its moves.</span></p>
-          ${bestText ? `<p class="gm-best">${esc(bestText)}</p>` : ''}
+          ${bests.map((t) => `<p class="gm-best">${esc(t)}</p>`).join('')}
           <p class="gm-actions">${run
             ? '<button class="os-button" type="button" data-act="back" data-first>Back to the game</button>'
-            : '<button class="os-button gm-go" type="button" data-act="start" data-first>Start a run</button>'}</p>
+            : '<button class="os-button gm-go" type="button" data-act="start" data-mode="week" data-first>Start the week</button>' +
+              '<button class="os-button" type="button" data-act="start" data-mode="endless">Endless nights</button>'}</p>
         </section>`;
     }
+    const bestText = bestWords(run.mode);
     if (run.step === 'pick') {
       const l = run.last;
       const up = run.n + 1;
-      const coming = PLAN[up - 1].length;
-      const nextText = up === NIGHTS
-        ? 'Next: Sunday night, and the Bogeyman.'
-        : `Next: ${dayOf(up)} night, ${plural(coming, 'nightmare')}.`;
+      let nextText;
+      if (!endless()) {
+        nextText = up === NIGHTS ? 'Next: Sunday night, and the Bogeyman.' : `Next: ${dayOf(up)} night, ${plural(comingOn(up), 'nightmare')}.`;
+      } else if (up % NIGHTS === 0) {
+        nextText = `Next: night ${up}, Sunday, and the Bogeyman${up > NIGHTS ? ', tougher than last week' : ''}.`;
+      } else nextText = `Next: night ${up} (${dayOf(up)}), ${plural(comingOn(up), 'nightmare')}.`;
       const counts = {};
       run.bag.forEach((id) => { counts[id] = (counts[id] || 0) + 1; });
       const bag = Object.keys(counts).map((id) =>
         `${counts[id] > 1 ? counts[id] : 'a'} ${words(id).name.toLowerCase()}${counts[id] > 1 ? 's' : ''} (${perPeg(id)} a peg)`);
+      const kicker = l.onwards ? 'Endless nights' : `${cap(nightName(l.n))}${l.soundly ? ': slept soundly' : ' is over'}`;
+      const tally = l.onwards
+        ? `The nights go on, harder and harder, until his hearts run out.${l.healed ? ' A heart back for a sound night.' : ''} Score: ${run.score}`
+        : `+${POINTS.night} for the night${l.week ? `, +${l.week} for the whole week` : ''}${l.healed ? ', and a heart back' : ''}. Score: ${run.score}`;
       return `
         <section class="gm-card" aria-labelledby="sd-card-h">
           ${l.line ? `<p class="gm-said">${esc(l.line)}</p>` : ''}
-          <span class="gm-card-art">${wizardPic('happy')}</span>
-          <p class="gm-kicker">${esc(dayOf(l.n))} night${l.soundly ? ': slept soundly' : ' is over'}</p>
-          <p class="gm-tally">+${POINTS.night} for the night${l.healed ? ', and a heart back' : ''}. Score: ${run.score}</p>
+          <span class="gm-card-art">${wizardPic(l.week ? 'party' : 'happy')}</span>
+          <p class="gm-kicker">${esc(kicker)}</p>
+          <p class="gm-tally">${esc(tally)}</p>
           <h3 class="gm-card-h" id="sd-card-h">Pick a star or a charm</h3>
           <div class="gm-ups">${run.offer.map((id, k) => upCard(id, k === 0)).join('')}</div>
           <p class="sd-next-night">${esc(nextText)} Your bag: ${esc(bag.join(', '))}.</p>
         </section>`;
     }
     const won = run.step === 'won';
+    const other = endless() ? ['week', 'Play the week'] : ['endless', 'Endless nights'];
     return `
       <section class="gm-card" aria-labelledby="sd-card-h">
         ${run.line ? `<p class="gm-said">${esc(run.line)}</p>` : ''}
@@ -1458,14 +1854,17 @@
         <h3 class="gm-card-h" id="sd-card-h">${won ? 'Sweet dreams' : 'Wide awake'}</h3>
         <p class="gm-tally">${won
           ? `A whole week of nightmares, the Bogeyman too, with ${plural(run.hearts, 'heart')} to spare.<br />Score: ${run.score}`
-          : `The nightmares woke him on ${dayOf(run.n)} night.<br />Score: ${run.score}`}</p>
+          : `The nightmares woke him on ${esc(endedOn(run.n))}.<br />Score: ${run.score}`}</p>
         ${run.newBest
-          ? `<p class="gm-best is-new">New best run!${run.bestLine ? ` <span>${esc(run.bestLine)}</span>` : ''}</p>`
+          ? `<p class="gm-best is-new">${endless() ? 'New best endless run!' : 'New best week!'}${run.bestLine ? ` <span>${esc(run.bestLine)}</span>` : ''}</p>`
           : bestText ? `<p class="gm-best">${esc(bestText)}</p>` : ''}
-        <p class="gm-actions">
-          <button class="os-button gm-go" type="button" data-act="again" data-first>New run</button>
-          ${won ? '' : '<button class="os-button" type="button" data-act="peek">See the sky</button>'}
-        </p>
+        ${won ? '<p>Keep dreaming to carry on into endless nights, with everything you have: harder every night, until his hearts run out.</p>' : ''}
+        <p class="gm-actions">${won
+          ? '<button class="os-button gm-go" type="button" data-act="onwards" data-first>Keep dreaming</button>' +
+            '<button class="os-button" type="button" data-act="again">New run</button>'
+          : '<button class="os-button gm-go" type="button" data-act="again" data-first>New run</button>' +
+            '<button class="os-button" type="button" data-act="peek">See the sky</button>' +
+            `<button class="os-button" type="button" data-act="again" data-mode="${other[0]}">${other[1]}</button>`}</p>
       </section>`;
   }
 
@@ -1519,22 +1918,36 @@
     const out = [];
     const s = ev.find((e) => e.t === 'shot');
     if (s) {
-      out.push(s.pegs
-        ? `The ${words(s.star).name.toLowerCase()} popped ${plural(s.pegs, 'peg')}${s.crit ? `, a yellow one among them (times ${critTimes()})` : ''}: ${s.dmg} damage.`
-        : 'The star missed every peg.');
+      if (!s.pegs) out.push('The star missed every peg.');
+      else {
+        const among = [];
+        if (s.worth !== s.pegs) among.push(`worth ${s.worth}`);
+        if (s.crit) among.push(`a yellow one among them (times ${critTimes()})`);
+        if (s.moon) among.push(`and the blue moon (times ${MOON})`);
+        out.push(`The ${words(s.star).name.toLowerCase()} popped ${plural(s.pegs, 'peg')}${among.length ? `, ${among.join(', ')}` : ''}: ${s.dmg} damage.`);
+      }
+      if (s.moon && s.said) out.push(`He says: ${s.said}`);
     }
     ev.forEach((e) => {
       if (e.t === 'hurt' && e.dead) out.push(`${nameOf(e.type)} is beaten.`);
       else if (e.t === 'lull') out.push(`${nameOf(e.type)} nods off.`);
+      else if (e.t === 'push') out.push(`${nameOf(e.type)} is knocked back to ${plural(e.to + 1, 'square')} from the bed.`);
       else if (e.t === 'flee') out.push('Its shadows scatter.');
       else if (e.t === 'refill') out.push(e.fresh ? 'The green peg lit every peg again.' : 'The pegs ran low, so every one is lit again.');
     });
     return out;
   }
+  // A shot worth a note over the sky: the blue moon, or a yellow peg.
+  const shotNote = (s) => {
+    if (!s) return '';
+    if (s.moon) return `Blue moon! ${plural(s.worth, 'peg')} times ${s.times}: ${s.dmg} damage.`;
+    return s.crit ? `Yellow peg! ${plural(s.worth, 'peg')} times ${critTimes()}: ${s.dmg} damage.` : '';
+  };
+  const MOONRISE = `A blue moon is up! Pop it and the shot counts ${MOON} times over.`;
 
   function tellShot(ev) {
-    const s = ev.find((e) => e.t === 'shot');
-    if (s && s.crit) say(`Yellow peg! ${plural(s.pegs, 'peg')} times ${critTimes()}: ${s.dmg} damage.`, 2200, true);
+    const note = shotNote(ev.find((e) => e.t === 'shot'));
+    if (note) say(note, 2400, true);
     announce(shotWords(ev).join(' '));
   }
 
@@ -1543,22 +1956,23 @@
     const f = run.night;
     const out = withShot ? shotWords(ev) : [];
     ev.forEach((e) => {
-      if (e.t === 'step') out.push(`${nameOf(e.type)} ${e.to === 0 ? 'is right beside the bed' : `is ${plural(e.to + 1, 'square')} from the bed`}.`);
+      if (e.t === 'sheep') out.push(`A sheep jumps over the bed, and ${nameOf(e.type).replace(/^The /, 'the ')} nods off.`);
+      else if (e.t === 'step') out.push(`${nameOf(e.type)} ${e.to === 0 ? 'is right beside the bed' : `is ${plural(e.to + 1, 'square')} from the bed`}.`);
       else if (e.t === 'bed') out.push(`${nameOf(e.by)} reached the bed: ${plural(e.n, 'heart')} gone.`);
       else if (e.t === 'struck') out.push('Lightning struck the bed: a heart gone.');
       else if (e.t === 'guard') out.push('The teddy bear guarded the bed.');
       else if (e.t === 'arrive' || e.t === 'call') out.push(`${e.t === 'call' ? 'The Bogeyman called up a shadow' : `A ${TYPES[e.type].name.toLowerCase()} crept in`} at the far end.`);
       else if (e.t === 'asleep') out.push(`${nameOf(e.type)} slept through its turn.`);
+      else if (e.t === 'moonrise') out.push(MOONRISE);
     });
     const lost = ev.filter((e) => e.t === 'bed' || e.t === 'struck').reduce((n, e) => n + e.n, 0);
+    const note = withShot ? shotNote(ev.find((e) => e.t === 'shot')) : '';
     if (lost) {
       out.push(`${plural(run.hearts, 'heart')} left.`);
       say(`Ouch! ${plural(lost, 'heart')} gone. ${plural(run.hearts, 'heart')} left.`, 2400, true);
     } else if (ev.some((e) => e.t === 'guard')) say('The teddy bear guarded the bed!', 2400, true);
-    else if (withShot) {
-      const s = ev.find((e) => e.t === 'shot');
-      if (s && s.crit) say(`Yellow peg! ${plural(s.pegs, 'peg')} times ${critTimes()}: ${s.dmg} damage.`, 2200, true);
-    }
+    else if (ev.some((e) => e.t === 'moonrise')) say(MOONRISE, 3600, true);
+    else if (note) say(note, 2400, true);
     out.push(dangerText(f));
     out.push(`Your star: the ${words(f.stars[0]).name.toLowerCase()}.`);
     announce(out.join(' '));
@@ -1575,15 +1989,16 @@
   function look() {
     if (!run || !run.night) return;
     const f = run.night;
-    const parts = [`${dayOf(f.n)} night, ${plural(run.hearts, 'heart')} left.`];
+    const parts = [`${cap(nightName(f.n))}, ${plural(run.hearts, 'heart')} left.`];
     const list = byLane(f);
     if (!list.length) parts.push('No nightmares in the lane.');
     list.forEach((m) => {
-      parts.push(`${TYPES[m.type].name}${m.id === f.target ? ' (aimed at)' : ''}: ${away(m)} from the bed, ${plural(m.hp, 'hit point')}, ${nextOf(m).text}.`);
+      parts.push(`${TYPES[m.type].name}${m.id === f.target ? ' (aimed at)' : ''}: ${away(m)} from the bed, ${plural(m.hp, 'hit point')}, ${nextOf(m, f).text}.`);
     });
     if (f.queue.length) parts.push(`${plural(f.queue.length, 'more')} to come tonight.`);
     const lit = f.live.filter(Boolean).length;
-    parts.push(`${plural(lit, 'peg')} lit, ${Object.keys(f.kinds).filter((i) => f.kinds[i] === 'crit').length} yellow.`);
+    const c = colours(f, Object.keys(f.kinds).map(Number).filter((i) => f.live[i]));
+    parts.push(`${plural(lit, 'peg')} lit${c ? `, among them ${c}` : ''}.`);
     parts.push(`Your star: the ${words(f.stars[0]).name.toLowerCase()}, then the ${words(f.stars[1]).name.toLowerCase()}.`);
     parts.push(dangerText(f));
     announce(parts.join(' '));
@@ -1660,7 +2075,7 @@
       }
       if (e.detail !== 0) focusSky();
     });
-    const FX = { 'sd-new': 'is-new', 'sd-hit': 'is-hit', 'sd-bed-hit': 'is-hit', 'sd-zap': 'is-zapped', 'sd-guard': 'is-guarded' };
+    const FX = { 'sd-new': 'is-new', 'sd-hit': 'is-hit', 'sd-pushed': 'is-pushed', 'sd-bed-hit': 'is-hit', 'sd-zap': 'is-zapped', 'sd-guard': 'is-guarded' };
     v.lane.addEventListener('animationend', (e) => {
       const el = e.target.closest('.sd-m, .sd-bed');
       if (el && FX[e.animationName]) el.classList.remove(FX[e.animationName]);
@@ -1729,14 +2144,16 @@
     }
   }
 
+  // New run (the menu): another of the same kind, week or endless.
   function askNewRun() {
-    if (!run || run.step === 'over' || run.step === 'won' || (run.n === 1 && !run.night.turn)) { newRun(); return; }
+    const mode = run ? run.mode : 'week';
+    if (!run || run.step === 'over' || run.step === 'won' || (run.n === 1 && !run.night.turn)) { newRun(mode); return; }
     K.dialog({
       title: 'New run',
       icon: 'controller',
-      message: `Start a new run? This one ends here, on ${dayOf(run.n)} night with ${plural(run.score, 'point')}.`,
+      message: `Start a new run? This one ends here, on ${nightName(run.n)} with ${plural(run.score, 'point')}.`,
       buttons: ['Keep playing', 'New run'],
-    }).then((v) => { if (v === '1') newRun(); });
+    }).then((v) => { if (v === '1') newRun(mode); });
   }
 
   function onCard(e) {
@@ -1744,7 +2161,8 @@
     if (!btn || !view) return;
     if (btn.dataset.up) { choose(btn.dataset.up); return; }
     const what = btn.dataset.act;
-    if (what === 'start' || what === 'again') newRun();
+    if (what === 'start' || what === 'again') newRun(btn.dataset.mode || (run ? run.mode : 'week'));
+    else if (what === 'onwards') keepDreaming();
     else if (what === 'back') {
       view.help = false;
       syncCard(true);
