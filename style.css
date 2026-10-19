@@ -2332,8 +2332,12 @@ html[data-wall="navy"] .wall-tile { color: var(--white); }
    THE PET WIZARD  (on the desktop, behind every window)
    ============================================================
    pet.js moves him about with `translate` (his top-left corner) and
-   drives the hops while he walks; the rest is here. */
-.desk-pet { position: absolute; left: 0; top: 0; width: 116px; height: 116px; }
+   swings him while he's carried. He is wizard-rig.js's drawing (svg.wz,
+   which animates itself from the data-state, data-play and data-eyes pet.js
+   sets on it), or his picture if that's missing, inside .pet-pic, which
+   breathes and squishes (never the svg: its own animations would replace
+   them); the rest is here. */
+.desk-pet { --pet-size: 232px; position: absolute; left: 0; top: 0; width: var(--pet-size); height: var(--pet-size); }
 .pet { position: relative; width: 100%; height: 100%; user-select: none; -webkit-user-select: none; }
 .pet-sprite {
   display: block;
@@ -2343,12 +2347,14 @@ html[data-wall="navy"] .wall-tile { color: var(--white); }
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
 }
-.pet:not(.is-walking, .is-held) .pet-sprite:hover { translate: 0 -3px; }
-/* Hops, dangling and wobbles move the body; the picture breathes and squishes. */
+.pet:not(.is-teleporting, .is-held) .pet-sprite:hover { translate: 0 -3px; }
+/* Dangling and wobbles move the body; the drawing breathes and squishes. */
 .pet-body { display: block; width: 100%; height: 100%; transform-origin: 50% 100%; filter: drop-shadow(3px 3px 0 rgba(22, 26, 46, 0.22)); }
-.pet-sprite img { width: 100%; height: 100%; object-fit: contain; transform-origin: bottom center; -webkit-user-drag: none; }
-.pet.is-left img { scale: -1 1; } /* walking left: the drawings face right */
-.pet-sprite.asleep img { opacity: 0.9; }
+.pet-pic { display: block; width: 100%; height: 100%; transform-origin: bottom center; }
+.pet-pic img { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; }
+/* His hat may fly above his box (startled), so the drawing isn't clipped. */
+.wz { display: block; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.pet-sprite.asleep .pet-pic { opacity: 0.9; }
 /* Picked up: lifted towards you, his shadow left further behind. */
 .pet.is-held .pet-sprite { scale: 1.06; }
 .pet.is-held .pet-body { filter: drop-shadow(8px 12px 0 rgba(22, 26, 46, 0.16)); }
@@ -2392,11 +2398,11 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
 .pet-bubble[hidden] { display: none; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .pet-sprite img { animation: pet-breathe 3.6s ease-in-out infinite; }
-  .pet.is-walking img, .pet.is-held img { animation: none; }
-  .pet-sprite.petted img { animation: pet-squish 0.45s ease; }
+  /* His drawing breathes, except when the animated one does it itself (asleep). */
+  .pet-pic { animation: pet-breathe 3.6s ease-in-out infinite; }
+  .pet:is(.is-teleporting, .is-held) .pet-pic, .pet-sprite.asleep .pet-pic:has(.wz) { animation: none; }
+  .pet-sprite.petted .pet-pic { animation: pet-squish 0.45s ease; }
   .pet.is-landing .pet-body { animation: pet-land 0.9s ease-out; }
-  .pet.is-settling .pet-body { animation: pet-settle 0.3s ease-out; }
   .pet.is-trick .pet-body { transform-origin: 50% 55%; animation: pet-flip 0.9s cubic-bezier(0.3, 0.7, 0.4, 1); }
   .pet.is-party .pet-body { animation: pet-party 0.42s ease-in-out 6 alternate; }
   .desk-icon.is-jiggling .desk-ico { animation: icon-jiggle 0.55s ease var(--jiggle-delay, 0s); }
@@ -2414,7 +2420,6 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   82%  { transform: rotate(2deg); }
   100% { transform: none; }
 }
-@keyframes pet-settle { 45% { transform: scale(1.05, 0.93); } }
 /* Refresh: a crouch, a flip and a bouncy landing. Every step lists the
    same three moves, so the spin turns the whole way round. */
 @keyframes pet-flip {
@@ -2534,10 +2539,12 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
      reloads the page. */
   html, body { overscroll-behavior-y: none; }
   .desk-menu-panel button { min-height: 44px; }
-  /* The home screen: icons at the top, the wizard wandering about below. */
+  /* The home screen: icons at the top, the wizard popping about below
+     (smaller, so he leaves room for them). */
   .desktop { display: flex; flex-direction: column; overflow-y: auto; padding: 16px 14px 10px; }
   .desk-icons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 4px; justify-items: center; }
   .desk-icon { width: 78px; }
+  .desk-pet { --pet-size: 150px; }
 
   .win { inset: 0 !important; width: auto !important; height: auto !important; }
   .win:not(.is-active) { display: none; }

@@ -369,48 +369,49 @@ window.CONTENT = {
   /* ──────────────────────────────────────────────────────────────────────
      8. THE PET WIZARD  (your virtual pet, living on the desktop)
      ──────────────────────────────────────────────────────────────────────
-     • He lives on the desktop, always behind the windows, and wanders the
-       free bits with a little hop. If a window lands on him he pops out
-       from behind it. Ignore him and he naps.
+     • He lives on the desktop, always behind the windows, and teleports
+       about the free bits: his hat's star glows, there's a flash, and he
+       pops up somewhere else. If a window lands on him he pops out from
+       behind it. Ignore him and he naps.
      • Click him (or Tab to him + Enter) to pet him. Every tenth pet it
        rains doodles, and the mouse leaves a trail of them for the rest of
        the visit.
      • Drag him with the mouse to carry him somewhere (on a phone, press and
-       hold him first). He dangles, then grumbles or dozes off where you put
-       him down. Try dropping him on the Trash.
+       hold him first). He dangles from his hat, then grumbles or dozes off
+       where you put him down. Try dropping him on the Trash.
      • He remembers where you left him, and remembers people who petted
-       him: they get a "welcomeBack" line when they come back.
+       him: they get a "welcomeBack" line when they come back. He waves
+       when you come back to his tab too (see waveAway below).
      • pet.exe in the Start menu shows him, his mood and how many pets he's had.
      • What he says, and when, is noted above each list of lines below.
      • Any list of lines can be emptied, e.g.  dropLines: [],  to keep him quiet.
-     • FRAMES: his drawings, 960×960 transparent PNGs in assets/Wizard
-       Sprite/. The first five are drawn. The rest are optional: until one
-       exists he borrows another drawing (noted beside each), so nothing
-       ever looks broken. The games (sections 9 to 11), the Shut down
-       screen and the page-not-found box wear these drawings too, even if
+     • FRAMES: his drawings. The ones in assets/Wizard Sprite/svg/ come
+       from the Wizard Virtual Pet project, along with wizard-rig.js (the
+       animated him on the desktop): change them there, not here. A slot
+       left empty borrows another drawing (noted beside it), so nothing
+       ever looks broken. pet.exe, the games (sections 9 to 11), the Shut
+       down screen and the page-not-found box wear these drawings, even if
        he's retired.                                                       */
   wizard: {
     enabled: true,                // set false to retire him from the desktop (he'll understand)
     image: 'assets/ui/Pet Wizard Cursor default Not rotated.png', // stands in for "idle" if that drawing is ever missing
-    frames: {                     // his expressions, see assets/Wizard Sprite/
-      idle: 'assets/Wizard Sprite/Idle Wizard.png',            // eyes open, resting
-      half: 'assets/Wizard Sprite/Inbetween Frame Wizard.png', // mid-blink, eyes half shut (and just after he's put down)
-      blink: 'assets/Wizard Sprite/Blink Wizard.png',           // eyes shut
-      happy: 'assets/Wizard Sprite/Happy Wizard.png',           // when you pet him
-      asleep: 'assets/Wizard Sprite/Sleepy Wizard.png',          // napping (zzz drawn in)
+    frames: {                     // his expressions (see FRAMES above)
+      idle: 'assets/Wizard Sprite/svg/idle.svg',          // eyes open, resting
+      half: 'assets/Wizard Sprite/svg/half.svg',          // mid-blink, eyes half shut
+      blink: 'assets/Wizard Sprite/svg/blink.svg',        // eyes shut
+      happy: 'assets/Wizard Sprite/svg/happy.svg',        // when you pet him
+      asleep: 'assets/Wizard Sprite/svg/asleep.svg',      // napping (zzz drawn in)
+      held: 'assets/Wizard Sprite/svg/held.svg',          // dangling from his hat when picked up
+      dizzy: 'assets/Wizard Sprite/svg/dizzy.svg',        // just been put down
+      startled: 'assets/Wizard Sprite/svg/startled.svg',  // surprised: poked awake, dropped in the Trash, or woken in Wizard Sweeper
+      wave: 'assets/Wizard Sprite/svg/wave.svg',          // waving hello (with a magic hand)
+      party: 'assets/Wizard Sprite/svg/party.svg',        // in a party hat, for the secret codes
+      walk1: 'assets/Wizard Sprite/svg/walk1.svg',        // a step, left foot up (Not Rubbish)
+      walk2: 'assets/Wizard Sprite/svg/walk2.svg',        // a step, right foot up (Not Rubbish)
 
-      // Optional extras: draw one, drop it in the folder, put its path between
-      // the quotes. Walking frames face RIGHT (he's flipped to walk left).
-      // Draw them like the five above: same size and line weight, hat tip
-      // near the top and feet near the bottom, so his hops line up.
-      walk1: '',     // walking, step one                 (until drawn: idle)
-      walk2: '',     // walking, step two                 (until drawn: walk1)
-      held: '',      // dangling when picked up           (until drawn: startled)
-      dizzy: '',     // just been put down                (until drawn: half)
-      startled: '',  // surprised: dropped in the Trash, or woken in Wizard Sweeper (until drawn: idle)
-      wave: '',      // waving hello to old friends       (until drawn: happy)
-      party: '',     // in a party hat, for the secret codes (until drawn: happy)
-
+      // Not drawn yet. Draw one to match the drawings above (him in the same
+      // size and place, hat tip near the top and feet near the bottom), drop
+      // it in the folder and put its path between the quotes.
       // A tiny sleeping wizard for Wizard Sweeper's board. Bold, simple
       // shapes read best: it shows at about 32px.  (until drawn: asleep, shrunk)
       sweeperTile: '',
@@ -423,6 +424,7 @@ window.CONTENT = {
       hatless: '',   // his hat without its star, while the star flies (Star Drop)  (until drawn: idle)
     },
     sleepAfter: 60,               // seconds of being ignored before he naps (half that from 10pm to 6am)
+    waveAway: 10,                 // seconds on another tab before he waves when you come back (at most every 30 seconds)
     quietPages: ['coding'],       // windows where he won't speak unprompted (see "lines" below)
 
     // What he says when a window opens: one line at random from its list,
@@ -470,7 +472,8 @@ window.CONTENT = {
     trashLines: ["i'm NOT rubbish!", 'hey! not recyclable.', 'it smells like old designs in here.'], // dropped on the Trash
 
     // Said to someone who petted him before, when they come back later
-    // (after half an hour or more away).
+    // (after half an hour or more away), and with a wave to anyone coming
+    // back to his tab (see waveAway).
     welcomeBack: ['welcome back!', 'oh hi, you again :)', 'i kept your spot warm.'],
 
     // Right-click the desktop > Refresh: he does a flip, then says one of these.
