@@ -49,7 +49,7 @@ code { font-family: var(--font-mono); }
 :root {
   --cursor: url('/assets/ui/Pet Wizard Cursor OwO.png') 6 4, url('/assets/ui/Pet Wizard Cursor OwO 32.png') 4 3, auto;
   --cursor-pointer: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, url('/assets/ui/Pet Wizard Cursor default Hover OwO 32.png') 4 3, pointer;
-  --cursor-text: url('/assets/ui/Pet Wizard Cursor Text.png') 24 33, url('/assets/ui/Pet Wizard Cursor Text 32.png') 16 22, text;
+  --cursor-text: url('/assets/ui/Pet Wizard Cursor Text.png') 24 29, url('/assets/ui/Pet Wizard Cursor Text 32.png') 16 19, text;
   --cursor-zoom: url('/assets/ui/Pet Wizard Cursor Zoom.png') 18 18, url('/assets/ui/Pet Wizard Cursor Zoom 32.png') 12 12, zoom-in;
 }
 body { cursor: var(--cursor); }
@@ -404,8 +404,66 @@ a:hover > .card-arrow, a:hover .card-arrow { translate: 4px 0; }
   -webkit-user-drag: none;
 }
 .desk-ico { display: grid; place-items: center; width: calc(var(--desk-ico) + 4px); height: calc(var(--desk-ico) + 4px); border-radius: 12px; }
-.desk-ico .nav-icon { width: var(--desk-ico); height: var(--desk-ico); stroke-width: var(--line); transition: translate var(--transition); }
+/* The line grows with the icon: --line (2.5px) at the 48px it was drawn for. */
+.desk-ico .nav-icon { width: var(--desk-ico); height: var(--desk-ico); stroke-width: max(var(--line), calc(var(--desk-ico) / 19.2)); transition: translate var(--transition); }
 .desk-icon:hover .desk-ico .nav-icon { translate: 0 -2px; }
+
+/* Hover tricks, one per icon (their parts are named in assets/ui/nav-icons/).
+   Lengths here are in the icon's own 24-unit grid. */
+.desk-ico .ic-lid { transform-origin: 4.6px 8.5px; }
+.desk-icon:hover .ic-lid { rotate: -10deg; }
+/* The squiggle is on the wallpaper, so it takes the text colour (light in dark mode). */
+.desk-ico .ic-scribble { stroke: var(--text); stroke-width: 1.1px; stroke-dasharray: 1; stroke-dashoffset: 1; }
+html[data-wall="navy"] .desk-ico .ic-scribble { stroke: currentColor; }
+@media (prefers-reduced-motion: no-preference) {
+  .desk-ico .ic-lid { transition: rotate 0.25s ease; }
+  .desk-ico :is(.ic-slash, .ic-btn) { transform-box: fill-box; transform-origin: center; }
+  /* About: typing dots */
+  .desk-icon[data-app="about"]:hover .ic-dot { animation: ic-typing 1.2s ease-in-out infinite; }
+  .desk-icon[data-app="about"]:hover .ic-dot:nth-of-type(2) { animation-delay: 0.2s; }
+  .desk-icon[data-app="about"]:hover .ic-dot:nth-of-type(3) { animation-delay: 0.4s; }
+  /* Coding: the brackets breathe apart, the slash rocks */
+  .desk-icon:hover .ic-lt { --nudge: -0.7px; animation: ic-nudge 0.7s ease-in-out infinite alternate; }
+  .desk-icon:hover .ic-gt { --nudge: 0.7px; animation: ic-nudge 0.7s ease-in-out infinite alternate; }
+  .desk-icon:hover .ic-slash { animation: ic-rock 0.7s ease-in-out infinite alternate; }
+  /* Art: the paint wells fill one by one */
+  .desk-icon[data-app="art"]:hover .ic-dot { --paint: var(--yellow); stroke: currentColor; stroke-width: 0.7px; animation: ic-paint 2.4s ease-in-out infinite; }
+  .desk-icon[data-app="art"]:hover .ic-dot:nth-of-type(2) { --paint: var(--coral); animation-delay: 0.25s; }
+  .desk-icon[data-app="art"]:hover .ic-dot:nth-of-type(3) { --paint: var(--teal); animation-delay: 0.5s; }
+  .desk-icon[data-app="art"]:hover .ic-dot:nth-of-type(4) { --paint: var(--blue); animation-delay: 0.75s; }
+  /* Writing: the pencil writes a squiggle */
+  .desk-icon:hover .ic-pencil { animation: ic-write 2s linear infinite; }
+  .desk-icon:hover .ic-scribble { animation: ic-scribble 2s linear infinite; }
+  /* Certificates: the ribbons flutter */
+  .desk-icon:hover .ic-tail-l { transform-origin: 10px 14.6px; animation: ic-flutter 0.8s ease-in-out infinite alternate; }
+  .desk-icon:hover .ic-tail-r { transform-origin: 14px 14.6px; animation: ic-flutter 0.8s ease-in-out -0.4s infinite alternate-reverse; }
+  /* Games: the pad rocks and its buttons get mashed */
+  .desk-icon:hover .ic-pad { transform-origin: 12px 12px; animation: ic-shake 0.5s ease-in-out infinite alternate; }
+  .desk-icon:hover .ic-btn { animation: ic-press 0.8s ease-in-out infinite; }
+  .desk-icon:hover .ic-btn:nth-of-type(2) { animation-delay: 0.4s; }
+}
+@keyframes ic-typing { 0%, 60%, 100% { opacity: 0.3; translate: 0 0; } 25% { opacity: 1; translate: 0 -0.8px; } }
+@keyframes ic-nudge { to { translate: var(--nudge) 0; } }
+@keyframes ic-rock { from { rotate: -8deg; } to { rotate: 8deg; } }
+@keyframes ic-paint { 0%, 85%, 100% { fill: currentColor; } 15%, 65% { fill: var(--paint); } }
+/* The tip travels along the squiggle (2.5,20.2) to (7.5,20.2), then lifts home. */
+@keyframes ic-write {
+  0%, 100% { translate: 0 0; }
+  10%    { translate: -2.43px 1.13px; }
+  21.25% { translate: -1.18px 0.53px; }
+  32.5%  { translate: 0.07px 1.13px; }
+  43.75% { translate: 1.32px 1.73px; }
+  55%, 70% { translate: 2.57px 1.13px; }
+}
+@keyframes ic-scribble {
+  0%, 10% { opacity: 0; stroke-dashoffset: 1; }
+  10.1%   { opacity: 1; stroke-dashoffset: 1; }
+  55%, 80% { opacity: 1; stroke-dashoffset: 0; }
+  95%, 100% { opacity: 0; stroke-dashoffset: 0; }
+}
+@keyframes ic-flutter { from { rotate: -6deg; } to { rotate: 6deg; } }
+@keyframes ic-shake { from { rotate: -7deg; } to { rotate: 7deg; } }
+@keyframes ic-press { 0%, 35%, 65%, 100% { scale: 1; } 50% { scale: 0.6; } }
 .desk-label {
   max-width: 100%;
   padding: 1px 7px;
