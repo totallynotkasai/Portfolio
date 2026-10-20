@@ -43,14 +43,22 @@ img { display: block; max-width: 100%; height: auto; }
 button { font: inherit; color: inherit; background: none; border: none; }
 code { font-family: var(--font-mono); }
 
-/* The pet wizard cursor ("6 4" is the click point inside the 48px image). */
-body { cursor: url('/assets/ui/Pet Wizard Cursor OwO.png') 6 4, auto; }
-a:hover, button, [role="button"], .desk-icon, .file-tile, .file-row, .petexe-wizard {
-  cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer;
+/* The pet wizard cursors. Each 48px image has a 32px copy as a backup, for
+   browsers that won't draw a 48px cursor near the edge of the screen; the
+   numbers are the click point inside each image. */
+:root {
+  --cursor: url('/assets/ui/Pet Wizard Cursor OwO.png') 6 4, url('/assets/ui/Pet Wizard Cursor OwO 32.png') 4 3, auto;
+  --cursor-pointer: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, url('/assets/ui/Pet Wizard Cursor default Hover OwO 32.png') 4 3, pointer;
+  --cursor-text: url('/assets/ui/Pet Wizard Cursor Text.png') 24 33, url('/assets/ui/Pet Wizard Cursor Text 32.png') 16 22, text;
+  --cursor-zoom: url('/assets/ui/Pet Wizard Cursor Zoom.png') 18 18, url('/assets/ui/Pet Wizard Cursor Zoom 32.png') 12 12, zoom-in;
 }
-/* Prose keeps the normal caret so text still feels precise to select. */
-p, h1, h2, h3, li { cursor: auto; }
+body { cursor: var(--cursor); }
+a:hover, button, [role="button"], .desk-icon, .file-tile, .file-row, .petexe-wizard { cursor: var(--cursor-pointer); }
+/* Prose gets the wizard's text cursor, unless it sits inside something clickable. */
+p, h1, h2, h3, li { cursor: var(--cursor-text); }
 :is(a, button, [role="button"]) :is(p, h1, h2, h3, li) { cursor: inherit; }
+/* Pictures that open full size: art, certificate scans and project screenshots. */
+.art-card[role="button"], button.cert-tile, .os-shot-open { cursor: var(--cursor-zoom); }
 
 /* ---------- CUSTOM PROPERTIES ---------- */
 :root {
@@ -904,7 +912,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 }
 .os-shot svg { width: 44px; height: 44px; }
 /* The screenshot opens full size in the image viewer: no button look. */
-.os-shot-open { display: block; width: 100%; padding: 0; border-radius: var(--radius-sm); cursor: zoom-in; }
+.os-shot-open { display: block; width: 100%; padding: 0; border-radius: var(--radius-sm); }
 .os-name { margin-top: 14px; font-family: var(--font-display); font-size: 1.6rem; font-weight: 400; line-height: 1.15; }
 .os-path { margin-top: 3px; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.45; color: var(--ink-soft); overflow-wrap: anywhere; }
 .os-fork { margin-top: 8px; font-size: var(--fs-small); color: var(--ink-soft); }
@@ -1255,12 +1263,12 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 .sw-cell.is-hidden {
   background: var(--periwinkle);
   box-shadow: inset 0 calc(-1 * var(--line)) 0 #8F7BE3;
-  cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer;
+  cursor: var(--cursor-pointer);
 }
 .sw-cell.is-hidden:hover { background: #BCAEF6; }
 .sw-board.is-lucky .sw-cell.is-hidden:hover { background: var(--yellow); }
 .sw-cell.is-open { background: var(--surface); }
-.sw-board.can-chord .sw-cell.is-num { cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer; }
+.sw-board.can-chord .sw-cell.is-num { cursor: var(--cursor-pointer); }
 .sw-cell.n1 { color: var(--blue-ink); }
 .sw-cell.n2 { color: var(--teal-ink); }
 .sw-cell.n3 { color: var(--pink-ink); }
@@ -1488,7 +1496,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   -webkit-tap-highlight-color: transparent;
 }
 .nr-cell:focus-visible { z-index: 2; outline: 3px solid var(--ink); outline-offset: 2px; }
-.nr-cell.is-near, .nr-cell.is-hop { cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer; }
+.nr-cell.is-near, .nr-cell.is-hop { cursor: var(--cursor-pointer); }
 .nr-cell.is-near:hover::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 3px var(--yellow); }
 /* Where a hop can land: a dashed ring, filled yellow once Hop is picked. */
 .nr-cell.is-hop::after { content: ''; position: absolute; inset: 24%; border: 2px dashed var(--ink); border-radius: 50%; opacity: 0.45; }
@@ -1823,7 +1831,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   background: var(--blush);
   border: var(--border);
   border-radius: 12px;
-  cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer;
+  cursor: var(--cursor-pointer);
 }
 .sd-pillow { position: absolute; left: 13%; right: 13%; top: 24%; height: 44%; background: var(--white); border: 2px solid var(--ink); border-radius: 10px; }
 .sd-bed .sd-sleeper { position: absolute; left: 50%; top: 0; width: 100%; height: 100%; translate: -50% 0; object-fit: contain; pointer-events: none; }
@@ -1855,7 +1863,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   color: var(--white);
   background: rgba(0, 0, 0, 0.3);
   border-radius: 10px;
-  cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer;
+  cursor: var(--cursor-pointer);
 }
 .sd-door.is-open { box-shadow: inset 0 0 0 2px rgba(174, 157, 243, 0.6); }
 
@@ -1869,7 +1877,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   width: var(--sq);
   height: var(--sq);
   translate: calc(var(--x, 0) * var(--step)) 0;
-  cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer;
+  cursor: var(--cursor-pointer);
 }
 .sd-m.spider { --mc: var(--pink); }
 .sd-m.wardrobe { --mc: var(--teal); }
@@ -2379,7 +2387,7 @@ dialog.shutdown::backdrop { background: transparent; }
 .wall-set { min-width: 0; border: 0; }
 .wall-set legend { padding: 0; font-family: var(--font-mono); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
 .wall-options { display: flex; flex-wrap: wrap; gap: 6px 4px; margin-top: 8px; }
-.wall-choice { display: grid; justify-items: center; gap: 4px; width: 52px; font-size: 0.78rem; text-align: center; cursor: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, pointer; }
+.wall-choice { display: grid; justify-items: center; gap: 4px; width: 52px; font-size: 0.78rem; text-align: center; cursor: var(--cursor-pointer); }
 .wall-chip {
   display: grid;
   place-items: center;
