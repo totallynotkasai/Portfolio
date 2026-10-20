@@ -418,7 +418,7 @@ a:hover > .card-arrow, a:hover .card-arrow { translate: 4px 0; }
 html[data-wall="navy"] .desk-ico .ic-scribble { stroke: currentColor; }
 @media (prefers-reduced-motion: no-preference) {
   .desk-ico .ic-lid { transition: rotate 0.25s ease; }
-  .desk-ico :is(.ic-slash, .ic-btn) { transform-box: fill-box; transform-origin: center; }
+  .desk-ico :is(.ic-slash, .ic-btn, .ic-dot) { transform-box: fill-box; transform-origin: center; }
   /* About: typing dots */
   .desk-icon[data-app="about"]:hover .ic-dot { animation: ic-typing 1.2s ease-in-out infinite; }
   .desk-icon[data-app="about"]:hover .ic-dot:nth-of-type(2) { animation-delay: 0.2s; }
@@ -427,11 +427,11 @@ html[data-wall="navy"] .desk-ico .ic-scribble { stroke: currentColor; }
   .desk-icon:hover .ic-lt { --nudge: -0.7px; animation: ic-nudge 0.7s ease-in-out infinite alternate; }
   .desk-icon:hover .ic-gt { --nudge: 0.7px; animation: ic-nudge 0.7s ease-in-out infinite alternate; }
   .desk-icon:hover .ic-slash { animation: ic-rock 0.7s ease-in-out infinite alternate; }
-  /* Art: the paint wells fill one by one */
-  .desk-icon[data-app="art"]:hover .ic-dot { --paint: var(--yellow); stroke: currentColor; stroke-width: 0.7px; animation: ic-paint 2.4s ease-in-out infinite; }
-  .desk-icon[data-app="art"]:hover .ic-dot:nth-of-type(2) { --paint: var(--coral); animation-delay: 0.25s; }
-  .desk-icon[data-app="art"]:hover .ic-dot:nth-of-type(3) { --paint: var(--teal); animation-delay: 0.5s; }
-  .desk-icon[data-app="art"]:hover .ic-dot:nth-of-type(4) { --paint: var(--blue); animation-delay: 0.75s; }
+  /* Art: the paint wells bounce in a wave */
+  .desk-icon[data-app="art"]:hover .ic-dot { animation: ic-pop 0.9s ease-out infinite; }
+  .desk-icon[data-app="art"]:hover .ic-dot:nth-of-type(2) { animation-delay: 0.15s; }
+  .desk-icon[data-app="art"]:hover .ic-dot:nth-of-type(3) { animation-delay: 0.3s; }
+  .desk-icon[data-app="art"]:hover .ic-dot:nth-of-type(4) { animation-delay: 0.45s; }
   /* Writing: the pencil writes a squiggle */
   .desk-icon:hover .ic-pencil { animation: ic-write 2s linear infinite; }
   .desk-icon:hover .ic-scribble { animation: ic-scribble 2s linear infinite; }
@@ -446,7 +446,7 @@ html[data-wall="navy"] .desk-ico .ic-scribble { stroke: currentColor; }
 @keyframes ic-typing { 0%, 60%, 100% { opacity: 0.3; translate: 0 0; } 25% { opacity: 1; translate: 0 -0.8px; } }
 @keyframes ic-nudge { to { translate: var(--nudge) 0; } }
 @keyframes ic-rock { from { rotate: -8deg; } to { rotate: 8deg; } }
-@keyframes ic-paint { 0%, 85%, 100% { fill: currentColor; } 15%, 65% { fill: var(--paint); } }
+@keyframes ic-pop { 0%, 40%, 100% { scale: 1; } 15% { scale: 1.45; } 28% { scale: 0.85; } }
 /* The tip travels along the squiggle (2.5,20.2) to (7.5,20.2), then lifts home. */
 @keyframes ic-write {
   0%, 100% { translate: 0 0; }

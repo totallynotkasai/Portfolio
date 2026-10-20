@@ -730,6 +730,27 @@
     }, true);
   }
 
+  // A <use> of another file can't be reached by the page's CSS, so the
+  // desktop icons get their drawing copied in, letting their parts animate on
+  // hover (style.css). Until it arrives, or if it fails, the <use> stays.
+  function inlineDeskIcons() {
+    $$('.desk-ico svg.nav-icon').forEach((svg) => {
+      const use = svg.querySelector('use');
+      const href = use && use.getAttribute('href');
+      if (!href) return;
+      fetch(href.split('#')[0]).then((r) => (r.ok ? r.text() : Promise.reject())).then((text) => {
+        const symbol = new DOMParser().parseFromString(text, 'image/svg+xml').getElementById('icon');
+        if (!symbol) return;
+        const drawn = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        for (const { name, value } of symbol.attributes) if (name !== 'id') drawn.setAttribute(name, value);
+        drawn.setAttribute('class', 'nav-icon is-inline');
+        drawn.setAttribute('aria-hidden', 'true');
+        drawn.append(...[...symbol.childNodes].map((n) => document.importNode(n, true)));
+        svg.replaceWith(drawn);
+      }).catch(() => {});
+    });
+  }
+
   let deskSel = null; // which icon is selected (the desktop menu uses it too)
   function wireDesktop() {
     const icons = $('#desk-icons');
@@ -743,6 +764,7 @@
       });
     }
     $$('#desk-icons > li').forEach(draggable);
+    inlineDeskIcons();
     layoutDesktop();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutDesktop);
     PHONE.addEventListener('change', () => {
