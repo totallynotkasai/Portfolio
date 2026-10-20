@@ -534,6 +534,8 @@ window.CONTENT = {
      • "gremlins": a drawing for each gremlin, an SVG or a 960×960 transparent PNG
        in assets/Games/, e.g.  bug: 'assets/Games/Bug.png',  Until one is
        drawn, a stand-in shows (a coloured blob with eyes and a doodle).
+       A slot ending in "Angry" (e.g. bugAngry) is a second drawing, shown
+       while he stands on a tile that gremlin will strike next.
      • Each list of lines is said one at random. Empty a list, e.g.
        loseLines: [],  to keep him quiet.
      • "programs" are the names and blurbs on the program cards. Reword
@@ -541,11 +543,12 @@ window.CONTENT = {
        the game.                                                         */
   rubbish: {
     gremlins: {
-      bug: '',       // bites the four tiles beside it
-      popup: '',     // an error pop-up that fires along its row or column
+      bug: 'assets/Games/Ladybug.svg', // a ladybug: bites the four tiles beside it
+      bugAngry: 'assets/Games/LadybugGreen.svg', // the ladybug while he stands on a tile it will bite
+      webcam: 'assets/Games/Webcam.svg', // a webcam that shoots a beam along its row or column
       bunny: 'assets/Games/Bunny.svg', // a dust bunny: naps, then sneezes on all eight tiles round it
-      spinner: '',   // a loading spinner that rolls at him
-      spam: '',      // bites like a bug and copies itself
+      spinner: 'assets/Games/Spinner.svg', // an evil dreidel that rolls at him
+      printer: 'assets/Games/Printer.svg', // bites like a bug and prints copies of itself
     },
 
     // After each floor he climbs.

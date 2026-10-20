@@ -55,35 +55,35 @@
   /* ---------- the gremlins ----------
      Each one marks the tiles it will strike after his next move:
        bug      the four tiles beside it, every turn
-       popup    a line at him along its row or column, then it reloads
+       webcam   a beam at him along its row or column, then it recharges
        bunny    naps every other turn; awake, all eight tiles round it
        spinner  rolls at him along a row or column until something stops
                 it, then sits dizzy for a turn
-       spam     bites like a bug, and every fourth turn copies itself
-     Pop-up beams and rolling spinners hit gremlins too. */
+       printer  bites like a bug, and every fourth turn prints a copy of itself
+     Webcam beams and rolling spinners hit gremlins too. */
   const TYPES = {
     bug: { name: 'Bug', hp: 1, icon: 'bug', rule: 'Bites the four tiles beside it.' },
-    popup: { name: 'Pop-up', hp: 1, icon: 'alert', rule: 'Fires along its row or column when you line up with it, then reloads for a turn. Its beam hits gremlins too.' },
+    webcam: { name: 'Webcam', hp: 1, icon: 'webcam', rule: 'Shoots a beam along its row or column when you line up with it, then recharges for a turn. Its beam hits gremlins too.' },
     bunny: { name: 'Dust bunny', hp: 2, icon: 'bunny', rule: 'Naps every other turn. Awake, it sneezes on all eight tiles round it.' },
     spinner: { name: 'Spinner', hp: 1, icon: 'refresh', rule: 'Rolls at you along its row or column and hits the first thing in its way, then sits dizzy for a turn.' },
-    spam: { name: 'Spam', hp: 1, icon: 'mail', rule: 'Bites like a bug, and every fourth turn it copies itself.' },
+    printer: { name: 'Printer', hp: 1, icon: 'printer', rule: 'Bites like a bug, and every fourth turn it prints a copy of itself.' },
   };
   // Who each floor brings (placed at random, a few steps from his start).
   const FLOOR_PLAN = [
     ['bug', 'bug'],
-    ['bug', 'bug', 'popup'],
-    ['bug', 'popup', 'bunny'],
-    ['bug', 'bug', 'popup', 'bunny'],
-    ['bug', 'popup', 'bunny', 'spinner'],
-    ['bug', 'bug', 'popup', 'bunny', 'spinner'],
-    ['bug', 'popup', 'bunny', 'spinner', 'spam'],
-    ['bug', 'bug', 'popup', 'spinner', 'spam', 'bunny'],
-    ['bug', 'bug', 'popup', 'popup', 'spinner', 'spam'],
-    ['bug', 'bug', 'popup', 'popup', 'bunny', 'spinner', 'spam'],
+    ['bug', 'bug', 'webcam'],
+    ['bug', 'webcam', 'bunny'],
+    ['bug', 'bug', 'webcam', 'bunny'],
+    ['bug', 'webcam', 'bunny', 'spinner'],
+    ['bug', 'bug', 'webcam', 'bunny', 'spinner'],
+    ['bug', 'webcam', 'bunny', 'spinner', 'printer'],
+    ['bug', 'bug', 'webcam', 'spinner', 'printer', 'bunny'],
+    ['bug', 'bug', 'webcam', 'webcam', 'spinner', 'printer'],
+    ['bug', 'bug', 'webcam', 'webcam', 'bunny', 'spinner', 'printer'],
   ];
   // The lid: who's waiting, and who the dialog calls in (in turn).
-  const LID_PLAN = ['popup', 'bug'];
-  const SUMMONS = ['popup', 'bug', 'spam', 'spinner'];
+  const LID_PLAN = ['webcam', 'bug'];
+  const SUMMONS = ['webcam', 'bug', 'printer', 'spinner'];
 
   /* ---------- programs (install one after every floor; they stack) ---------- */
   const PROGRAMS = {
@@ -112,6 +112,8 @@
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
     hourglass: '<path d="M6.5 3.5h11M6.5 20.5h11"/><path d="M8 3.5v3l4 5-4 5v4M16 3.5v3l-4 5 4 5v4"/>',
     up: '<path d="M12 19.5V5"/><path d="M6 11l6-6 6 6"/>',
+    webcam: '<circle cx="12" cy="10" r="6.5"/><circle cx="12" cy="10" r="2.5"/><path d="M12 16.5V20M8 20.5h8"/>',
+    printer: '<path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14.5h10v6H7z"/>',
     plus: '<path d="M12 5.5v13M5.5 12h13"/>',
   };
   Object.keys(ICONS).forEach((k) => { if (!K.DOODLE_ICONS[k]) K.DOODLE_ICONS[k] = ICONS[k]; });
@@ -263,7 +265,7 @@
     const homes = shuffle(range(N).filter((i) => tiles[i] === FLOOR && !f.items[i] &&
       rowOf(i) <= 4 && rowOf(i) >= (lid ? 2 : 0) && apart(i, START) >= 4));
     (lid ? LID_PLAN : FLOOR_PLAN[n - 1]).forEach((type) => {
-      const aims = type === 'popup' || type === 'spinner';
+      const aims = type === 'webcam' || type === 'spinner';
       const k = aims ? homes.findIndex((i) => !lined(i, START)) : homes.length - 1;
       if (homes.length) addGremlin(f, type, homes.splice(k < 0 ? homes.length - 1 : k, 1)[0], 0);
     });
@@ -281,11 +283,11 @@
       marks: null,   // the tiles it strikes after his next move
       kind: '',      // bite, beam, sneeze or roll
       dir: '',
-      copy: -1,      // spam: where its copy turns up
+      copy: -1,      // printer: where its copy turns up
       hitsLid: false,
       stun,          // turns left sitting dizzy
-      reload: 0,     // pop-ups: a turn to reload after firing
-      tick: rand(3), // spam: copies itself every fourth turn
+      reload: 0,     // webcams: a turn to recharge after firing
+      tick: rand(3), // printer: copies itself every fourth turn
       awake: Math.random() < 0.5, // dust bunnies: awake or napping
     };
     f.gs.push(g);
@@ -314,7 +316,7 @@
       if (!still && beside(g.i).indexOf(f.pet) === -1) stepTowards(f, g);
       bite(f, g);
     },
-    spam(f, g, still) {
+    printer(f, g, still) {
       AI.bug(f, g, still);
       if (still) return;
       g.tick++;
@@ -333,7 +335,7 @@
         g.marks = around(g.i).filter((j) => f.tiles[j] !== JUNK && f.tiles[j] !== LID);
       } else if (!still) stepTowards(f, g);
     },
-    popup(f, g, still) {
+    webcam(f, g, still) {
       if (g.reload > 0) {
         g.reload--;
         if (!still) lineUp(f, g, false);
@@ -605,7 +607,7 @@
       g.marks = null;
       g.copy = -1;
       if (copy >= 0 && alive(g) && vacant(f, copy) && f.gs.filter(alive).length < MOST_GREMLINS) {
-        ev.push({ t: 'spawn', id: addGremlin(f, 'spam', copy, 1).id, type: 'spam' });
+        ev.push({ t: 'spawn', id: addGremlin(f, 'printer', copy, 1).id, type: 'printer' });
       }
       if (!marks || !alive(g)) return;
       ev.push({ t: 'strike', kind: g.kind, tiles: marks });
@@ -1085,14 +1087,14 @@
       place(el, g.i);
       el.classList.toggle('is-dizzy', g.stun > 0);
       el.classList.toggle('is-napping', g.type === 'bunny' && !g.awake && !g.stun);
-      el.classList.toggle('is-reloading', g.type === 'popup' && g.reload > 0 && !g.stun);
+      el.classList.toggle('is-reloading', g.type === 'webcam' && g.reload > 0 && !g.stun);
       el.classList.toggle('is-angry', !!(g.marks && g.marks.indexOf(f.pet) !== -1));
       if (hurtIds.has(g.id)) restart(el, 'is-bonked');
       if (rolled.has(g.id)) restart(el, 'is-rolling');
       const hp = g.max > 1 ? range(g.max).map((k) => `<i${k < g.hp ? '' : ' class="is-gone"'}></i>`).join('') : '';
       const hpEl = el.querySelector('.nr-hp');
       if (hpEl.innerHTML !== hp) hpEl.innerHTML = hp;
-      const state = g.stun > 0 ? doodleIcon('star') : g.type === 'bunny' && !g.awake ? 'z' : g.type === 'popup' && g.reload > 0 ? doodleIcon('hourglass') : '';
+      const state = g.stun > 0 ? doodleIcon('star') : g.type === 'bunny' && !g.awake ? 'z' : g.type === 'webcam' && g.reload > 0 ? doodleIcon('hourglass') : '';
       const stEl = el.querySelector('.nr-state');
       if (stEl.innerHTML !== state) stEl.innerHTML = state;
     });
@@ -1106,11 +1108,15 @@
     });
   }
 
+  // A gremlin may have a second drawing for while he stands on a tile it's
+  // about to strike (the ladybug turns green): both load, CSS shows one.
   const gremlinFace = (type) => {
     const src = drawingOf(type);
+    const angry = src && drawingOf(type + 'Angry');
+    const img = (s, cls) => `<img${cls ? ` class="${cls}"` : ''} src="${esc(s)}" alt="" draggable="false" decoding="async" />`;
     return src
-      ? `<img src="${esc(src)}" alt="" draggable="false" decoding="async" />`
-      : `<span class="nr-token">${type === 'popup' ? '<span class="nr-token-bar"></span>' : ''}<span class="nr-eyes"><i></i><i></i></span>${doodleIcon(TYPES[type].icon)}</span>`;
+      ? angry ? img(src, 'nr-calm') + img(angry, 'nr-angry') : img(src)
+      : `<span class="nr-token"><span class="nr-eyes"><i></i><i></i></span>${doodleIcon(TYPES[type].icon)}</span>`;
   };
 
   function syncLid(f, ev) {
@@ -1207,7 +1213,7 @@
         if (g.max > 1) s += `, ${plural(g.hp, 'heart')}`;
         if (g.stun > 0) s += ', dizzy';
         else if (g.type === 'bunny' && !g.awake) s += ', napping';
-        else if (g.type === 'popup' && g.reload > 0) s += ', reloading';
+        else if (g.type === 'webcam' && g.reload > 0) s += ', recharging';
         bits.push(s);
       } else if (f.tiles[i] === JUNK) bits.push('junk');
       else if (f.tiles[i] === LID) bits.push('the Empty Recycle Bin dialog');
@@ -1471,7 +1477,7 @@
     };
     const parts = [`${f.lid ? 'The lid' : `Floor ${f.n}`}, ${plural(run.hearts, 'heart')} left.`];
     f.gs.filter(alive).forEach((g) => {
-      const state = g.stun > 0 ? ', dizzy' : g.type === 'bunny' && !g.awake ? ', napping' : g.type === 'popup' && g.reload ? ', reloading' : '';
+      const state = g.stun > 0 ? ', dizzy' : g.type === 'bunny' && !g.awake ? ', napping' : g.type === 'webcam' && g.reload ? ', recharging' : '';
       parts.push(`${TYPES[g.type].name} ${where(g.i)}${state}.`);
     });
     if (f.lid) parts.push(`The dialog has ${plural(f.lid.hp, 'bonk')} left in it; it's along the top.`);
@@ -1484,7 +1490,7 @@
   // A gremlin, explained (and its marks picked out for a moment).
   function inspect(g) {
     const t = TYPES[g.type];
-    const state = g.stun > 0 ? ' It is dizzy for a turn.' : g.type === 'bunny' && !g.awake ? ' It is napping.' : g.type === 'popup' && g.reload ? ' It is reloading.' : '';
+    const state = g.stun > 0 ? ' It is dizzy for a turn.' : g.type === 'bunny' && !g.awake ? ' It is napping.' : g.type === 'webcam' && g.reload ? ' It is recharging.' : '';
     say(`${t.name}: ${t.rule}${state}`, 4200);
     light(g.id);
     later(() => { if (view && view.lit === g.id) light(0); }, 2600);

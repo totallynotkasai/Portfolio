@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="88 140 824 824"><defs><clipPath id="cam"><circle cx="500" cy="430" r="266"/></clipPath></defs>
+<g stroke="#0a1835" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+<ellipse cx="500" cy="900" rx="190" ry="45" fill="#383d90"/>
+<rect x="465" y="660" width="70" height="240" fill="#9191e9"/>
+<circle cx="500" cy="430" r="270" fill="#9191e9"/>
+<circle cx="500" cy="440" r="172" fill="#383d90"/>
+<circle cx="500" cy="440" r="115" fill="#f47179"/>
+<circle cx="500" cy="440" r="55" fill="#0a1835"/>
+<circle cx="535" cy="425" r="16" fill="#fdfdfd" stroke="none"/>
+<polygon points="200,140 800,140 800,320 500,395 200,320" fill="#9191e9" stroke="none" clip-path="url(#cam)"/>
+<polyline points="262,305 500,398 738,305" clip-path="url(#cam)" fill="none" stroke-width="10"/>
+<circle cx="500" cy="225" r="24" fill="#f47179"/>
+</g>
+</svg>

@@ -1624,12 +1624,14 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 /* The gremlins. Until there's a drawing, each is a stand-in: a blob in
    its colour with eyes and its doodle. */
 .nr-g { --gc: var(--teal); z-index: 2; }
-.nr-g.popup { --gc: var(--pink); }
+.nr-g.webcam { --gc: var(--blue); }
 .nr-g.bunny { --gc: var(--grey-tint); }
 .nr-g.spinner { --gc: var(--yellow); }
-.nr-g.spam { --gc: var(--blue); }
+.nr-g.printer { --gc: var(--periwinkle); }
 .nr-g-body { position: absolute; inset: 9%; display: block; }
 .nr-g-body > img { width: 100%; height: 100%; object-fit: contain; }
+.nr-g-body > .nr-angry, .nr-g.is-angry .nr-g-body > .nr-calm { display: none; }
+.nr-g.is-angry .nr-g-body > .nr-angry { display: block; }
 .nr-token {
   position: absolute;
   inset: 0;
@@ -1643,12 +1645,11 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   border-radius: 38%;
 }
 .nr-token svg.doodle { width: 38%; height: 38%; }
-.nr-g.popup .nr-token { border-radius: 16%; }
+.nr-g.webcam .nr-token { border-radius: 50%; }
 .nr-g.spinner .nr-token { border-radius: 50%; }
 .nr-g.bunny .nr-token { border-radius: 48% 48% 40% 40%; }
-.nr-token-bar { position: absolute; inset: 0 0 auto; height: 24%; background: var(--ink); }
 .nr-eyes { position: absolute; top: 22%; left: 50%; display: flex; justify-content: center; gap: 10%; width: 72%; translate: -50% 0; }
-.nr-g.popup .nr-eyes { top: 32%; }
+.nr-g.webcam .nr-eyes { top: 32%; }
 .nr-eyes i { position: relative; width: 28%; aspect-ratio: 1; background: var(--white); border: 2px solid var(--ink); border-radius: 50%; }
 .nr-eyes i::after { content: ''; position: absolute; inset: 26%; background: var(--ink); border-radius: 50%; }
 /* About to strike his tile: a cross look and a pink ring. */

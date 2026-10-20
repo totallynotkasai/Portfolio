@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="79 70 842 842">
+<g stroke="#0a1835" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+<rect x="455" y="90" width="90" height="190" rx="34" fill="#f47179"/>
+<path d="M270 300 Q260 278 292 278 L708 278 Q740 278 730 300 L730 600 Q730 630 710 652 L522 880 Q500 905 478 880 L290 652 Q270 630 270 600 Z" fill="#f98776"/>
+<path d="M640 278 L708 278 Q740 278 730 300 L730 600 Q730 630 710 652 L522 880 L600 640 L640 300 Z" fill="#f47179"/>
+<circle cx="360" cy="380" r="30" fill="#feda74"/><circle cx="370" cy="388" r="13" fill="#0a1835"/>
+<circle cx="580" cy="380" r="30" fill="#feda74"/><circle cx="570" cy="388" r="13" fill="#0a1835"/>
+<circle cx="470" cy="480" r="75" fill="#feda74"/>
+<circle cx="486.5" cy="502.5" r="33.75" fill="#0a1835"/>
+<polygon points="391,399 549,399 549,472.5 391,438.75" fill="#f98776" stroke="none"/>
+<line x1="397" y1="439.75" x2="543" y2="473.5"/>
+<path d="M360 610 L385 635 L410 610 L435 640 L460 610 L485 640 L510 610 L535 635 L560 610 Q460 700 360 610 Z" fill="#0a1835"/>
+</g>
+</svg>
