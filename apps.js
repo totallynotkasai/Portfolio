@@ -612,7 +612,7 @@
     colour: 'coral',
     icon: 'games',
     path: '/games',
-    size: [620, 440],
+    size: [620, 450],
     head: () => copy('games', { heading: 'Games', sub: 'Things to play when you should be working.' }),
     render(win) {
       const ids = Object.keys(GAMES);
