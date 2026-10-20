@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="92 160 816 816">
+<g stroke="#0a1835" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+<path d="M540 640 L455 800 L520 800 L480 950 L630 760 L560 760 L610 640 Z" fill="#feda74"/>
+<g stroke-width="16" fill="#c5c8d6"><rect x="180" y="480" width="640" height="210" rx="100"/><circle cx="330" cy="450" r="130"/><circle cx="500" cy="360" r="170"/><circle cx="680" cy="430" r="140"/><circle cx="790" cy="560" r="95"/><circle cx="210" cy="580" r="95"/></g><g stroke="none" fill="#c5c8d6"><rect x="180" y="480" width="640" height="210" rx="100"/><circle cx="330" cy="450" r="130"/><circle cx="500" cy="360" r="170"/><circle cx="680" cy="430" r="140"/><circle cx="790" cy="560" r="95"/><circle cx="210" cy="580" r="95"/></g>
+<circle cx="420" cy="530" r="55" fill="#feda74"/>
+<circle cx="580" cy="530" r="55" fill="#feda74"/>
+<circle cx="440" cy="550" r="22" fill="#0a1835"/>
+<circle cx="560" cy="550" r="22" fill="#0a1835"/>
+<polygon points="355,455 488,455 488,524 355,481" fill="#c5c8d6" stroke="none"/>
+<polygon points="512,455 645,455 645,481 512,524" fill="#c5c8d6" stroke="none"/>
+<line x1="362" y1="483" x2="482" y2="522"/>
+<line x1="518" y1="522" x2="638" y2="483"/>
+<path d="M455 625 Q500 595 545 625" fill="none" stroke-width="10"/>
+</g>
+</svg>

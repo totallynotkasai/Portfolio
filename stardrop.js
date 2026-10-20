@@ -125,7 +125,7 @@
   const TYPES = {
     shadow: { name: 'Shadow', hp: 16, hearts: 1, icon: 'ghost', rule: 'Creeps one square closer every turn.' },
     spider: { name: 'Spider', hp: 10, hearts: 1, icon: 'spider', rule: 'Scuttles two squares every turn.' },
-    wardrobe: { name: 'Wardrobe monster', hp: 40, hearts: 2, icon: 'door', rule: 'Big and slow: it rests, then steps, turn about. It costs two hearts if it reaches the bed.' },
+    raggedy: { name: 'Raggedy teddy', hp: 40, hearts: 2, icon: 'teddy', rule: 'Big and slow: it rests, then steps, turn about. It costs two hearts if it reaches the bed.' },
     cloud: { name: 'Storm cloud', hp: 20, hearts: 1, icon: 'cloud', rule: 'Drifts in to four squares from the bed, and strikes the bed with lightning every third turn.' },
     bogeyman: { name: 'The Bogeyman', hp: 480, hearts: 0, icon: 'eye', rule: 'Takes a step every third turn and calls up a shadow every other turn. If he reaches the bed, the run is over.' },
     // Endless only, from the second week.
@@ -136,11 +136,11 @@
   // in (one at a time, onto the far square once it's free).
   const PLAN = [
     [['shadow', 0], ['spider', 2], ['shadow', 3]],
-    [['shadow', 0], ['spider', 1], ['shadow', 2], ['wardrobe', 3]],
+    [['shadow', 0], ['spider', 1], ['shadow', 2], ['raggedy', 3]],
     [['spider', 0], ['cloud', 1], ['shadow', 2], ['spider', 3], ['shadow', 4]],
-    [['spider', 0], ['cloud', 1], ['shadow', 2], ['wardrobe', 3], ['spider', 4], ['shadow', 5]],
-    [['cloud', 0], ['wardrobe', 1], ['shadow', 2], ['spider', 3], ['spider', 4], ['shadow', 5], ['wardrobe', 6]],
-    [['wardrobe', 0], ['cloud', 1], ['spider', 2], ['shadow', 3], ['spider', 4], ['wardrobe', 5], ['cloud', 6]],
+    [['spider', 0], ['cloud', 1], ['shadow', 2], ['raggedy', 3], ['spider', 4], ['shadow', 5]],
+    [['cloud', 0], ['raggedy', 1], ['shadow', 2], ['spider', 3], ['spider', 4], ['shadow', 5], ['raggedy', 6]],
+    [['raggedy', 0], ['cloud', 1], ['spider', 2], ['shadow', 3], ['spider', 4], ['raggedy', 5], ['cloud', 6]],
     [['bogeyman', 0], ['cloud', 5]],
   ];
   const TOUGHER = [1.25, 1.6, 2.05, 2.5, 2.9, 3, 3.1]; // their hit points, night by night (not the Bogeyman's)
@@ -674,7 +674,7 @@
   function plan(m) {
     if (m.sleep > 0) return { steps: 0, asleep: true };
     if (m.type === 'spider') return { steps: 2 };
-    if (m.type === 'wardrobe') return { steps: m.tick % 2 ? 1 : 0 };
+    if (m.type === 'raggedy') return { steps: m.tick % 2 ? 1 : 0 };
     if (m.type === 'cloud') return { steps: m.sq > CLOUD_STOP ? 1 : 0, zap: m.charge <= 1 };
     if (m.type === 'bogeyman') return { steps: m.tick % 3 === 2 ? 1 : 0, call: m.tick % 2 === 1 };
     if (m.type === 'jack') return { steps: m.tick % 3 === 2 ? 3 : 0, spring: 3 - (m.tick % 3) };

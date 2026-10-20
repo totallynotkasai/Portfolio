@@ -614,9 +614,9 @@ window.CONTENT = {
     nightmares: {
       shadow: 'assets/Games/Shadow.svg', // creeps one square closer every turn
       spider: 'assets/Games/Spider.svg', // scuttles two squares every turn
-      wardrobe: '',   // a wardrobe monster: big and slow, it rests every other turn
-      cloud: '',      // a storm cloud that strikes the bed with lightning
-      bogeyman: '',   // Sunday night's boss, who calls up shadows
+      raggedy: 'assets/Games/Raggedy.svg', // a raggedy teddy: big and slow, it rests every other turn
+      cloud: 'assets/Games/Cloud.svg', // a storm cloud that strikes the bed with lightning
+      bogeyman: 'assets/Games/Bogeyman.svg', // Sunday night's boss, who calls up shadows
       bat: 'assets/Games/Bat.svg', // endless only: flutters one square a turn, over anything in its way
       jack: 'assets/Games/Jack.svg', // endless only: a jack-in-the-box that winds up, then springs three squares
     },

@@ -1939,7 +1939,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
   cursor: var(--cursor-pointer);
 }
 .sd-m.spider { --mc: var(--pink); }
-.sd-m.wardrobe { --mc: var(--teal); }
+.sd-m.raggedy { --mc: var(--coral); }
 .sd-m.cloud { --mc: var(--grey); }
 .sd-m.bogeyman { --mc: var(--coral); }
 .sd-m.bat { --mc: var(--blue); }
@@ -1961,7 +1961,7 @@ li.is-dragging .desk-ico .nav-icon { translate: 0 -3px; }
 }
 .sd-token svg.doodle { width: 40%; height: 40%; }
 .sd-m.shadow .sd-token { border-radius: 50% 50% 24% 24%; }
-.sd-m.wardrobe .sd-token { border-radius: 14%; }
+.sd-m.raggedy .sd-token { border-radius: 46% 46% 40% 40%; }
 .sd-m.cloud .sd-token { border-radius: 50%; }
 .sd-m.bogeyman .sd-token { border-radius: 34% 34% 26% 26%; }
 .sd-m.bat .sd-token { border-radius: 50% 50% 30% 30%; }
