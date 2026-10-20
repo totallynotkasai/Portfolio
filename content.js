@@ -531,7 +531,7 @@ window.CONTENT = {
        "hop", "bonk", "hurt", "asleep" (a nap), "party" (the Party popper
        and climbing out), "happy" (a floor cleared) and "startled"
        (knocked out).
-     • "gremlins": a drawing for each gremlin, a 960×960 transparent PNG
+     • "gremlins": a drawing for each gremlin, an SVG or a 960×960 transparent PNG
        in assets/Games/, e.g.  bug: 'assets/Games/Bug.png',  Until one is
        drawn, a stand-in shows (a coloured blob with eyes and a doodle).
      • Each list of lines is said one at random. Empty a list, e.g.
@@ -543,7 +543,7 @@ window.CONTENT = {
     gremlins: {
       bug: '',       // bites the four tiles beside it
       popup: '',     // an error pop-up that fires along its row or column
-      bunny: '',     // a dust bunny: naps, then sneezes on all eight tiles round it
+      bunny: 'assets/Games/Bunny.svg', // a dust bunny: naps, then sneezes on all eight tiles round it
       spinner: '',   // a loading spinner that rolls at him
       spam: '',      // bites like a bug and copies itself
     },
@@ -600,7 +600,7 @@ window.CONTENT = {
        "hatless" (his hat without its star, while it flies), "asleep" (in
        bed), "startled" (a nightmare reaching the bed, and the run
        ending), "happy" (a night survived) and "party" (the whole week).
-     • "nightmares": a drawing for each one, a 960×960 transparent PNG in
+     • "nightmares": a drawing for each one, an SVG or a 960×960 transparent PNG in
        assets/Games/, e.g.  shadow: 'assets/Games/Shadow.png',  Until one
        is drawn, a stand-in shows (a coloured blob with eyes and a doodle).
        The bat and the jack-in-the-box only come in endless runs, from the
@@ -612,13 +612,13 @@ window.CONTENT = {
        them here doesn't change the game.                                */
   stardrop: {
     nightmares: {
-      shadow: '',     // creeps one square closer every turn
-      spider: '',     // scuttles two squares every turn
+      shadow: 'assets/Games/Shadow.svg', // creeps one square closer every turn
+      spider: 'assets/Games/Spider.svg', // scuttles two squares every turn
       wardrobe: '',   // a wardrobe monster: big and slow, it rests every other turn
       cloud: '',      // a storm cloud that strikes the bed with lightning
       bogeyman: '',   // Sunday night's boss, who calls up shadows
-      bat: '',        // endless only: flutters one square a turn, over anything in its way
-      jack: '',       // endless only: a jack-in-the-box that winds up, then springs three squares
+      bat: 'assets/Games/Bat.svg', // endless only: flutters one square a turn, over anything in its way
+      jack: 'assets/Games/Jack.svg', // endless only: a jack-in-the-box that winds up, then springs three squares
     },
 
     // Each morning, after a night he gets through.
