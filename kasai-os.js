@@ -738,7 +738,9 @@
       const use = svg.querySelector('use');
       const href = use && use.getAttribute('href');
       if (!href) return;
-      fetch(href.split('#')[0]).then((r) => (r.ok ? r.text() : Promise.reject())).then((text) => {
+      // 'no-cache' asks the server each time (a cheap 304 when unchanged), so a
+      // day-old copy without the named parts can't stop the animations.
+      fetch(href.split('#')[0], { cache: 'no-cache' }).then((r) => (r.ok ? r.text() : Promise.reject())).then((text) => {
         const symbol = new DOMParser().parseFromString(text, 'image/svg+xml').getElementById('icon');
         if (!symbol) return;
         const drawn = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
