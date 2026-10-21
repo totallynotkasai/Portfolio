@@ -11,7 +11,7 @@
 
   const K = window.Kasai;
   const C = K.C;
-  const { esc, highlight, accent, plural, pad2, slug, doodleIcon, webSrc, largeSrc, srcset, dims, imgInfo, HEX, textOn } = K;
+  const { esc, highlight, accent, plural, pad2, slug, doodleIcon, webSrc, largeSrc, srcset, thumbSrcset, dims, imgInfo, HEX, textOn } = K;
 
   // Each window's heading and line can be changed in content.js (os.windows).
   const copy = (id, fallback) => Object.assign({}, fallback, ((C.os && C.os.windows) || {})[id] || {});
@@ -327,6 +327,10 @@
     if (frame) style += `--frame:${frame};--frame-ink:${textOn(frame)};`;
     if (chip) style += `--chip:${chip};--chip-ink:${textOn(chip)};`;
     const wide = info.w && info.h && info.w / info.h >= 1.25;
+    // A card is 168 to about 260px wide (a wide one two columns), half a
+    // phone each: the thumbnail is plenty unless the screen is high-density.
+    const set = thumbSrcset(it.img);
+    const sizes = wide ? '(max-width: 760px) 92vw, 540px' : '(max-width: 760px) 46vw, 260px';
     const title = it.title || 'Untitled';
     const viewer = it.img
       ? ` data-full="${esc(largeSrc(it.full || it.img))}" data-img="${esc(it.full || it.img)}" data-file="${esc(artFileName(it))}"` +
@@ -339,7 +343,7 @@
           <div class="art-card-face">
             <span class="art-card-name">${esc(title)}</span>
             <div class="art-card-window">${it.img
-              ? `<img src="${esc(webSrc(it.img))}"${dims(it.img)} alt="${esc(title)}" loading="lazy" decoding="async" draggable="false" />`
+              ? `<img src="${esc(webSrc(it.img))}"${set ? ` srcset="${esc(set)}" sizes="${sizes}"` : ''}${dims(it.img)} alt="${esc(title)}" loading="lazy" decoding="async" draggable="false" />`
               : doodleIcon('palette')}</div>
             <p class="art-card-type"><span>${esc(it.tag || 'Art')}</span><img src="/assets/ui/favicon.png" alt="" /></p>
             <p class="art-card-foot" aria-hidden="true"><span>${pad2(i + 1)}/${pad2(n)}</span><span>Kasai</span></p>
@@ -621,7 +625,7 @@
         const pic = wizardPose(g.pose);
         return `
           <li><button class="file-tile game-tile" type="button" data-game="${id}">
-            <span class="tile-thumb tile-thumb--sprite ${g.colour}">${pic ? `<img src="${esc(pic)}" alt="" draggable="false" />` : doodleIcon('controller')}</span>
+            <span class="tile-thumb tile-thumb--sprite ${g.colour}">${pic ? `<img src="${esc(pic)}" alt="" loading="lazy" decoding="async" draggable="false" />` : doodleIcon('controller')}</span>
             <span class="tile-name">${esc(g.label)}</span>
             <span class="tile-sub">${esc(g.sub)}</span>
           </button></li>`;

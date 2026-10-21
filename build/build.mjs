@@ -35,9 +35,9 @@ const GEN_URL = '/generated/';
 // the browser fetches the big one only when a picture is drawn too wide for
 // the small one (a big window, the image viewer, a high-density screen).
 const IMAGE_SETS = [
-  { dir: 'assets/art', web: 800, large: 4000 },        // every artwork whole (the biggest is 3200x4000)
+  { dir: 'assets/art', web: 800, large: 4000, thumb: 400 }, // every artwork whole (the biggest is 3200x4000); thumb: a card in the binder
   { dir: 'assets/certs', web: 480, large: 2000 },
-  { dir: 'assets/photos', web: 800 },
+  { dir: 'assets/photos', web: 480 },                 // About's me.png (about 220px wide) and the Start menu's circle
   { dir: 'assets/projects', web: 640, large: 2560 },   // a maximised project window
   { dir: 'assets/Wizard Sprite', web: 240 },
   { dir: 'assets/Games', web: 240 },                   // the games' drawings (Not Rubbish's gremlins)
@@ -238,6 +238,12 @@ export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), 
           { width: set.large, height: set.large, fit: 'inside', withoutEnlargement: true });
         Object.assign(info, { large: large.url, lw: large.width, lh: large.height });
       }
+      // A smaller copy still, for pictures drawn small on standard screens.
+      if (set.thumb && web.width > set.thumb) {
+        const thumb = await makeWebp(buf, `${base}-t${set.thumb}.webp`,
+          { width: set.thumb, withoutEnlargement: true });
+        Object.assign(info, { thumb: thumb.url, tw: thumb.width });
+      }
       if (set.dir === 'assets/art') {
         // Worked out from the small copy, once per version of the file.
         if (!colourCache.has(base)) colourCache.set(base, await artColours(sharp, join(outDir, `${base}-w${set.web}.webp`)));
@@ -256,10 +262,19 @@ export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), 
   }
   art.sort((a, b) => b.added - a.added || a.title.localeCompare(b.title));
 
+  // A version for each nav icon. Their addresses are put together in the
+  // code (K.navIcon), so they can't be stamped like the others: K.navIcon
+  // adds ?v= from here, and a changed drawing gets a new address.
+  const versions = {};
+  const iconDir = 'assets/ui/nav-icons';
+  for (const f of (await readdir(join(root, iconDir)).catch(() => [])).filter((n) => /\.svg$/i.test(n))) {
+    versions[`${iconDir}/${f}`] = createHash('sha1').update(await readFile(join(root, iconDir, f))).digest('hex').slice(0, 8);
+  }
+
   await writeFile(join(outDir, 'manifest.js'),
     '/* Made by build/build.mjs on every deploy. Do not edit: change content.js\n' +
     '   or the files in assets/ instead. */\n' +
-    'window.GENERATED = ' + JSON.stringify({ images, art }, null, 1) + ';\n');
+    'window.GENERATED = ' + JSON.stringify({ images, art, versions }, null, 1) + ';\n');
 
   // Tidy up copies of images that were changed or removed. One that another
   // process still has open (a second dev server on Windows) waits for the
@@ -271,22 +286,51 @@ export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), 
   return { images, art };
 }
 
-/* ---------- 4. Version the CSS/JS links in the built pages ---------- */
-// CSS and JS are cached for a week while revalidating (vercel.json), so after
-// a deploy a returning visitor's first load could pair the new HTML with the
-// old code. Adding ?v=<hash of the file> to each link makes every change a
-// fresh URL. A script that loads another one later (apps.js fetches
-// sweeper.js when the game opens) has that address stamped first, so its
-// own stamp changes whenever the other file does. Only dist/ is touched;
-// the source files stay clean.
+/* ---------- 4. Version the links in the built pages ---------- */
+// Adding ?v=<hash of the file> to each address makes every change a fresh
+// URL, so vercel.json can let browsers keep a stamped file for a year (an
+// address without a stamp is still checked again after a minute or a day).
+// The pictures go first (the cursors in the stylesheet, the favicon in the
+// scripts), then the script addresses written inside scripts (apps.js
+// fetches sweeper.js when the game opens), then the pages' own links, so
+// each file's stamp changes whenever anything it points at does. Only
+// dist/ is touched; the source files stay clean.
 export async function stampAssetUrls(dist = DIST) {
   const hashOf = async (url) => {
-    try { return createHash('sha1').update(await readFile(join(dist, url))).digest('hex').slice(0, 8); }
+    try { return createHash('sha1').update(await readFile(join(dist, decodeURIComponent(url)))).digest('hex').slice(0, 8); }
     catch { return ''; } // not in dist (shouldn't happen): leave the link alone
   };
-  const files = await readdir(dist);
+  const hashes = new Map();
+  const version = async (url) => {
+    if (!hashes.has(url)) hashes.set(url, await hashOf(url));
+    return hashes.get(url);
+  };
+  // Every match of `re` in `text`, stamped (group 1 is the address).
+  const stamp = async (text, re, swap) => {
+    for (const url of new Set([...text.matchAll(re)].map((m) => m[1]))) await version(url);
+    return text.replace(re, (...m) => (hashes.get(m[1]) ? swap(hashes.get(m[1]), m[1]) : m[0]));
+  };
+  const rewrite = async (test, fn) => {
+    for (const f of await readdir(dist)) {
+      if (!test.test(f)) continue;
+      const file = join(dist, f);
+      const text = await readFile(file, 'utf8');
+      const out = await fn(text);
+      if (out !== text) await writeFile(file, out);
+    }
+  };
+
+  // Pictures in the stylesheets: url('/assets/ui/Pet Wizard Cursor OwO.png').
+  await rewrite(/\.css$/i, (css) => stamp(css, /(?<=url\(['"]?)(\/assets\/[^'")?#]+)(?=['"]?\))/g,
+    (v, url) => `${url}?v=${v}`));
+  // Fixed picture addresses inside the scripts, like "/assets/ui/favicon.png"
+  // (the nav icons' are put together in the code: see K.navIcon).
+  await rewrite(/\.js$/i, (code) => stamp(code, /(\/assets\/[\w ./-]+?\.(?:png|svg|webp|jpe?g|gif))(?=['"`])/g,
+    (v, url) => `${url}?v=${v}`));
+  hashes.clear(); // the scripts below are hashed as they are now
 
   // Script addresses written inside the scripts, like '/sweeper.js'.
+  const files = await readdir(dist);
   for (const f of files) {
     if (!/\.js$/i.test(f)) continue;
     const file = join(dist, f);
@@ -299,24 +343,13 @@ export async function stampAssetUrls(dist = DIST) {
     if (out !== code) await writeFile(file, out);
   }
 
-  // Then the pages' own links, hashed after the step above so they cover it.
-  const versions = new Map();
-  const version = async (url) => {
-    if (!versions.has(url)) versions.set(url, await hashOf(url));
-    return versions.get(url);
-  };
-  for (const f of files) {
-    if (!/\.html$/i.test(f)) continue;
-    const file = join(dist, f);
-    const html = await readFile(file, 'utf8');
-    const urls = [...html.matchAll(/(?:src|href)="(\/[^"?#]+\.(?:css|js))"/g)].map((m) => m[1]);
-    let out = html;
-    for (const url of new Set(urls)) {
-      const v = await version(url);
-      if (v) out = out.split(`"${url}"`).join(`"${url}?v=${v}"`);
-    }
-    if (out !== html) await writeFile(file, out);
-  }
+  // Then the pages' own links, hashed after the steps above so they cover
+  // them: the stylesheet and scripts, and the pictures (the taskbar's
+  // icons, the desktop's <use href=".../about.svg#icon">).
+  await rewrite(/\.html$/i, async (html) => {
+    const linked = await stamp(html, /(?<=(?:src|href)=")(\/[^"?#]+\.(?:css|js))(?=")/g, (v, url) => `${url}?v=${v}`);
+    return stamp(linked, /(?<=(?:src|href)=")(\/assets\/[^"?#]+)(?=["#])/g, (v, url) => `${url}?v=${v}`);
+  });
 }
 
 /* ---------- Full build (what Vercel runs) ---------- */

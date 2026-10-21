@@ -387,6 +387,8 @@
   /* ---------- levels and runs ---------- */
   function newRun() {
     if (run && !run.recorded && run.score > 0) finishRun(); // a run left halfway still counts
+    // Nothing the old run had waiting (its end card) may turn up in the new one.
+    if (view) { view.timers.forEach(clearTimeout); view.timers.clear(); }
     // step: 'play', 'pick' (choosing an upgrade) or 'over'.
     run = { level: 1, score: 0, bonus: 0, cleared: 0, shields: 0, have: {}, step: 'play', board: null };
     UPGRADE_IDS.forEach((id) => { run.have[id] = 0; });

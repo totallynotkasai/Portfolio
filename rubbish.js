@@ -736,6 +736,8 @@
      ══════════════════════════════════════════════════════════════════════ */
   function newRun() {
     if (run && !run.recorded && run.score > 0) finishRun(false); // a run left halfway still counts
+    // Nothing the old run had waiting (its end card) may turn up in the new one.
+    if (view) { view.timers.forEach(clearTimeout); view.timers.clear(); }
     // step: 'play', 'pick' (installing a program), 'over' or 'won'.
     run = { n: 1, score: 0, hearts: HEARTS, max: HEARTS, have: {}, step: 'play', floor: null, history: [], bonked: 0, stars: 0 };
     PROGRAM_IDS.forEach((id) => { run.have[id] = 0; });

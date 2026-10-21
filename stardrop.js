@@ -561,6 +561,16 @@
   // mode: 'week' (Monday to Sunday) or 'endless'.
   function newRun(mode) {
     if (run && !run.recorded && run.score > 0) finishRun(false); // a run left halfway still counts
+    // A star still falling, or the nightmares' turn still to come, belongs to
+    // the old run: none of it may land in the new one.
+    if (view) {
+      cancelAnimationFrame(view.raf);
+      view.anim = null;
+      view.ballBox.innerHTML = '';
+      view.timers.forEach(clearTimeout);
+      view.timers.clear();
+      view.tally.hidden = true;
+    }
     // step: 'aim', 'shot' (the star's falling), 'busy' (the nightmares'
     // turn), 'pick' (a star or a charm), 'over' or 'won'.
     run = { mode: mode === 'endless' ? 'endless' : 'week', n: 1, score: 0, hearts: HEARTS, max: HEARTS, bag: ['plain', 'plain', 'plain'], level: {}, have: {}, step: 'aim', night: null, shot: null, offer: null, sky: '', beaten: 0, pegs: 0, moons: 0, seen: {} };

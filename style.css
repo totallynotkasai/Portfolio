@@ -43,14 +43,14 @@ img { display: block; max-width: 100%; height: auto; }
 button { font: inherit; color: inherit; background: none; border: none; }
 code { font-family: var(--font-mono); }
 
-/* The pet wizard cursors (bump ?v= when an image changes, or browsers keep
-   the old one for a day). Each 48px image has a 32px copy as a backup, for
-   browsers that won't draw a 48px cursor near the edge of the screen; the
-   numbers are the click point inside each image. */
+/* The pet wizard cursors (the build stamps each address with its image's
+   version, so a changed cursor shows up straight away). Each 48px image has
+   a 32px copy as a backup, for browsers that won't draw a 48px cursor near
+   the edge of the screen; the numbers are the click point inside each image. */
 :root {
   --cursor: url('/assets/ui/Pet Wizard Cursor OwO.png') 6 4, url('/assets/ui/Pet Wizard Cursor OwO 32.png') 4 3, auto;
   --cursor-pointer: url('/assets/ui/Pet Wizard Cursor default Hover OwO.png') 6 4, url('/assets/ui/Pet Wizard Cursor default Hover OwO 32.png') 4 3, pointer;
-  --cursor-text: url('/assets/ui/Pet Wizard Cursor Text.png?v=2') 24 29, url('/assets/ui/Pet Wizard Cursor Text 32.png?v=2') 16 19, text;
+  --cursor-text: url('/assets/ui/Pet Wizard Cursor Text.png') 24 29, url('/assets/ui/Pet Wizard Cursor Text 32.png') 16 19, text;
   --cursor-zoom: url('/assets/ui/Pet Wizard Cursor Zoom.png') 18 18, url('/assets/ui/Pet Wizard Cursor Zoom 32.png') 12 12, zoom-in;
 }
 body { cursor: var(--cursor); }
@@ -92,7 +92,7 @@ p, h1, h2, h3, li { cursor: var(--cursor-text); }
   --periwinkle-ink:  #5E46B8;
   --yellow-ink:      #8A6400;
   --blue-ink:        #1F5FC0;
-  --teal-ink:        #1F7D6E;
+  --teal-ink:        #1B7466;
   --pink-ink:        #B03A70;
   --coral-ink:       #BE2D18;
   --grey-ink:        #5F647F;
@@ -216,6 +216,8 @@ html[data-theme="dark"] {
   --wall-grid: var(--tx-grid-light);
   --tx-checker: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' fill='%23262A42'/%3E%3Cpath d='M0 0h8v8H0zM8 8h8v8H8z' fill='%23302C52'/%3E%3C/svg%3E");
   --tx-ruled: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='28'%3E%3Crect y='22' width='10' height='1' fill='%23414868'/%3E%3C/svg%3E");
+  /* The resize corner goes light, so it still shows on the dark windows. */
+  --tx-grip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Cpath d='M13 4L4 13M13 8.5L8.5 13' stroke='%23EDEBF7' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 html[data-theme="dark"] .ink { --acc-tint: #2B2E44; --acc-ink: var(--text); }
 /* Words on the bright colours (and the pink-ink badges, which go light
@@ -323,8 +325,15 @@ body {
   border-radius: 8px;
   transition: background var(--transition), rotate var(--transition);
 }
-.os-btn svg { width: 14px; height: 14px; }
-.os-min:hover, .os-max:hover { background: var(--yellow); }
+.os-btn svg { width: 14px; height: 14px; transition: translate 0.25s var(--ease-bounce), scale 0.25s var(--ease-bounce); }
+/* Each button acts out what it does: minimise tucks its line down towards
+   the taskbar, maximise grows its box (restore shrinks its pair back) and
+   close spins its cross. */
+.os-min:hover { background: var(--yellow); }
+.os-min:hover svg { translate: 0 3px; }
+.os-max:hover { background: var(--periwinkle); }
+.os-max:hover svg { scale: 1.25; }
+.os-max[aria-pressed="true"]:hover svg { scale: 0.8; }
 .os-close:hover { background: var(--pink); rotate: 90deg; }
 .os-btn:active { translate: 0 1px; }
 .ink .os-bar :focus-visible { outline-color: var(--yellow); }

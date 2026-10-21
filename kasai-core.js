@@ -58,6 +58,13 @@
     const i = imgInfo(p);
     return i && i.large && i.lw > i.w ? `${i.web} ${i.w}w, ${i.large} ${i.lw}w` : '';
   };
+  // The thumbnail and the small copy, for a picture drawn small (an art
+  // card): standard screens fetch the thumbnail, high-density ones the small
+  // copy. Empty when the build made no thumbnail.
+  K.thumbSrcset = (p) => {
+    const i = imgInfo(p);
+    return i && i.thumb && i.tw < i.w ? `${i.thumb} ${i.tw}w, ${i.web} ${i.w}w` : '';
+  };
   // Real width/height, so space is reserved before the image loads.
   K.dims = (p) => (imgInfo(p) ? ` width="${imgInfo(p).w}" height="${imgInfo(p).h}"` : '');
 
@@ -150,9 +157,13 @@
   K.doodleIcon = (name, cls) =>
     `<svg class="doodle${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
     `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DOODLE_ICONS[name] || DOODLE_ICONS.pencil}</svg>`;
-  // The two-colour app icons (one file each in assets/ui/nav-icons/).
-  K.navIcon = (name) =>
-    `<svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/${K.esc(name)}.svg#icon"/></svg>`;
+  // The two-colour app icons (one file each in assets/ui/nav-icons/), each
+  // with the version the build gave its file, so a new drawing is a new
+  // address that browsers fetch straight away.
+  K.navIcon = (name) => {
+    const v = (GEN.versions || {})[`assets/ui/nav-icons/${name}.svg`];
+    return `<svg class="nav-icon" aria-hidden="true"><use href="/assets/ui/nav-icons/${K.esc(name)}.svg${v ? '?v=' + v : ''}#icon"/></svg>`;
+  };
   // Link arrow that nudges right on hover (see .card-arrow in style.css).
   K.ARROW =
     '<svg class="card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" ' +
