@@ -19,6 +19,9 @@
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
   const APPS = K.apps || {};
+  // Windows inside an app that have an address of their own (About's CV
+  // at /cv): they open over their app.
+  const SUBS = K.subWindows || {};
   const os = $('#os');
   const desktop = $('#desktop');
   const layer = $('#windows');
@@ -51,8 +54,11 @@
     if (u.origin !== window.location.origin) return null;
     const path = u.pathname.replace(/\.html$/, '').replace(/\/+$/, '') || '/';
     if (path === '/' || path === '/about') return 'about';
-    return Object.keys(APPS).find((id) => APPS[id].path === path) || null;
+    return Object.keys(APPS).find((id) => APPS[id].path === path)
+      || Object.keys(SUBS).find((id) => SUBS[id].path === path) || null;
   };
+  // An app, or a window with an address of its own: something open() takes by name.
+  const named = (id) => !!id && !!(APPS[id] || SUBS[id]);
 
   /* ══════════════════════════════════════════════════════════════════════
      WINDOW MANAGER
@@ -74,7 +80,7 @@
     return null;
   };
   const specFor = (idOrSpec) => (typeof idOrSpec === 'string'
-    ? (APPS[idOrSpec] ? Object.assign({ id: idOrSpec }, APPS[idOrSpec]) : null)
+    ? (named(idOrSpec) ? Object.assign({ id: idOrSpec }, APPS[idOrSpec] || SUBS[idOrSpec]) : null)
     : idOrSpec);
 
   function build(spec) {
@@ -785,6 +791,7 @@
   });
 
   const routeOf = (win) => {
+    if (win && SUBS[win.id]) return SUBS[win.id].path; // the CV: /cv
     const app = win && appOf(win);
     return app && APPS[app] ? APPS[app].path : null;
   };
@@ -816,7 +823,7 @@
     if (document.hidden) return;
     const f = front();
     const app = f && appOf(f);
-    const label = app ? APPS[app].label : f ? f.spec.label : null;
+    const label = f && SUBS[f.id] ? f.spec.label : app ? APPS[app].label : f ? f.spec.label : null;
     document.title = label ? `${label} - Andrew Worgan` : baseTitle;
   }
 
@@ -826,11 +833,11 @@
     syncTitle();
   }
 
-  // Bring back a window by id: an app, or a project/document still open.
+  // Bring back a window by id: an app or the CV, or a project/document still open.
   const reopen = (id) => {
     const w = id && wins.get(id);
     if (w && w.open) return open(APPS[id] ? id : w.spec, { push: false });
-    return id && APPS[id] ? open(id, { push: false }) : null;
+    return named(id) ? open(id, { push: false }) : null;
   };
 
   // Back and Forward. Desktops move between windows; phones close the
@@ -850,7 +857,7 @@
     }
     if (st.win && reopen(st.win)) return;
     const target = st.app || K.appFromPath(window.location.href);
-    if (target && APPS[target]) open(target, { push: false });
+    if (named(target)) open(target, { push: false });
   });
 
   // The close button. On phones each window is a step in the history, so
@@ -945,11 +952,11 @@
     });
   }
 
-  // Links that open windows (the Start menu, buttons inside windows).
+  // Links that open windows (the Start menu, buttons inside windows, About's My CV).
   document.addEventListener('click', (e) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const a = e.target.closest('a[data-app]');
-    if (!a || !APPS[a.dataset.app]) return;
+    if (!a || !named(a.dataset.app)) return;
     e.preventDefault();
     hideStart();
     open(a.dataset.app, { from: a });
@@ -1059,6 +1066,37 @@
     });
   }
 
+  // Calling the wizard over (pet.js): a double-click on an empty bit of the
+  // desktop, or a double-tap on a phone's home screen (style.css stops a
+  // double-tap zooming in there). A long press still opens the desktop menu.
+  function wireSummon() {
+    const empty = (t) => !t.closest('.desk-icon, .desk-pet');
+    const call = (x, y) => { if (K.pet && K.pet.summon) K.pet.summon(x, y); };
+    let lastType = 'mouse';
+    let finger = null; // a finger on the desktop: { id, x, y, at }
+    let tap = null;    // the quick tap before it, waiting for a second
+    desktop.addEventListener('pointerdown', (e) => {
+      lastType = e.pointerType || 'mouse';
+      finger = e.pointerType === 'touch' && e.isPrimary ? { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp } : null;
+    });
+    desktop.addEventListener('pointercancel', () => { finger = null; tap = null; });
+    desktop.addEventListener('pointerup', (e) => {
+      const f = finger;
+      finger = null;
+      if (!f || e.pointerId !== f.id) return;
+      // A tap: quick and still (not a swipe, a scroll or a long press).
+      if (e.timeStamp - f.at > 300 || Math.hypot(e.clientX - f.x, e.clientY - f.y) > 12 || !empty(e.target)) { tap = null; return; }
+      if (tap && e.timeStamp - tap.at < 350 && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 32) {
+        tap = null;
+        call(e.clientX, e.clientY);
+      } else tap = { x: e.clientX, y: e.clientY, at: e.timeStamp };
+    });
+    // Mice and pens (a touch screen's own double-tap is counted above).
+    desktop.addEventListener('dblclick', (e) => {
+      if (lastType !== 'touch' && empty(e.target)) call(e.clientX, e.clientY);
+    });
+  }
+
   let deskSel = null; // which icon is selected (the desktop menu uses it too)
   function wireDesktop() {
     const icons = $('#desk-icons');
@@ -1072,6 +1110,7 @@
       });
     }
     $$('#desk-icons > li').forEach(draggable);
+    wireSummon();
     inlineDeskIcons();
     layoutDesktop();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutDesktop);
@@ -1800,6 +1839,9 @@
     // Phones start on the home screen unless the link asked for a window.
     if (isPhone() && first === 'about' && /^\/(about)?$/.test(window.location.pathname)) first = null;
     history.replaceState({ app: first, win: first, n: depth }, '', window.location.pathname + window.location.search);
+    // The CV's address opens About too, under it.
+    const under = first && SUBS[first] && SUBS[first].parent;
+    if (under) open(under, { push: false, focus: false });
     if (first) open(first, { push: false, focus: false });
     else sync(false);
   }

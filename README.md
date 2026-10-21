@@ -16,13 +16,14 @@ My portfolio is a little operating system. Double-click an icon on the lavender 
 ## What's on the desktop
 
 - **About, Coding, Art, Writing and Certificates** each open a window that grows out of its icon. You can drag it (to the left or right edge of the screen to fill that half, or the top to fill all of it), resize it from any edge, maximise it, minimise it into the taskbar and close it. Old page addresses such as `/coding_projects` still work: they open that window.
+- **My CV**, a button under the About text, opens my CV on a sheet of paper in a window of its own (or go straight to [`/cv`](https://www.andrewworgan.co.uk/cv)). Its menu bar prints it or saves it as a PDF, and only the page prints.
 - **The image viewer** opens art, certificates and the Trash's old designs full size, and steps through the rest of that folder with its arrows, the arrow keys or a swipe.
 - **Games** holds three roguelikes:
   - **Wizard Sweeper**: Minesweeper where the mines are sleeping wizards. Every level is a little bigger, and you pick an upgrade between levels.
   - **Not Rubbish**: someone dropped the pet wizard in the Trash. He climbs out turn by turn through the site's retired designs, bonking gremlins that mark the tiles they'll strike, with a program to install after every floor and the Empty Recycle Bin dialog waiting on the lid.
   - **Star Drop**: the pet wizard is asleep and his nightmares are creeping towards his bed. In his dream he flicks the star off his hat through a sky of pegs: every peg it pops is damage (coloured pegs count for more, and once in a blue moon a moon rises that makes a shot count ten times over), and after each shot the nightmares step closer. A run is a week of nights, picking a new star or a charm each morning, with the Bogeyman waiting on Sunday; endless runs keep going, harder every night, until his hearts run out.
 - **Trash** keeps the site's retired designs, because I couldn't bring myself to delete them.
-- **The pet wizard** lives on the desktop: pet him, carry him about, or ignore him until he naps.
+- **The pet wizard** lives on the desktop: pet him, carry him about, double-click the desktop to call him over, or ignore him until he naps.
 - There's a boot screen, a right-click desktop menu, a wallpaper picker and a few secret codes to find.
 - On a phone the desktop becomes a home screen: apps open full screen and the Back button closes them.
 

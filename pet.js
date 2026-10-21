@@ -5,7 +5,8 @@
    drawings, how soon he naps) lives in content.js under "wizard".
    He teleports about the free bits of the desktop, blinks, beams when
    petted, naps when ignored and chats when a window opens. Drag him with
-   the mouse (or press and hold on a touch screen) to carry him about.
+   the mouse (or press and hold on a touch screen) to carry him about, or
+   double-click an empty bit of the desktop (kasai-os.js) to call him over.
    He remembers where you left him and whether you petted him, and pet.exe
    in the Start menu shows how he's doing. Pet him ten times for a surprise.
    The desktop menu's Refresh makes him do a trick, and the secret codes
@@ -35,6 +36,7 @@
     trickLines: ['ta-da!', 'did you see that?!'],
     partyLines: ["it's a party!", 'nobody said there was a dress code'],
   };
+  const SUMMON_LINES = ['you rang?', 'poof!']; // content.js: wizard.lines.summon
 
   /* ---------- his drawings ----------
      His still drawings, from content.js. pet.exe and the games show him as
@@ -103,6 +105,9 @@
     trick() { if (live) live.trick(); },
     // A secret code: the party hat and a little dance.
     party() { if (live) live.party(); },
+    // Called over to a point on the screen (a double-click on the empty
+    // desktop): false if he isn't about or can't come (he's being carried).
+    summon(x, y) { return live ? live.summon(x, y) : false; },
     // Says a line, if he's about (false if he isn't).
     say(text, ms) { return live ? live.speak(text, ms) : false; },
     // The picture for one of his drawings (or its stand-in), for anything
@@ -408,6 +413,9 @@
     };
     const spotKey = () => (PHONE.matches ? 'pet-phone' : 'pet');
     let keepSpot = false;
+    // Where he was last called to (see "calling him"), while he's still there.
+    let calledTo = null;
+    const atCall = () => !!calledTo && calledTo.x === pos.x && calledTo.y === pos.y;
     const saveSpot = () => {
       const a = area();
       const items = K.store.get(DESK_KEY, { items: {} }).items || {};
@@ -564,14 +572,16 @@
     }
 
     // Every so often he looks around: out from under a window that has
-    // landed on him, or off somewhere else.
+    // landed on him, or off somewhere else. Called to a spot, he stays put
+    // even in the icons' column (not on an icon, or under a window) until
+    // he next wanders.
     let coveredAt = 0;
     let nextWander = Date.now() + wanderIn();
     function think() {
       if (document.hidden || playing || state === 'held' || state === 'teleport' || state === 'happy' || state === 'dizzy' || state === 'party') return;
       const now = Date.now();
       const cv = coverNow();
-      if ((cv.win > 0.45 || cv.icon > 0.2 || cv.col > 0.5) && state !== 'asleep') {
+      if ((cv.win > 0.45 || cv.icon > 0.2 || (cv.col > 0.5 && !atCall())) && state !== 'asleep') {
         if (!coveredAt) coveredAt = now;
         if (now - coveredAt > 1200 && now > stuckUntil) popOut();
         return;
@@ -901,13 +911,15 @@
 
     /* ---------- when windows open ----------
        A line for each app's first opening (at most every 8 seconds, never
-       in his sleep). Windows listed in quietPages wait to be asked. */
+       in his sleep). A window with lines of its own (the CV) gets those
+       instead of its app's. Windows listed in quietPages wait to be asked. */
     let quietUntil = 0;
     K.on('open', (e) => {
       setTimeout(think, 650); // a new window may have landed on him
-      if (!e.first || !e.app || quiet.indexOf(e.app) !== -1) return;
+      const key = (W.lines || {})[e.id] ? e.id : e.app;
+      if (!e.first || !key || quiet.indexOf(key) !== -1) return;
       if (state === 'asleep' || state === 'held' || Date.now() < quietUntil || Date.now() - lastSaid < 8000) return;
-      const line = lineFor(e.app);
+      const line = lineFor(key);
       if (line) setTimeout(() => { if (state !== 'asleep' && state !== 'held') speakOut(line, 3600); }, 700);
     });
 
@@ -961,6 +973,85 @@
       speakOut(text, ms || 3000);
       return true;
     };
+
+    /* ---------- calling him ----------
+       A double-click on an empty bit of the desktop (a double-tap on a
+       phone; kasai-os.js) calls him over. He teleports there (or just
+       beside it, rather than under a window or on the icons) and says so
+       (wizard.lines.summon). Asleep, he wakes with a start first.
+       Mid-teleport he lands first, then comes; busy with something else
+       (a wobble, a wave, the party) he comes once it's over, if that's
+       within a few seconds. While he's carried, the call is ignored. The
+       spot is remembered, like one he's dropped on. With reduced motion
+       he's simply there. */
+    let call = null; // the latest call he hasn't answered yet: { x, y, until }
+    let callTimer = 0;
+    function summon(x, y) {
+      if (state === 'held' || !Number.isFinite(x) || !Number.isFinite(y)) return false;
+      call = { x, y, until: Date.now() + 6000 };
+      answer();
+      return true;
+    }
+    function answer() {
+      clearTimeout(callTimer);
+      const c = call;
+      if (!c) return;
+      if (state === 'held' || Date.now() > c.until) { call = null; return; }
+      if (state === 'teleport') {
+        // Once he lands (just once, however many calls come meanwhile).
+        if (trip && !trip.called) {
+          const then = trip.then;
+          trip.called = true;
+          trip.then = () => { if (then) then(); answer(); };
+        }
+        return;
+      }
+      if (state === 'asleep') {
+        rest();
+        if (dozing()) { wake(answer); return; } // only nodding off: he just sits up
+        stopBlink();
+        setState('idle');
+        play('startled', () => { look('idle'); scheduleBlink(); answer(); });
+        return;
+      }
+      if (!free()) { callTimer = setTimeout(answer, 200); return; }
+      call = null;
+      come(c);
+    }
+    function come(c) {
+      const spot = spotNear(c);
+      rest();
+      nextWander = Date.now() + wanderIn();
+      bubble.setAttribute('role', 'status'); // from now on, what he says is read out too
+      keepSpot = true;
+      const line = pick(linesOf((W.lines || {}).summon, SUMMON_LINES));
+      const hello = () => { calledTo = { x: pos.x, y: pos.y }; say(line, 2400); };
+      if (Math.hypot(spot.x - pos.x, spot.y - pos.y) < 12) { saveSpot(); hello(); return; } // already there
+      goTo(spot.x, spot.y, hello);
+    }
+    // Where he lands when called to the point `c` on the screen: his middle
+    // on it, or the nearest spot (within 240px) where he'd stay put, not
+    // mostly hidden by a window or sitting on the icons (see think).
+    function spotNear(c) {
+      const s = size();
+      const a = area();
+      const obs = obstacles();
+      const d = desktop.getBoundingClientRect();
+      const cx = c.x - d.left + desktop.scrollLeft;
+      const cy = c.y - d.top + desktop.scrollTop;
+      let best = null;
+      for (let dx = -240; dx <= 240; dx += 24) {
+        for (let dy = -240; dy <= 240; dy += 24) {
+          const p = { x: clamp(cx - s.w / 2 + dx, a.minX, a.maxX), y: clamp(cy - s.h / 2 + dy, a.minY, a.maxY) };
+          const cv = cover(p, obs, s);
+          const stays = cv.win <= 0.45 && cv.icon <= 0.2;
+          const away = Math.hypot(p.x + s.w / 2 - cx, p.y + s.h / 2 - cy);
+          const score = (stays ? 0 : 100) + away / 60 + (cv.win + cv.icon) * 2;
+          if (!best || score < best.score) best = { x: p.x, y: p.y, score };
+        }
+      }
+      return best;
+    }
 
     /* ---------- waving hello ----------
        His star glows and a magic hand waves from his top left. For old
@@ -1093,6 +1184,6 @@
       fitTouch();
     });
 
-    return { openExe, trick: () => perform('trick'), party: () => perform('party'), speak };
+    return { openExe, trick: () => perform('trick'), party: () => perform('party'), speak, summon };
   }
 })();

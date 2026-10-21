@@ -15,6 +15,8 @@
      sweeper.js     Wizard Sweeper
      rubbish.js     Not Rubbish
      stardrop.js    Star Drop
+   or paint.exe (from the Trash):
+     paint.js       paint.exe
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -152,6 +154,7 @@
     close: '<path d="M7 7l10 10M17 7 7 17"/>',
     back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
     next: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    printer: '<path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14.5h10v6H7z"/>',
     // A cup with a base: give it a fill (the Games window's is yellow) and
     // the cup and base fill in, the handles stay lines.
     trophy: '<path d="M7 4h10v4.5a5 5 0 0 1-10 0z"/><path d="M7 5.8H4.6v1.4a3.4 3.4 0 0 0 3 3.4M17 5.8h2.4v1.4a3.4 3.4 0 0 1-3 3.4" fill="none"/><path d="M12 13.5V17"/><path d="M8.6 17h6.8l.9 3.5H7.7z"/>',

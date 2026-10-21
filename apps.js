@@ -260,6 +260,8 @@
         ? `<img src="${esc(webSrc(a.photo))}"${dims(a.photo)} alt="${esc(a.photoAlt || 'Photo')}" />`
         : `<span class="about-photo-empty">${doodleIcon('camera')}</span>`;
       const paras = (a.paragraphs || []).map((p) => `<p>${esc(p)}</p>`).join('');
+      // My CV opens the CV's window (a real link to /cv, so it can be opened in a new tab too).
+      const cv = C.cv ? `<a class="os-button" href="${CV.path}" data-app="cv">${doodleIcon('doc')}My CV</a>` : '';
       win.body.innerHTML = `
         ${ticker.length ? `<div class="ticker" role="marquee" aria-label="What I do">
           <div class="marquee-content"><ul class="marquee-group">${ticker.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>
@@ -269,9 +271,10 @@
             <h2 class="about-greeting" id="${win.headingId}" tabindex="-1">${highlight(a.heading || 'Hello')}</h2>
             ${a.subheading ? `<p class="about-subheading">${highlight(a.subheading)}</p>` : ''}
             <div class="about-text">${paras}</div>
-            ${a.email ? `<p class="about-contact">
-              <a class="os-button" href="mailto:${esc(a.email)}">${doodleIcon('mail')}Email me</a>
-              <span class="about-email">${esc(a.email).replace('@', '<wbr>@')}</span>
+            ${a.email || cv ? `<p class="about-contact">
+              ${a.email ? `<a class="os-button" href="mailto:${esc(a.email)}">${doodleIcon('mail')}Email me</a>` : ''}
+              ${cv}
+              ${a.email ? `<span class="about-email">${esc(a.email).replace('@', '<wbr>@')}</span>` : ''}
             </p>` : ''}
           </div>
           <figure class="about-photo">
@@ -284,6 +287,117 @@
     // The ticker measures itself once the window is actually on screen.
     onShow(win) { K.setupMarquee(win.body.querySelector('.ticker')); },
     onResize(win) { K.setupMarquee(win.body.querySelector('.ticker')); },
+  };
+
+  /* ══════════════════════════════════════════════════════════════════════
+     THE CV  (About's My CV button, or the /cv address)
+     ══════════════════════════════════════════════════════════════════════
+     A sheet of paper, filled from "cv" in content.js: the contact line,
+     then a section each for the profile, jobs, education, skills and
+     interests. Its menu bar prints it or saves it as a PDF, and only the
+     page prints. The contact email is the site's (about.email). */
+  const CV_HEADINGS = { profile: 'Personal Profile', jobs: 'Employment History', education: 'Education', skills: 'Technical Skills and Certification', interests: 'Hobbies & Interests' };
+  const listOf = (v) => (Array.isArray(v) ? v.filter(Boolean) : []);
+  // "https://www.linkedin.com/in/andrew-worgan/" -> "linkedin.com/in/andrew-worgan"
+  const bare = (url) => String(url || '').replace(/^https?:\/\/(www\.)?/i, '').replace(/\/+$/, '');
+
+  const cvPage = (cv, headingId) => {
+    const h = Object.assign({}, CV_HEADINGS, cv.headings || {});
+    const email = (C.about || {}).email;
+    const contact = [
+      cv.place ? `<li>${esc(cv.place)}</li>` : '',
+      email ? `<li><a href="mailto:${esc(email)}">${esc(email)}</a></li>` : '',
+      cv.linkedin ? `<li><a href="${esc(cv.linkedin)}" target="_blank" rel="noopener">${esc(bare(cv.linkedin))}</a></li>` : '',
+      cv.website ? `<li><a href="${esc(cv.website)}">${esc(bare(cv.website))}</a></li>` : '',
+    ].join('');
+    const section = (key, inner) => (inner
+      ? `<section class="cv-sec"><h3 class="cv-h"><span>${esc(h[key])}</span></h3>${inner}</section>` : '');
+    const points = (list) => (listOf(list).length
+      ? `<ul class="cv-points">${listOf(list).map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : '');
+    // A job or a school: its name and role on the left, its dates (and
+    // where) on the right, then its bullet points.
+    const item = (name, role, when, list) => `
+      <div class="cv-item">
+        <div class="cv-item-head">
+          <div class="cv-item-what"><h4 class="cv-item-name">${esc(name)}</h4>${role ? `<p class="cv-item-role">${esc(role)}</p>` : ''}</div>
+          ${when.length ? `<p class="cv-item-when">${when.map((w) => `<span>${esc(w)}</span>`).join('')}</p>` : ''}
+        </div>
+        ${points(list)}
+      </div>`;
+    const jobs = listOf(cv.jobs).map((j) => item(j.place, j.role, [j.dates, j.where].filter(Boolean), j.points)).join('');
+    const schools = listOf(cv.education).map((s) => item(s.place, s.what, [s.dates].filter(Boolean), s.points)).join('');
+    const certs = listOf(cv.certificates).map((c) => `
+      <li><span class="cv-cert-name">${doodleIcon('ribbon')}<span>${esc(c.name)}${c.note ? `<small>${esc(c.note)}</small>` : ''}</span></span>${c.from ? `<span class="cv-cert-from">${esc(c.from)}</span>` : ''}</li>`).join('');
+    const skills = listOf(cv.skills).map((s) => `
+      <div><dt>${esc(s.name)}</dt><dd>${listOf(s.chips).length
+        ? `<ul class="cv-chips">${listOf(s.chips).map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}${s.note ? `<p>${esc(s.note)}</p>` : ''}</dd></div>`).join('');
+    return `
+      <article class="cv-page">
+        <header class="cv-head">
+          <h2 class="cv-name" id="${headingId}" tabindex="-1">${esc(cv.name || 'Andrew Worgan')}<span class="vh">: CV</span></h2>
+          ${contact ? `<ul class="cv-contact">${contact}</ul>` : ''}
+        </header>
+        ${section('profile', cv.profile ? `<p class="cv-text">${esc(cv.profile)}</p>` : '')}
+        ${section('jobs', jobs)}
+        ${section('education', schools)}
+        ${section('skills', (certs ? `<ul class="cv-certs">${certs}</ul>` : '') + (skills ? `<dl class="cv-skills">${skills}</dl>` : ''))}
+        ${section('interests', cv.interests ? `<p class="cv-text">${esc(cv.interests)}</p>` : '')}
+        ${cv.references ? `<p class="cv-refs">${esc(cv.references)}</p>` : ''}
+      </article>`;
+  };
+
+  // Printing (the menu bar's button, or Ctrl+P with the CV in front): a copy
+  // of the page goes on a sheet of its own, the print rules in style.css
+  // show nothing else, and a saved PDF is named after the file.
+  let sheet = null;
+  let titleWas = '';
+  const cvPrinting = () => {
+    const f = K.wm && K.wm.front();
+    const page = f && f.id === 'cv' && f.body.querySelector('.cv-page');
+    if (!page || sheet) return;
+    sheet = document.createElement('div');
+    sheet.className = 'cv-sheet';
+    sheet.setAttribute('aria-hidden', 'true');
+    const copy = page.cloneNode(true);
+    copy.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+    sheet.appendChild(copy);
+    document.body.appendChild(sheet);
+    document.documentElement.classList.add('is-printing-cv');
+    titleWas = document.title;
+    document.title = CV.file.replace(/\.\w+$/, '');
+  };
+  const cvPrinted = () => {
+    if (!sheet) return;
+    sheet.remove();
+    sheet = null;
+    document.documentElement.classList.remove('is-printing-cv');
+    document.title = titleWas;
+  };
+  window.addEventListener('beforeprint', cvPrinting);
+  window.addEventListener('afterprint', cvPrinted);
+
+  const CV = {
+    parent: 'about',
+    label: 'CV',
+    file: `${(C.cv && C.cv.name) || 'Andrew Worgan'} CV.doc`,
+    colour: 'yellow',
+    doodle: 'doc',
+    path: '/cv',
+    size: [720, 760],
+    minSize: [320, 300],
+    render(win) {
+      const cv = C.cv || {};
+      win.body.classList.add('cv-body');
+      win.body.innerHTML = cvPage(cv, win.headingId);
+      win.menu.innerHTML = `<div class="win-toolbar"><button class="os-button" type="button" data-print>${doodleIcon('printer')}Print or save as PDF</button></div>`;
+      win.menu.querySelector('[data-print]').addEventListener('click', () => { cvPrinting(); window.print(); });
+      // Ways to get in touch, always in reach at the foot of the window.
+      const email = (C.about || {}).email;
+      const links = (email ? `<a href="mailto:${esc(email)}">Email me</a>` : '') +
+        (cv.linkedin ? `<a href="${esc(cv.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : '');
+      const keys = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? 'Cmd+P' : 'Ctrl+P';
+      win.setStatus(`<span class="hint-mouse">${keys} prints just the CV</span>${links ? `<span class="os-links">${links}</span>` : ''}`);
+    },
   };
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -671,17 +785,38 @@
     const frames = (C.wizard && C.wizard.frames) || {};
     return frames[name] ? webSrc(frames[name]) : frames.idle ? webSrc(frames.idle) : '';
   };
+  // A script fetched the first time its window opens (a game, paint.exe);
+  // it sets Kasai[name] to its { mount, unmount }.
   const loads = {};
-  const loadGame = (id) => {
-    if (K[id]) return Promise.resolve(K[id]);
-    loads[id] = loads[id] || new Promise((resolve, reject) => {
+  const loadScript = (name, src) => {
+    if (K[name]) return Promise.resolve(K[name]);
+    loads[name] = loads[name] || new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = GAMES[id].script;
-      s.onload = () => (K[id] ? resolve(K[id]) : reject(new Error(`${GAMES[id].script} loaded but did not start`)));
-      s.onerror = () => { s.remove(); reject(new Error(`${GAMES[id].script} did not load`)); };
+      s.src = src;
+      s.onload = () => (K[name] ? resolve(K[name]) : reject(new Error(`${src} loaded but did not start`)));
+      s.onerror = () => { s.remove(); reject(new Error(`${src} did not load`)); };
       document.head.appendChild(s);
-    }).catch((err) => { loads[id] = null; throw err; });
-    return loads[id];
+    }).catch((err) => { loads[name] = null; throw err; });
+    return loads[name];
+  };
+  // A window whose insides come with a script: a loading note (o.pic, a
+  // picture above "Loading..."; o.wait, its class) until the script is
+  // here, then its mount(win). If it can't be fetched, a Try again button.
+  const fillLater = (win, o) => {
+    win.body.innerHTML = `<h2 class="vh" id="${win.headingId}" tabindex="-1">${esc(o.label)}</h2>
+      <div class="${o.wait}" role="status"></div>`;
+    const wait = win.body.querySelector('.' + o.wait);
+    const start = () => {
+      wait.innerHTML = `${o.pic()}<p>Loading ${esc(o.label)}...</p>`;
+      loadScript(o.name, o.script).then((app) => { if (wait.isConnected) app.mount(win); }).catch((err) => {
+        console.error(err);
+        if (!wait.isConnected) return; // the window was closed meanwhile
+        wait.innerHTML = `<p>${esc(o.what)} didn't load. Check your connection, then try again.</p>
+          <button class="os-button" type="button">Try again</button>`;
+        wait.querySelector('button').addEventListener('click', start);
+      });
+    };
+    start();
   };
   const openGame = (id, from) => {
     const g = GAMES[id];
@@ -697,21 +832,14 @@
       minSize: g.minSize,
       render(win) {
         win.body.classList.add(`${g.prefix}-body`);
-        win.body.innerHTML = `<h2 class="vh" id="${win.headingId}" tabindex="-1">${esc(g.label)}</h2>
-          <div class="${g.prefix}-loading" role="status"></div>`;
-        const wait = win.body.querySelector(`.${g.prefix}-loading`);
-        const start = () => {
-          const pic = wizardPose(g.pose);
-          wait.innerHTML = `${pic ? `<img src="${esc(pic)}" alt="" />` : ''}<p>Loading ${esc(g.label)}...</p>`;
-          loadGame(id).then((game) => { if (wait.isConnected) game.mount(win); }).catch((err) => {
-            console.error(err);
-            if (!wait.isConnected) return; // the window was closed meanwhile
-            wait.innerHTML = `<p>The game didn't load. Check your connection, then try again.</p>
-              <button class="os-button" type="button">Try again</button>`;
-            wait.querySelector('button').addEventListener('click', start);
-          });
-        };
-        start();
+        fillLater(win, {
+          name: id,
+          script: g.script,
+          label: g.label,
+          wait: `${g.prefix}-loading`,
+          pic: () => { const pic = wizardPose(g.pose); return pic ? `<img src="${esc(pic)}" alt="" />` : ''; },
+          what: 'The game',
+        });
       },
       // Closing keeps the run where it was, ready for next time.
       onClose(win) { if (K[id]) K[id].unmount(win); },
@@ -772,10 +900,63 @@
   };
 
   /* ══════════════════════════════════════════════════════════════════════
+     PAINT  (paint.exe, the one file in the Trash that isn't a design)
+     ══════════════════════════════════════════════════════════════════════
+     paint.js arrives the first time it opens. Its file in the Trash shows
+     Andrew's drawing once content.js has one (paint.drawing); until then a
+     tiny paint window, made of the OS's own chrome, stands in. */
+  const PAINT = C.paint || {};
+  const PAINT_SCRIPT = '/paint.js';
+  const paintTile = () => {
+    const art = String(PAINT.drawing || '').trim();
+    const note = typeof PAINT.note === 'string' ? PAINT.note : 'Old paint program. Still works.';
+    const pic = art
+      ? `<img src="${esc(webSrc(art))}" alt="" draggable="false" decoding="async" />`
+      : `<span class="paint-mini pink">
+          <span class="paint-mini-bar"><i></i><i></i><i></i></span>
+          <span class="paint-mini-tools"><i></i><i></i><i></i><i></i></span>
+          <span class="paint-mini-canvas">${doodleIcon('palette')}</span>
+          <span class="paint-mini-colours"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        </span>`;
+    return `
+      <li><button class="file-tile recycle-tile paint-tile" type="button" data-paint>
+        <span class="tile-thumb paint-thumb${art ? ' has-art' : ''}">${pic}</span>
+        <span class="tile-name">paint.exe</span>
+        ${note ? `<span class="tile-sub">${esc(note)}</span>` : ''}
+      </button></li>`;
+  };
+  const openPaint = (from) => {
+    K.wm.open({
+      id: 'paint',
+      parent: 'trash',
+      label: 'paint.exe',
+      file: 'untitled - paint.exe',
+      colour: 'pink',
+      doodle: 'palette',
+      size: [780, 700],
+      minSize: [340, 440],
+      render(win) {
+        win.body.classList.add('pt-body');
+        fillLater(win, {
+          name: 'paint',
+          script: PAINT_SCRIPT,
+          label: 'paint.exe',
+          wait: 'pt-loading',
+          pic: () => doodleIcon('palette'),
+          what: 'paint.exe',
+        });
+      },
+      // Closing keeps the picture for next time (this visit).
+      onClose(win) { if (K.paint) K.paint.unmount(win); },
+    }, { from });
+  };
+
+  /* ══════════════════════════════════════════════════════════════════════
      TRASH  (the Recycle Bin: retired designs, never actually deleted)
      ══════════════════════════════════════════════════════════════════════
      Any screenshot dropped into assets/recycle/ shows up here, named after
-     its file; a date in brackets, like "(June 2026)", sorts them. */
+     its file; a date in brackets, like "(June 2026)", sorts them. paint.exe
+     sits after them. */
   const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
   const recycled = () => Object.keys((K.GEN && K.GEN.images) || {})
     .filter((k) => k.indexOf('assets/recycle/') === 0)
@@ -796,30 +977,33 @@
     head: () => copy('trash', { heading: 'Recycle Bin', sub: "Old designs Andrew couldn't bring himself to delete." }),
     render(win) {
       const files = recycled();
-      if (!files.length) {
-        win.body.innerHTML = K.folderEmpty('folder', 'trash');
-        win.setStatus('0 items');
-        return;
-      }
+      const items = files.length + 1; // and paint.exe
       win.menu.innerHTML = `<div class="win-toolbar"><button class="os-button" type="button" data-empty>${doodleIcon('alert')}Empty Recycle Bin</button></div>`;
+      // The image viewer steps through the pictures only (paint.exe has none).
       win.body.innerHTML = `<ul class="folder-grid folder-grid--projects" data-viewer-set>${files.map((f) => `
           <li><button class="file-tile recycle-tile" type="button" data-full="${esc(largeSrc(f.img))}" data-img="${esc(f.img)}"
               data-file="${esc(slug(f.name))}.png" data-caption="${esc(f.name)}">
             <span class="tile-thumb"><img src="${esc(webSrc(f.img))}"${dims(f.img)} alt="${esc(f.name)}" loading="lazy" decoding="async" draggable="false" /></span>
             <span class="tile-name">${esc(f.name)}</span>
-          </button></li>`).join('')}</ul>`;
-      K.openable(win.body, '.file-tile', (el) => K.openViewer(el));
-      win.setStatus(`${plural(files.length, 'item')}${K.hint('Double-click to look back', 'Tap to look back')}`);
+          </button></li>`).join('')}${paintTile()}</ul>`;
+      K.openable(win.body, '.file-tile', (el) => (el.hasAttribute('data-paint') ? openPaint(el) : K.openViewer(el)));
+      // A pointer on paint.exe starts fetching it, ready for the double-click.
+      win.body.querySelector('[data-paint]').addEventListener('pointerenter', () => {
+        loadScript('paint', PAINT_SCRIPT).catch(() => {}); // a failure shows (with Try again) when it opens
+      }, { once: true });
+      win.setStatus(`${plural(items, 'item')}${K.hint('Double-click to look back', 'Tap to look back')}`);
       win.menu.querySelector('[data-empty]').addEventListener('click', () => {
         K.dialog({
           title: 'Empty Recycle Bin',
           icon: 'alert',
-          message: `Permanently delete ${plural(files.length, 'item')}? Andrew is sentimental about these.`,
+          message: `Permanently delete ${plural(items, 'item')}? Andrew is sentimental about these.`,
           buttons: ['Keep them', 'Keep them'],
-        }).then(() => win.setStatus(`${plural(files.length, 'item')}<span class="status-hint">Nothing was deleted. Obviously.</span>`));
+        }).then(() => win.setStatus(`${plural(items, 'item')}<span class="status-hint">Nothing was deleted. Obviously.</span>`));
       });
     },
   };
 
   K.apps = { about, coding, art, writing, certificates, games, trash };
+  // Windows inside an app with an address of their own (kasai-os.js routes them).
+  K.subWindows = { cv: CV };
 })();

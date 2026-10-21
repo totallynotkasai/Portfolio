@@ -396,7 +396,10 @@ a:hover > .card-arrow, a:hover .card-arrow { translate: 4px 0; }
   position: fixed;
   inset: 0 0 calc(var(--taskbar-h) + var(--safe-b));
 }
-.desktop { position: absolute; inset: 0; }
+/* A double-click (a double-tap on a touch screen) on the empty desktop
+   calls the wizard over, so a double-tap never zooms in here and never
+   selects anything. */
+.desktop { position: absolute; inset: 0; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 /* On wider screens the icons sit wherever they've been dragged to (script). */
 .desktop.is-free .desk-icons > li { position: absolute; }
 
@@ -1318,6 +1321,73 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .paper-date { padding-right: 6rem; font-family: var(--font-display); font-size: var(--fs-tiny); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); }
 .paper-title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 400; }
 .paper-excerpt { font-size: var(--fs-small); color: var(--ink-soft); }
+
+/* ============================================================
+   APP: THE CV  (About's My CV button, or the /cv address)
+   ============================================================
+   One sheet of paper on the window's yellow tint: the name and the ways
+   to get in touch, then each section under a yellow label. Dates sit on
+   the right and skills are chips. Sizes are in em, so the printed copy
+   (PRINTING, at the end) only changes the page's font size. */
+.cv-body { background: var(--acc-tint); }
+.cv-page {
+  width: min(100% - 44px, 760px);
+  margin: 22px auto;
+  padding: 2.3em 2.5em 2em;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--paper);
+  border: var(--border);
+  border-radius: 6px;
+  box-shadow: 6px 6px 0 rgba(22, 26, 46, 0.16);
+}
+.cv-head { padding-bottom: 1em; border-bottom: var(--border); }
+.cv-name { font-family: var(--font-display); font-size: 2.2em; font-weight: 400; line-height: 1.1; }
+.cv-contact { display: flex; flex-wrap: wrap; gap: 0.3em 0; margin-top: 0.6em; font-family: var(--font-mono); font-size: 0.82em; color: var(--ink-soft); }
+.cv-contact li:not(:last-child)::after { content: '·'; margin: 0 0.6em; color: var(--ink-muted); }
+.cv-contact a { color: var(--text); border-bottom: 2px solid var(--acc); }
+.cv-contact a:hover { background: var(--acc-tint); }
+.cv-sec { margin-top: 1.5em; }
+/* A section's heading: a yellow label, and a line out to the edge. */
+.cv-h { display: flex; align-items: center; gap: 0.7em; margin-bottom: 0.75em; font-family: var(--font-display); font-size: 0.88em; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; }
+.cv-h span { padding: 0.1em 0.55em; color: var(--ink); background: var(--yellow); border-radius: 6px; }
+.cv-h::after { content: ''; flex: 1; border-top: 2px solid var(--grey); }
+.cv-text { color: var(--ink-soft); }
+.cv-item + .cv-item { margin-top: 1.1em; }
+.cv-item-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.2em 1.2em; }
+.cv-item-what { flex: 1 1 18em; min-width: 0; }
+.cv-item-name { font-family: var(--font-display); font-size: 1.12em; font-weight: 400; line-height: 1.25; }
+.cv-item-role { font-weight: 600; color: var(--ink-soft); }
+.cv-item-when { display: grid; flex: none; justify-items: end; font-family: var(--font-mono); font-size: 0.8em; line-height: 1.55; text-align: right; }
+.cv-item-when span:first-child { font-weight: 700; }
+.cv-item-when span + span { color: var(--ink-muted); }
+.cv-points { display: grid; gap: 0.3em; margin-top: 0.5em; color: var(--ink-soft); }
+.cv-points li { position: relative; padding-left: 1.3em; }
+.cv-points li::before { content: ''; position: absolute; left: 0.15em; top: 0.5em; width: 0.55em; height: 0.55em; background: var(--yellow); border: 2px solid var(--ink); border-radius: 50%; }
+/* Certificates: a ribbon, the name (a note under it), who it's from on the right. */
+.cv-certs { display: grid; gap: 0.45em; }
+.cv-certs li { display: flex; align-items: flex-start; justify-content: space-between; gap: 1em; }
+.cv-cert-name { display: flex; align-items: flex-start; gap: 0.5em; font-weight: 600; }
+.cv-cert-name svg.doodle { width: 1.25em; height: 1.25em; color: var(--acc-ink); translate: 0 0.12em; }
+.cv-cert-name small { display: block; font-size: 0.86em; font-weight: 400; color: var(--ink-muted); }
+/* Its line is as tall as the name's (1.5em of the page), so the two line up. */
+.cv-cert-from { flex: none; font-family: var(--font-mono); font-size: 0.8em; font-weight: 700; line-height: 1.875; }
+/* Skills: each name, then its chips and a note under them. */
+.cv-skills { display: grid; grid-template-columns: minmax(8em, max-content) minmax(0, 1fr); gap: 0.75em 1.2em; margin-top: 1.1em; }
+.cv-skills > div { display: contents; }
+.cv-skills dt { font-family: var(--font-display); line-height: 1.75; }
+.cv-skills dd p { margin-top: 0.3em; font-size: 0.92em; color: var(--ink-soft); }
+.cv-chips { display: flex; flex-wrap: wrap; gap: 0.35em; }
+.cv-chips li { padding: 0.05em 0.65em; font-size: 0.86em; line-height: 1.5; white-space: nowrap; background: var(--acc-tint); border: 2px solid var(--ink); border-radius: 999px; }
+.cv-refs { margin-top: 1.8em; padding-top: 1em; font-family: var(--font-display); text-align: center; color: var(--ink-soft); border-top: 2px dashed var(--grey); }
+@container win (max-width: 560px) {
+  .cv-page { width: calc(100% - 20px); margin: 10px auto; padding: 1.4em 1.2em; }
+  .cv-name { font-size: 1.8em; }
+  .cv-item-when { justify-items: start; text-align: left; }
+  .cv-skills { grid-template-columns: minmax(0, 1fr); gap: 0.25em; }
+  .cv-skills dd { margin-bottom: 0.6em; }
+}
 
 /* ============================================================
    APP: WIZARD SWEEPER  (sweeper.js arrives when the game opens)
@@ -2344,6 +2414,103 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 @keyframes sd-said { from { opacity: 0; scale: 0.8; } }
 
 /* ============================================================
+   APP: PAINT  (paint.exe in the Trash; paint.js arrives when it opens)
+   ============================================================
+   Classic paint: the tools down the left, the picture on a grey desk in
+   the middle, the colours along the bottom. The picture's pixels stay
+   crisp squares (paint.js smooths them only when it has to shrink it). */
+.pt-body { display: flex; flex-direction: column; overflow: hidden; }
+.pt-loading { display: grid; flex: 1; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; color: var(--ink-soft); }
+.pt-loading svg.doodle { width: 64px; height: 64px; color: var(--acc-ink); }
+.pt { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.pt-menu [data-act="save"] { margin-left: auto; }
+.pt-menu button[aria-disabled="true"] { opacity: 0.5; cursor: default; }
+.pt-menu button[aria-disabled="true"]:hover { background: none; }
+.pt-main { display: flex; flex: 1; min-height: 0; }
+.pt-tools {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 58px;
+  padding: 8px 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: var(--surface);
+  border-right: var(--border);
+}
+.pt-tool, .pt-size { display: grid; flex: none; place-items: center; width: 40px; border: var(--line) solid transparent; border-radius: 9px; transition: background var(--transition); }
+.pt-tool { height: 40px; }
+.pt-tool svg.doodle { width: 22px; height: 22px; }
+.pt-tool:hover, .pt-size:hover { background: var(--acc-tint); }
+.pt-tool[aria-pressed="true"] { color: var(--ink); background: var(--acc); border-color: var(--ink); }
+/* The brush's or eraser's three sizes (round or square), under the tools. */
+.pt-sizes { display: grid; gap: 3px; margin-top: 6px; padding-top: 8px; border-top: 2px dashed var(--grey); }
+.pt-sizes.is-off { visibility: hidden; }
+.pt-size { height: 28px; }
+.pt-size i { width: var(--d); height: var(--d); background: currentColor; border-radius: 50%; }
+.pt-sizes.is-square .pt-size i { border-radius: 2px; }
+.pt-size[aria-pressed="true"] { background: var(--acc-tint); border-color: var(--ink); }
+.pt-work { display: grid; flex: 1; place-items: center; min-width: 0; overflow: hidden; background: var(--grey-tint) var(--tx-dots); }
+.pt-paper { background: var(--white); box-shadow: 0 0 0 var(--line) var(--ink), 6px 6px 0 var(--line) rgba(22, 26, 46, 0.2); }
+.pt-canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; touch-action: none; }
+.pt-canvas.is-smooth { image-rendering: auto; }
+/* The colour in use, then the site's colours in two rows of eight. */
+.pt-colours { display: flex; flex: none; align-items: center; gap: 10px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; background: var(--surface); border-top: var(--border); }
+.pt-current { flex: none; width: 44px; height: 44px; background: var(--s, var(--ink)); border: var(--border); border-radius: 9px; box-shadow: inset 0 0 0 3px var(--surface); }
+.pt-swatches { display: grid; grid-template-columns: repeat(8, 26px); gap: 4px; }
+.pt-swatch { height: 20px; background: var(--s); border: 2px solid var(--ink); border-radius: 5px; transition: translate var(--transition); }
+.pt-swatch:hover { translate: 0 -2px; }
+.pt-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4.5px var(--text); }
+.pt-said { font-weight: 700; }
+.pt-pos { min-width: 7em; color: var(--ink-soft); }
+@media (pointer: coarse) {
+  .pt-swatch { height: 28px; }
+}
+@container win (max-width: 460px) {
+  .pt-tools { width: 50px; }
+  .pt-tool, .pt-size { width: 36px; }
+  .pt-tool { height: 36px; }
+  .pt-swatches { flex: 1; grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .pt-current { width: 36px; height: 36px; }
+}
+
+/* paint.exe's file in the Trash: until Andrew draws its icon, a tiny
+   paint window (the OS's own chrome) on a scrap of wallpaper. */
+.paint-thumb { background: var(--wall) var(--wall-tx); }
+.paint-thumb.has-art { background: var(--acc-tint); }
+.paint-thumb.has-art img { padding: 8%; object-fit: contain; }
+.paint-mini {
+  display: grid;
+  grid-template: auto 1fr auto / 22% 1fr;
+  width: 64%;
+  height: 74%;
+  overflow: hidden;
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 rgba(22, 26, 46, 0.25);
+  rotate: -3deg;
+}
+.paint-mini-bar { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 3px; padding: 3px 4px; background: var(--acc); border-bottom: 2px solid var(--ink); }
+.paint-mini i { display: block; border: 1.5px solid var(--ink); border-radius: 2px; }
+.paint-mini-bar i { width: 8px; height: 8px; background: var(--white); }
+.paint-mini-tools { display: grid; align-content: start; justify-items: center; gap: 3px; padding: 4px 0; border-right: 2px solid var(--ink); }
+.paint-mini-tools i { width: 9px; height: 9px; }
+.paint-mini-tools i:first-child { background: var(--acc); }
+.paint-mini-canvas { display: grid; place-items: center; background: var(--white); }
+.tile-thumb .paint-mini-canvas svg.doodle { width: 32px; height: 32px; color: var(--ink); fill: var(--yellow); }
+.paint-mini-colours { display: flex; grid-column: 1 / -1; gap: 3px; padding: 3px 5px; border-top: 2px solid var(--ink); }
+.paint-mini-colours i { width: 10px; height: 8px; }
+.paint-mini-colours i:nth-child(1) { background: var(--ink); }
+.paint-mini-colours i:nth-child(2) { background: var(--yellow); }
+.paint-mini-colours i:nth-child(3) { background: var(--blue); }
+.paint-mini-colours i:nth-child(4) { background: var(--teal); }
+.paint-mini-colours i:nth-child(5) { background: var(--pink); }
+.paint-mini-colours i:nth-child(6) { background: var(--periwinkle); }
+
+/* ============================================================
    THE 404 DIALOG AND SMALL DIALOGS
    ============================================================ */
 .error-box { display: flex; align-items: flex-start; gap: 18px; padding: 22px; }
@@ -2850,4 +3017,29 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
 @media (prefers-reduced-motion: reduce) {
   .marquee-content { animation: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
+
+/* ============================================================
+   PRINTING  (the CV: its menu bar's Print, or Ctrl+P with it in front)
+   ============================================================
+   apps.js puts a copy of the CV's page on a sheet of its own while it
+   prints; on paper (or in a PDF) only that sheet shows, in ink on white,
+   on as many A4 pages as it needs. */
+.cv-sheet { display: none; }
+@media print {
+  @page { size: A4; margin: 14mm 15mm 15mm; }
+  html.is-printing-cv, html.is-printing-cv body { height: auto; overflow: visible; background: var(--white); }
+  html.is-printing-cv body > :not(.cv-sheet), html.is-printing-cv body::after { display: none !important; }
+  .cv-sheet {
+    display: block;
+    --text: var(--ink); --ink-soft: #4A4E63; --ink-muted: #5E6175; --paper: var(--white);
+    --acc: var(--yellow); --acc-tint: #FEF4DC; --acc-ink: #8A6400;
+    color: var(--ink);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .cv-sheet .cv-page { width: auto; margin: 0; padding: 0; font-size: 9.5pt; background: none; border: 0; border-radius: 0; box-shadow: none; }
+  .cv-sheet .cv-contact a { border-bottom: 0; }
+  .cv-sheet :is(.cv-item-head, .cv-certs li, .cv-points li, .cv-skills dd) { break-inside: avoid; }
+  .cv-sheet :is(.cv-h, .cv-item-head, .cv-skills dt) { break-after: avoid; }
 }

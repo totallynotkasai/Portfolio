@@ -9,7 +9,7 @@
       "destination": "/about"
     },
     {
-      "source": "/(coding_projects|illustrations_and_graphics|writing|certificates|games|trash)",
+      "source": "/(coding_projects|illustrations_and_graphics|writing|certificates|games|trash|cv)",
       "destination": "/about"
     }
   ],

@@ -20,6 +20,8 @@
      9. WIZARD SWEEPER a game in the Games window
     10. NOT RUBBISH    a game in the Games window
     11. STAR DROP      a game in the Games window
+    12. CV             your CV (the My CV button in the About window)
+    13. PAINT          paint.exe, hidden in the Trash
 
    TO ADD ARTWORK: just drop the file into a category folder and push:
      assets/art/Poster/My Piece.png   →  a new spell card in the Art
@@ -75,7 +77,8 @@ window.CONTENT = {
        want highlighted in yellow. It only works in those two.
      • Each string in "paragraphs" becomes one paragraph. Add/remove freely.
      • Set  photo: ''  to show a placeholder instead of a photo.
-     • Set  email: ''  to hide both Email me buttons. */
+     • Set  email: ''  to hide both Email me buttons.
+     • The My CV button beside Email me opens your CV (section 12). */
   about: {
     // The big greeting at the top of the window. Wrap any part in *asterisks* to highlight.
     heading: "Hi I'm *Andrew Worgan*",
@@ -291,8 +294,7 @@ window.CONTENT = {
     copyright: '© 2026 Andrew Worgan (Kasai). All rights reserved.',
 
     // What an empty folder says under "This folder is empty", one line per
-    // window (a  trash: '...'  line works too, should the bin ever be
-    // empty). The coding one stays straight because recruiters read it.
+    // window. The coding one stays straight because recruiters read it.
     emptyStates: {
       art: 'The easel is warming up. Art arriving soon.',
       coding: 'Projects are being tidied up. Check back soon.',
@@ -383,6 +385,9 @@ window.CONTENT = {
      • Drag him with the mouse to carry him somewhere (on a phone, press and
        hold him first). He dangles from his hat, then grumbles or dozes off
        where you put him down. Try dropping him on the Trash.
+     • Double-click an empty bit of the desktop (double-tap a phone's home
+       screen) and he teleports over to see what you want, waking up
+       first if he was napping. He stays there until he next wanders off.
      • He remembers where you left him, and remembers people who petted
        him: they get a "welcomeBack" line when they come back. He waves
        when you come back to his tab too (see waveAway below).
@@ -435,7 +440,10 @@ window.CONTENT = {
     // work too, if you'd like him to talk there.
     // Windows in "quietPages" never get a line unprompted: pet him while
     // one is in front and he says it then (once per visit).
+    // "cv" is for your CV's window (section 12), the first time it opens.
     // "notfound" is his line in the page-not-found (404) box.
+    // "summon" is what he says when he's called over: a double-click on an
+    // empty bit of the desktop (a double-tap on a phone).
     lines: {
       about: [
         'hello!',
@@ -458,9 +466,17 @@ window.CONTENT = {
         'paper achievements! shiny.',
         'more coming, allegedly.',
       ],
+      cv: [
+        'hire him! he feeds me.',
+      ],
       notfound: [
         'i ate this page. sorry.',
         'it tasted like 404.',
+      ],
+      summon: [
+        'you rang?',
+        'poof!',
+        'at your service.',
       ],
     },
 
@@ -696,6 +712,148 @@ window.CONTENT = {
       telescope:    { name: 'Telescope',       blurb: 'Spots the blue moon 3 times as often.' },
       slippers:     { name: 'Fluffy slippers', blurb: 'One more star swap each night.' },
       sheep:        { name: 'Counting sheep',  blurb: 'Every fourth turn, the nightmare nearest the bed nods off and misses it.' },
+    },
+  },
+
+  /* ──────────────────────────────────────────────────────────────────────
+     12. CV  (the My CV button in the About window)
+     ──────────────────────────────────────────────────────────────────────
+     Your CV on a sheet of paper, in a window of its own. The My CV button
+     under your About text opens it, and so does the address
+     www.andrewworgan.co.uk/cv (handy for job applications and LinkedIn).
+     Its menu bar prints it, or saves it as a PDF: only the page prints.
+     • Contact details: the email is the one in section 1, so your own
+       email address and phone number never go online. "linkedin" and
+       "website" show as links, "place" is where you're based.
+     • "jobs", newest first: "dates" sits on the right, with "where"
+       (Remote, On-site...) under it. Each of "points" is one bullet.
+     • "education": "what" is the qualification, "points" the bullets.
+     • "certificates": "from" sits on the right; "note" (optional) is a
+       small line under the name.
+     • "skills": each is a "name", its "chips" (one little label per
+       skill) and an optional "note" under them.
+     • "headings" are the section titles, top to bottom.
+     • Delete the whole  cv: { ... },  block to take the My CV button away. */
+  cv: {
+    name: 'Andrew Worgan',
+    place: 'Gloucester/Bristol',
+    linkedin: 'https://www.linkedin.com/in/andrew-worgan/',
+    website: 'https://www.andrewworgan.co.uk/',
+
+    headings: {
+      profile: 'Personal Profile',
+      jobs: 'Employment History',
+      education: 'Education',
+      skills: 'Technical Skills and Certification',
+      interests: 'Hobbies & Interests',
+    },
+
+    profile: 'I am a proactive and inquisitive person with a strong foundation in IT and administrative roles relating to system administration, data management, and automation.',
+
+    jobs: [
+      {
+        place: 'Intertek Check Safety First Ltd',
+        role: 'IT System Administrator and Graphic Design',
+        dates: 'July 2023 to present',
+        where: 'Remote',
+        points: [
+          'Managed primary helpdesk responsibilities, resulting in the highest ticket closure rate on the support team: over 2,400 tickets in one year, a third of all tickets for the year in a six-person team.',
+          'Addressed a diverse range of IT issues, from system outages to bugs in our bespoke systems, utilising Azure DevOps to identify, open and test work items.',
+          'Led a cross-departmental initiative to update and maintain our asset tracking, successfully reducing lost assets from 5% to 0%.',
+          'Gained proficiency in Microsoft Azure, enabling effective monitoring and maintenance of core user functions, including distribution lists and group memberships critical for data access control.',
+          'Employed graphic design skills to assist with the roll-out of over 30 training modules for our bespoke hotel training platform, as well as assisting in brainstorming for a potential company rebrand.',
+          'Took on the responsibility of training colleagues in key system processes such as device setups.',
+          'Contributed to the maintenance and updating of internal SQL databases.',
+        ],
+      },
+      {
+        place: 'Yorkley Health Centre',
+        role: 'NHS Administrator and IT Support',
+        dates: 'March 2021 to June 2023',
+        where: 'On-site',
+        points: [
+          'Delivered prompt and efficient patient services, significantly honing interpersonal and telephone communication skills in a sensitive environment, reducing patient wait time on the phone to under 2 minutes on average when I was on shift.',
+          'Demonstrated strong problem-solving abilities by helping my colleagues with a variety of first-line hardware issues such as printers and servers, minimising practice downtime.',
+          'Improved the general efficiency of the practice by utilising new solutions within SystmOne to improve how doctors and other administrative staff handled paperwork and coded patient records.',
+          'Preserved and updated patient records while adhering to confidentiality requirements - alongside assisting with the effort to digitise patient paper records.',
+          'Developed an internal sheet for managing practice room allocation, which lessened the burden on our practice manager when it came to working on the practice rota.',
+          'Volunteered for administrating COVID-19 vaccinations during the pandemic.',
+        ],
+      },
+    ],
+
+    education: [
+      {
+        place: 'UWE Bristol',
+        what: 'BSc (Hons) Computer Science (Distinction/1st)',
+        points: [
+          'Modules included Computer and Network Systems, Intro to OOD, Intro to AI and Principles of Computing.',
+          "Dean's List member for 2020.",
+          'Team Captain for UWE "Sea Stags" Esports Team.',
+        ],
+      },
+      {
+        place: 'Wyedean Sixth Form',
+        what: 'A-Level and 2 BTECs',
+        points: [
+          'A-Level: Computer Science (A)',
+          'BTECs: ICT (Distinction) and Business Studies (Distinction)',
+          'Hold a mentoring certificate and provided guidance to struggling students in secondary school and sixth form.',
+        ],
+      },
+      {
+        place: 'The Dean Academy',
+        what: '10 GCSEs at grade B and above',
+        points: [
+          'Subjects including English (B), Maths (A) and Computer Science (A).',
+          'Served on the student leadership team and as head of the student council in secondary school.',
+        ],
+      },
+    ],
+
+    certificates: [
+      { name: 'MS-900 Microsoft 365 Fundamentals', from: 'Microsoft', note: 'Certificate available upon request' },
+      { name: 'Intermediate and Advanced Excel Techniques', from: 'QA' },
+      { name: 'Querying SQL Databases using T-SQL', from: 'QA' },
+    ],
+
+    skills: [
+      { name: 'Operating systems', chips: ['Windows 10 and 11', 'iOS', 'Android', 'VMware', 'VirtualBox'], note: 'Proficient in all of them.' },
+      { name: 'Office 365', chips: ['Word', 'Excel', 'SharePoint', 'Teams', 'Outlook'], note: 'Qualified to use and support all areas of 365, especially these.' },
+      { name: 'Adobe Creative Suite', chips: ['Photoshop', 'Illustrator', 'Audition', 'XD'], note: 'Experienced with all four. Portfolio available upon request.' },
+      { name: 'Coding', chips: ['HTML', 'CSS', 'JavaScript', 'PowerShell', 'cmd'], note: 'Proficient in HTML, with a basic understanding of CSS, JavaScript, cmd and PowerShell, and experience with web development tools.' },
+      { name: 'AI', chips: ['Gemini', 'Claude', 'Copilot Studio', 'Gemini CLI', 'Claude Code'], note: 'Extremely competent with LLMs, and very familiar with Copilot Studio and its integrations with the 365 suite. Was a private beta tester for the original GPT-3 and DALL-E.' },
+      { name: 'Driving licence', note: 'Clean record and access to a vehicle.' },
+    ],
+
+    interests: "A primary passion of mine is graphic design and illustration, which provides an outlet for my creativity and the opportunity to set measurable objectives for self-improvement. I've recently taken up some vibe coding so I can build a tailor-made organisation tool for my own personal use, to support me with the rewrite of my web novel. I also enjoy playing games and watching shows with my friends online.",
+
+    // The last line of the page.
+    references: 'References available on request',
+  },
+
+  /* ──────────────────────────────────────────────────────────────────────
+     13. PAINT  (paint.exe, hidden in the Trash)
+     ──────────────────────────────────────────────────────────────────────
+     The Trash has one file that isn't an old design: paint.exe, an old
+     paint program that still works. Pencil, brush, fill bucket and
+     eraser in the brand colours, on a 640x480 picture. Save downloads the
+     picture as a PNG to the visitor's own computer (nothing is ever sent
+     anywhere), and the pet wizard rates it.
+     • "drawing": a drawing for paint.exe's file in the Trash (an SVG or
+       a transparent PNG in assets/ui/). Until there is one, a tiny paint
+       window stands in. "note" is the line under its name.
+     • "rateLines": what the wizard on the desktop says when a picture is
+       saved, one at random. {score} becomes his score out of 10, and
+       "blank" is for saving an empty picture. Empty a list to keep him quiet. */
+  paint: {
+    drawing: '',
+    note: 'Old paint program. Still works.',
+    rateLines: {
+      blank: ['a blank canvas. very brave.', 'i love it. what is it?'],
+      low: ['{score}/10. i can tell you tried.', '{score}/10. is it upside down?'],
+      mid: ['{score}/10. that is going on my fridge.', '{score}/10. the wizard council approves.'],
+      high: ['{score}/10! a masterpiece!', '{score}/10. somebody frame this.'],
     },
   },
 
