@@ -411,6 +411,13 @@
       pos.y = y;
       layer.style.translate = `${x.toFixed(1)}px ${y.toFixed(1)}px`;
     };
+    // A sound from sound.js (silent while sound is off), from where he is:
+    // the further left on the desktop, the further left it sounds.
+    const panAt = (x) => {
+      const dw = desktop.clientWidth;
+      return dw && !PHONE.matches ? clamp(((x + size().w / 2) / dw) * 2 - 1, -1, 1) * 0.5 : 0;
+    };
+    const sound = (name, o) => !!K.sound && K.sound.play(name, Object.assign({ pan: panAt(pos.x) }, o));
     const spotKey = () => (PHONE.matches ? 'pet-phone' : 'pet');
     let keepSpot = false;
     // Where he was last called to (see "calling him"), while he's still there.
@@ -618,8 +625,10 @@
       rest();
       nextWander = Date.now() + wanderIn();
       if (state === 'asleep') {
-        // Poked awake: a start (his hat jumps off), unless he's only nodding off.
+        // Poked awake: a snort and a start (his hat jumps off), unless he's
+        // only nodding off.
         const hello = () => say('...huh? oh. hello again.');
+        sound('wake');
         if (dozing()) { wake(hello); return; }
         stopBlink();
         setState('idle');
@@ -629,6 +638,7 @@
       pets++;
       lastPet = Date.now();
       hearts = Math.min(5, hearts + 1);
+      sound('pet', { step: hearts }); // a boop, higher the happier he is
       mem.pets++;
       mem.since = mem.since || Date.now();
       mem.last = Date.now();
@@ -647,6 +657,7 @@
         moodTimer = setTimeout(() => { if (state === 'happy') play('happy-out', toIdle); }, 900);
       }
       if (pets % 10 === 0) {
+        sound('cast');
         if (K.doodleRain()) say('DOODLE RAIN!!!', 4000);
         else say('<3', 2000);
         return;
@@ -949,6 +960,7 @@
           setState('party');
           look('idle'); // party-in starts from his idle pose
           say(lineOf('partyLines'), 3400);
+          sound('party');
           play('party-in', () => {
             look('party');
             if (!RM) { void el.offsetWidth; el.classList.add('is-party'); } // the dance: three of his party loops
@@ -1027,6 +1039,7 @@
       const line = pick(linesOf((W.lines || {}).summon, SUMMON_LINES));
       const hello = () => { calledTo = { x: pos.x, y: pos.y }; say(line, 2400); };
       if (Math.hypot(spot.x - pos.x, spot.y - pos.y) < 12) { saveSpot(); hello(); return; } // already there
+      sound('poof', { pan: panAt(spot.x) }); // a whoosh where he's off to
       goTo(spot.x, spot.y, hello);
     }
     // Where he lands when called to the point `c` on the screen: his middle

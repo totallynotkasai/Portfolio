@@ -548,6 +548,12 @@
   let run = null;   // the run being played (it waits while the window is shut)
   let view = null;  // the window it's drawn in, while that's open
 
+  // Sounds (sound.js; silent while sound is off) only while the game is on
+  // screen, and only for what's drawn: the pops of a shot you skip stay
+  // silent. Across the sky, a sound moves from your left ear to your right.
+  const sound = (name, o) => !!view && !!K.sound && K.sound.play(name, o);
+  const panOf = (x) => (x / W - 0.5) * 0.8;
+
   const playing = () => !!(run && run.night && run.step === 'aim');
   const alive = (m) => m.hp > 0 && !m.gone;
   const at = (f, sq) => f.ms.find((m) => m.sq === sq && alive(m)) || null;
@@ -946,11 +952,15 @@
   function swap() {
     if (!playing()) return;
     const f = run.night;
-    if (f.swaps < 1) { say('No swaps left tonight.'); return; }
-    if (f.stars[0] === f.stars[1]) { say('The next star is the same kind, so there is nothing to swap.'); return; }
+    if (f.swaps < 1 || f.stars[0] === f.stars[1]) {
+      say(f.swaps < 1 ? 'No swaps left tonight.' : 'The next star is the same kind, so there is nothing to swap.');
+      sound('deny');
+      return;
+    }
     f.swaps--;
     [f.stars[0], f.stars[1]] = [f.stars[1], f.stars[0]];
     show([]);
+    sound('flip');
     say(`Swapped: the ${words(f.stars[0]).name} drops first.`);
   }
 
@@ -959,7 +969,7 @@
   function ring() {
     if (!playing()) return;
     const f = run.night;
-    if (f.alarms < 1) { say('The alarm clock has rung tonight already.'); return; }
+    if (f.alarms < 1) { say('The alarm clock has rung tonight already.'); sound('deny'); return; }
     f.alarms--;
     const ev = [{ t: 'alarm' }];
     knock(f, ALARM, ev);
@@ -986,6 +996,7 @@
     }
     run.n++;
     if (view) view.help = false;
+    sound('pick');
     startNight();
   }
 
@@ -1025,6 +1036,8 @@
     if (view) {
       show(ev);
       later(() => syncCard(true), RM ? 0 : 700);
+      // Just after the last hit lands: a jingle (a whole week: a fanfare).
+      later(() => sound(sunday ? 'win' : 'clear'), 250);
     }
     announce(`${cap(nightName(f.n))} is over.${sunday ? ` Week ${weekOf(f.n)} survived!` : ''} Pick a star or a charm.`);
   }
@@ -1062,6 +1075,7 @@
     if (view) {
       show(ev);
       later(() => syncCard(true), RM ? 0 : 1100);
+      later(() => sound(run.newBest ? 'best' : 'lose'), 1100);
     }
     const all = (before || []).concat(ev);
     announce(`${all.some((e) => e.t === 'bed' && e.all) ? 'The Bogeyman reached the bed.' : 'Out of hearts.'} He woke up on ${nightName(run.n)}. The run is over.`);
@@ -1077,6 +1091,7 @@
     if (view) {
       show(ev);
       later(() => syncCard(true), RM ? 0 : 1100);
+      later(() => sound('win'), 250); // (it says new best too)
     }
     announce('The Bogeyman is beaten. A whole week of sweet dreams! Keep dreaming to carry on into endless nights, or start a new run.');
     tellDesktop(true);
@@ -1093,6 +1108,7 @@
     run.last.line = '';
     run.last.onwards = true;
     if (view) { view.peek = false; syncCard(true); }
+    sound('pick');
     announce('Endless nights: they go on, harder and harder, until his hearts run out. Pick a star or a charm.');
   }
 
@@ -1353,6 +1369,16 @@
     drawHud();
     drawDock();
     drawStatus();
+    hear(ev);
+  }
+
+  // What a turn sounds like: the shot's damage landing (a higher bonk when
+  // it beats one), the alarm clock, a blue moon rising. A heart lost is
+  // heard where the bed flashes (syncBed).
+  function hear(ev) {
+    if (ev.some((e) => e.t === 'hurt')) sound('hit', { step: ev.some((e) => e.t === 'hurt' && e.dead) ? 5 : 0 });
+    if (ev.some((e) => e.t === 'alarm')) sound('alert');
+    if (ev.some((e) => e.t === 'moonrise')) sound('moon', { gain: 0.45 });
   }
 
   function syncPegs(f, ev) {
@@ -1564,7 +1590,12 @@
       ? (fc.everything ? 'The Bogeyman reaches the bed after your shot!' : `After your shot this costs ${plural(fc.cost, 'heart')}, unless you stop it`)
       : 'His bed';
     const hit = ev.some((e) => e.t === 'bed' || e.t === 'struck');
-    if (hit) restart(view.bed, 'is-hit');
+    if (hit) {
+      restart(view.bed, 'is-hit');
+      // Hearts lost: an "ow", and the whole stage jolts.
+      K.shake(view.stage);
+      sound('hurt');
+    }
     if (ev.some((e) => e.t === 'struck')) restart(view.bed, 'is-zapped');
     if (ev.some((e) => e.t === 'guard')) restart(view.bed, 'is-guarded');
     const base = !run || !run.night ? 'asleep' : run.step === 'over' ? 'startled' : 'asleep';
@@ -1591,12 +1622,13 @@
     v.trail = null;
     syncAim(run.night);
     v.ballBox.innerHTML = shot.balls.map(() => ballHtml(shot.star)).join('');
-    v.anim = { shot, start: performance.now(), popped: 0, idx: shot.balls.map(() => 0), worth: 0, crit: false, moon: false, boom: false };
+    v.anim = { shot, start: performance.now(), popped: 0, heard: 0, idx: shot.balls.map(() => 0), worth: 0, crit: false, moon: false, boom: false };
     v.moonShown = false;
     v.tally.hidden = false;
     v.tally.className = 'sd-tally';
     v.tally.innerHTML = '<b>0</b> pegs';
     show([]);
+    sound('drop'); // off his hat
     v.raf = requestAnimationFrame(tick);
   }
 
@@ -1612,12 +1644,16 @@
 
   // Everything that has happened by time t: pegs popped (what each was
   // worth floats off it), the firework's burst, the stars' places and
-  // sizes.
-  function drawAt(t) {
+  // sizes. Each pop sounds a step up the scale from the last one heard (one
+  // hard on the heels of another is let go), from where it is in the sky,
+  // with a glint for a yellow peg. `quiet`: a skipped shot, whose pops stay
+  // silent.
+  function drawAt(t, quiet) {
     const a = view.anim;
     const f = run.night;
     const shot = a.shot;
-    let popped = false;
+    let popped = -1;
+    let gold = false;
     while (a.popped < shot.pops.length && shot.pops[a.popped].t <= t) {
       const i = shot.pops[a.popped++].i;
       const kind = f.kinds[i] || '';
@@ -1625,16 +1661,23 @@
       if (el) el.setAttribute('class', `sd-peg is-popping${kindClass(kind)}`);
       const worth = worthOf(kind);
       if (worth > 1) fx(`<text class="sd-plus" x="${n2(f.pegs[i].x)}" y="${n2(f.pegs[i].y - 2.4)}">+${worth}</text>`, 900);
-      if (kind === 'crit') a.crit = true;
+      if (kind === 'crit') { a.crit = true; gold = true; }
       if (kind === 'moon') {
         a.moon = true;
         view.halo.setAttribute('visibility', 'hidden');
-        moonMoment(f.pegs[i], shot.said);
+        moonMoment(f.pegs[i], shot.said, quiet);
       }
       a.worth += worth;
-      popped = true;
+      popped = i;
     }
-    if (popped) tallyText(a.worth, a.crit, a.moon);
+    if (popped >= 0) {
+      tallyText(a.worth, a.crit, a.moon);
+      if (!quiet) {
+        const pan = panOf(f.pegs[popped].x);
+        if (sound('peg', { step: a.heard, pan })) a.heard++;
+        if (gold) sound('gold', { pan });
+      }
+    }
     if (shot.burst && !a.boom && t >= shot.burst.t) {
       a.boom = true;
       fx(`<circle class="sd-boom" cx="${n2(shot.burst.x)}" cy="${n2(shot.burst.y)}" r="${shot.burst.r}" />`, 700);
@@ -1673,10 +1716,12 @@
     view.tally.classList.toggle('is-crit', crit || moon);
   }
 
-  // The shot's over: what it came to, for a moment.
+  // The shot's over: what it came to, for a moment. With reduced motion no
+  // pegs were heard popping, so the tally is (the blue moon has its own).
   function showTally(s) {
     const v = view;
     v.tally.hidden = false;
+    if (RM && !s.moon) sound('tally');
     tallyText(s.worth, s.crit, s.moon);
     v.tally.insertAdjacentHTML('beforeend', ` <span>= ${s.dmg}</span>`);
     clearTimeout(v.sayTimer);
@@ -1691,12 +1736,14 @@
     setTimeout(() => el.remove(), ms);
   }
 
-  // The blue moon pops: sparkles fly off it, the sky lights up blue for a
-  // moment, and he says something about it (with reduced motion, just
-  // that). `p`: where it was. `said`: his line.
-  function moonMoment(p, said) {
+  // The blue moon pops: a chime, sparkles fly off it, the sky lights up
+  // blue for a moment, and he says something about it (with reduced
+  // motion, the chime and that). `p`: where it was. `said`: his line.
+  // `quiet`: a skipped shot (no chime).
+  function moonMoment(p, said, quiet) {
     if (!view || view.moonShown) return;
     view.moonShown = true;
+    if (!quiet) sound('moon', { pan: panOf(p.x) });
     if (!RM) {
       fx(`<g class="sd-sparks" transform="translate(${n2(p.x)} ${n2(p.y)})">${range(8).map((k) => {
         const a = (k * Math.PI) / 4;
@@ -1738,7 +1785,7 @@
     if (!view || !view.anim || !run || run.step !== 'shot') return;
     if (performance.now() - view.anim.start < 250) return; // a double press isn't a skip
     cancelAnimationFrame(view.raf);
-    drawAt(view.anim.shot.end);
+    drawAt(view.anim.shot.end, true);
     finishShot();
   }
 

@@ -460,6 +460,12 @@
   let view = null;  // the window it's drawn in, while that's open
   let armed = false; // the next move is a hop
 
+  // Sounds (sound.js; silent while sound is off) only while the game is on
+  // screen, hung on what's drawn. His come from his column: further left
+  // on the floor, further left in your ears.
+  const sound = (name, o) => !!view && !!K.sound && K.sound.play(name, o);
+  const panOf = (i) => (colOf(i) / (COLS - 1) - 0.5) * 0.8;
+
   const inPlay = () => !!(run && run.step === 'play' && run.floor);
   const power = () => 1 + (run.have.antivirus ? 1 : 0);
   const hopRecharge = () => Math.max(2, HOP_RECHARGE - run.have.overclock);
@@ -492,10 +498,17 @@
     const to = next(next(f.pet, d), d);
     return landable(f, to) ? to : -1;
   };
+  // Not yet: the hop is still recharging.
+  function recharging(f) {
+    armed = false;
+    say(`Hop is recharging: ready in ${plural(f.hopCd, 'turn')}.`);
+    sound('deny');
+    drawDock();
+  }
   function tryHop(d) {
     if (!inPlay()) return;
     const f = run.floor;
-    if (f.hopCd > 0) { armed = false; say(`Hop is recharging: ready in ${plural(f.hopCd, 'turn')}.`); drawDock(); return; }
+    if (f.hopCd > 0) { recharging(f); return; }
     const to = hopTarget(f, d);
     if (to < 0) { say("He can't land there: hops go two tiles in a straight line, onto an empty tile."); nudge(d); return; }
     begin();
@@ -587,7 +600,7 @@
     delete f.items[f.pet];
     if (item === 'heart' && run.hearts < run.max) {
       run.hearts++;
-      ev.push({ t: 'item', item, what: 'a heart' });
+      ev.push({ t: 'item', item, what: 'a heart', healed: true });
     } else {
       run.score += POINTS.star;
       run.stars++;
@@ -674,7 +687,7 @@
   function useSaver() {
     if (!inPlay()) return;
     const f = run.floor;
-    if (f.savers < 1) { say('No screensavers left on this floor.'); return; }
+    if (f.savers < 1) { say('No screensavers left on this floor.'); sound('deny'); return; }
     f.savers--;
     f.gs.forEach(dizzy);
     if (f.lid) { f.lid.marks = null; f.lid.summon = null; f.lid.stun = Math.max(f.lid.stun, 1); }
@@ -685,7 +698,7 @@
   function usePopper() {
     if (!inPlay()) return;
     const f = run.floor;
-    if (f.poppers < 1) { say('No party poppers left on this floor.'); return; }
+    if (f.poppers < 1) { say('No party poppers left on this floor.'); sound('deny'); return; }
     f.poppers--;
     const ev = [{ t: 'popper' }];
     let n = 0;
@@ -700,7 +713,7 @@
   function toggleHop() {
     if (!inPlay()) return;
     const f = run.floor;
-    if (f.hopCd > 0) { armed = false; say(`Hop is recharging: ready in ${plural(f.hopCd, 'turn')}.`); drawDock(); return; }
+    if (f.hopCd > 0) { recharging(f); return; }
     armed = !armed;
     drawDock();
     syncTargets();
@@ -717,7 +730,10 @@
   }
   function rewind(auto) {
     if (!run || !run.floor || run.floor.undos < 1 || !run.history.length) {
-      if (!auto && inPlay()) say(run.floor.undos < 1 ? 'No Ctrl+Z left on this floor.' : 'Nothing to take back yet.');
+      if (!auto && inPlay()) {
+        say(run.floor.undos < 1 ? 'No Ctrl+Z left on this floor.' : 'Nothing to take back yet.');
+        sound('deny');
+      }
       return false;
     }
     const undos = run.floor.undos - 1;
@@ -776,6 +792,7 @@
     if (view) {
       show(ev);
       later(() => syncCard(true), RM ? 0 : 520);
+      later(() => sound('clear'), 200); // as he reaches the arrow
     }
     announce(`Floor ${f.n} cleared! Install a program.`);
   }
@@ -795,6 +812,7 @@
     if (id === 'ram') { run.max++; run.hearts = run.max; }
     run.n++;
     if (view) view.help = false;
+    sound('pick');
     startFloor();
   }
 
@@ -806,6 +824,7 @@
     if (view) {
       show(ev);
       later(() => syncCard(true), RM ? 0 : 1100);
+      later(() => sound(run.newBest ? 'best' : 'lose'), 1100);
     }
     announce(`Knocked out on floor ${run.n}. The run is over.`);
     tellDesktop(false);
@@ -824,6 +843,7 @@
     if (view) {
       show(ev);
       later(() => syncCard(true), RM ? 0 : 1300);
+      later(() => sound('win'), 250); // (it says new best too)
     }
     announce('The dialog gave up. He climbed out of the Trash!');
     tellDesktop(true);
@@ -1039,7 +1059,8 @@
     let pose = '';
     let ms = 0;
     const was = (t) => ev.some((e) => e.t === t);
-    if (was('hit')) { pose = 'hurt'; ms = 520; restart(el, 'is-hit'); }
+    // Hit: a heart lost, so the whole stage jolts too.
+    if (was('hit')) { pose = 'hurt'; ms = 520; restart(el, 'is-hit'); K.shake(view.stage); }
     else if (was('hop')) { pose = 'hop'; ms = 300; restart(el, 'is-hopping'); }
     else if (was('bonk')) {
       const b = ev.find((e) => e.t === 'bonk');
@@ -1061,6 +1082,30 @@
       setPose(pose);
       view.poseTimer = setTimeout(() => { if (view) setPose(base); }, Math.max(ms, 380));
     } else setPose(base);
+    hear(f, ev);
+  }
+  // What his turn sounds like, from where he is: a hop, a bonk (higher for
+  // the one that beats it), a heart back from a nap or the floor, a star
+  // picked up, a program run, a hit the Firewall stopped, and a hit that
+  // cost a heart.
+  function hear(f, ev) {
+    const pan = panOf(f.pet);
+    const was = (t) => ev.some((e) => e.t === t);
+    const bonk = ev.find((e) => e.t === 'bonk');
+    if (was('hop')) sound('hop', { pan });
+    if (bonk) {
+      const beaten = bonk.lid
+        ? ev.some((e) => e.t === 'lid' && e.hp <= 0)
+        : ev.some((e) => e.t === 'hurt' && e.id === bonk.id && e.dead);
+      sound('hit', { pan, step: beaten ? 5 : 0 });
+    }
+    if (ev.some((e) => (e.t === 'nap' || e.t === 'item') && e.healed)) sound('heal', { pan });
+    if (ev.some((e) => e.t === 'item' && !e.healed)) sound('gold', { pan });
+    if (was('popper')) sound('party', { pan });
+    if (was('saver')) sound('cast');
+    if (was('undo')) sound('restore');
+    if (was('block')) sound('snap', { pan });
+    if (was('hit')) sound('hurt', { pan });
   }
   const setPose = (name) => {
     const s = frame(name);
@@ -1508,9 +1553,11 @@
     if (run && run.floor) syncMarks(run.floor);
   }
 
-  // A bump into a wall: a little shake, no turn.
+  // A bump into a wall: a little shake and a buzz, no turn.
   function nudge(d) {
-    if (!view || RM) return;
+    if (!view) return;
+    sound('deny', { pan: panOf(run.floor.pet), gain: 0.7 });
+    if (RM) return;
     view.pet.style.setProperty('--dx', DIRS[d][1]);
     view.pet.style.setProperty('--dy', DIRS[d][0]);
     restart(view.pet, 'is-nudged');

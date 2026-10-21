@@ -92,6 +92,13 @@
       : doodleIcon('hat', cls);
   };
 
+  /* ---------- sounds ----------
+     From sound.js (silent while sound is off), only while the game is on
+     screen. A tile sounds from its column: further left on the board,
+     further left in your ears. */
+  const sound = (name, o) => !!view && !!K.sound && K.sound.play(name, o);
+  const panOf = (b, i) => (b.cols > 1 ? ((i % b.cols) / (b.cols - 1) - 0.5) : 0);
+
   /* ---------- what they say (content.js, under "sweeper") ---------- */
   const DEFAULT_LINES = {
     loseLines: ['WHO DARES WAKE ME?', 'five more minutes. FIVE.', "it's not even morning!"],
@@ -304,6 +311,7 @@
     const need = b.cells[i].adj;
     if (found !== need) {
       say(need === 1 ? 'Star the wizard beside it first.' : `Star all ${need} wizards beside it first.`, 0, i);
+      sound('deny', { pan: panOf(b, i) });
       return;
     }
     reveal(b, covered, i);
@@ -346,12 +354,17 @@
     if (b.opened === b.safe) cleared(b);
   }
 
-  // A Shield at work: the wizard jolts awake, then nods off again.
+  // A Shield at work: the wizard jolts awake (a snort, and the board
+  // shakes), then nods off again.
   function calm(b, i) {
     const c = b.cells[i];
     c.s = 'calm';
     c.jolt = true;
     paint(i, 'is-jolted');
+    if (view && view.shown === b) {
+      K.shake(view.stage);
+      sound('wake', { pan: panOf(b, i) });
+    }
     setTimeout(() => {
       c.jolt = false;
       if (view && view.shown === b) paint(i);
@@ -366,6 +379,8 @@
     else if (c.s === 'star') c.s = 'hidden';
     else return;
     paint(i, c.s === 'star' ? 'is-starring' : '');
+    if (c.s === 'star') sound('pop', { pan: panOf(b, i) });
+    else sound('tick', { pan: panOf(b, i), gain: 0.6 });
     drawHud();
     announce(c.s === 'star' ? `Starred. ${plural(wizardsLeft(b), 'wizard')} left to find.` : 'Star taken off.');
   }
@@ -375,15 +390,23 @@
   function lucky(i) {
     const b = run && run.board;
     if (!b || run.step !== 'play') return;
-    if (b.lucky < 1) { if (run.have.lucky) say('No lucky stars left on this level.'); return; }
+    if (b.lucky < 1) {
+      if (run.have.lucky) { say('No lucky stars left on this level.'); sound('deny'); }
+      return;
+    }
     const c = b.cells[i];
-    if (c.s !== 'hidden' && c.s !== 'star') { say('Pick a covered tile for your lucky star.', 0, i); return; }
+    if (c.s !== 'hidden' && c.s !== 'star') {
+      say('Pick a covered tile for your lucky star.', 0, i);
+      sound('deny', { pan: panOf(b, i) });
+      return;
+    }
     b.lucky--;
     armed = false;
     b.started = true;
     if (c.wiz) {
       c.s = 'sure';
       paint(i, 'is-starring');
+      sound('gold', { pan: panOf(b, i) });
       say('Lucky star! A wizard was asleep there.', 0, i);
     } else {
       c.s = 'hidden';
@@ -458,6 +481,9 @@
       drawMenu();
       drawStatus();
       later(() => syncCard(true), RM ? 0 : win ? 900 : 700);
+      // Just after the last tile's tick: a jingle, or the run's fanfare
+      // (which says new best too).
+      later(() => sound(win ? 'win' : 'clear'), 250);
     }
     announce(win
       ? `Level ${b.level} cleared! Every wizard is tucked in, so the run is won. Keep sweeping into endless levels, or start a new run.`
@@ -475,6 +501,7 @@
     run.last.line = '';
     run.last.onwards = true;
     if (view) syncCard(true);
+    sound('pick');
     announce('Endless levels: each one sleepier than the last, until you wake a wizard. Pick an upgrade.');
   }
 
@@ -496,6 +523,9 @@
       drawMenu();
       drawStatus();
       later(() => syncCard(true), RM ? 0 : 1100);
+      // A snort, and once he's done glaring, how the run went.
+      sound('wake', { pan: panOf(b, i) });
+      later(() => sound(run.newBest ? 'best' : 'lose'), 1100);
     }
     announce('You woke a wizard! The run is over.');
     tellDesktop(false);
@@ -533,6 +563,7 @@
     if (id === 'shield') run.shields++;
     run.level++;
     if (view) view.help = false;
+    sound('pick');
     startLevel();
   }
 
@@ -705,10 +736,16 @@
     if (el.swHtml !== look.html) { el.innerHTML = look.html; el.swHtml = look.html; }
     el.setAttribute('aria-label', `${look.what}, row ${((i / b.cols) | 0) + 1}, column ${(i % b.cols) + 1}`);
   }
-  // Newly cleared tiles pop open in a ripple from where you clicked.
+  // Newly cleared tiles pop open in a ripple from where you clicked, with
+  // a tick (a bigger patch: a run of them, rising, as the ripple spreads).
   function paintCleared(b, list, from) {
     if (!view || view.shown !== b) return;
     list.forEach((i) => paint(i, 'is-pop', RM ? 0 : Math.min(400, 26 * steps(b, from, i))));
+    if (!list.length) return;
+    const pan = panOf(b, from);
+    sound('tick', { pan });
+    const ticks = RM ? 1 : Math.min(5, Math.ceil(list.length / 4));
+    for (let k = 1; k < ticks; k++) later(() => sound('tick', { step: k * 2, pan }), k * 55);
   }
 
   function drawHud() {

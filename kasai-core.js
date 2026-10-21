@@ -8,6 +8,7 @@
      generated/manifest.js  made by the build: image sizes and the art list
      content.js     the words and pictures (the only file you edit)
      kasai-core.js  these shared helpers
+     sound.js       every sound (off until a visitor turns it on)
      apps.js        what each window shows
      pet.js         the wizard who lives on the desktop
      kasai-os.js    the desktop, windows, taskbar and Start menu (starts it all)
@@ -155,6 +156,10 @@
     back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
     next: '<path d="M5 12h14M13 6l6 6-6 6"/>',
     printer: '<path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14.5h10v6H7z"/>',
+    // The sound switch: a speaker with its sound waves, or crossed out (the
+    // speaker is the first path, so it can be filled in).
+    sound: '<path d="M3.5 9.2h3.6l5-4.4v14.4l-5-4.4H3.5z"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18.4 6.3a8.2 8.2 0 0 1 0 11.4"/>',
+    mute: '<path d="M3.5 9.2h3.6l5-4.4v14.4l-5-4.4H3.5z"/><path d="M15.5 9.5l5.5 5.5M21 9.5l-5.5 5.5"/>',
     // A cup with a base: give it a fill (the Games window's is yellow) and
     // the cup and base fill in, the handles stay lines.
     trophy: '<path d="M7 4h10v4.5a5 5 0 0 1-10 0z"/><path d="M7 5.8H4.6v1.4a3.4 3.4 0 0 0 3 3.4M17 5.8h2.4v1.4a3.4 3.4 0 0 1-3 3.4" fill="none"/><path d="M12 13.5V17"/><path d="M8.6 17h6.8l.9 3.5H7.7z"/>',
@@ -420,6 +425,21 @@
       document.body.appendChild(d);
     }, { passive: true });
   };
+
+  /* ---------- the shake ----------
+     A game's stage jolts from side to side for a moment when a heart is
+     lost. Its keyframes (.is-shaking in style.css) move the separate
+     translate property, so they never fight the stage's own transforms.
+     None with reduced motion. */
+  K.shake = (el) => {
+    if (!el || K.REDUCE_MOTION) return;
+    el.classList.remove('is-shaking');
+    void el.offsetWidth; // another heart lost straight away shakes it again
+    el.classList.add('is-shaking');
+  };
+  document.addEventListener('animationend', (e) => {
+    if (e.animationName === 'stage-shake') e.target.classList.remove('is-shaking');
+  });
 
   /* ---------- the rolling ticker ----------
      Clones the authored group enough times to fill the strip (an even

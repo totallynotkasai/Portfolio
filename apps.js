@@ -186,6 +186,8 @@
     const t = list[i];
     if (t === cur) return;
     if (viewerVT) viewerVT.skipTransition(); // still opening: that ends first
+    // A swish, from the side it's heading for.
+    if (K.sound) K.sound.play('flip', { pan: by === -1 || by === 'first' ? -0.35 : 0.35 });
     // Closing the viewer takes focus back to the picture's card or file.
     fill(K.wm.open(viewerSpec(t), { refit: true, keepCentre: true, from: t, focus: false, push: false }), t, true);
   };

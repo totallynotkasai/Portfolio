@@ -4,7 +4,8 @@
    You do NOT need to edit this file. It builds the OS from the apps in
    apps.js and the words in content.js, then starts everything: the boot
    and shut down screens, the right-click desktop menu, the wallpaper
-   picker and the secret codes live here too. Each start-up step runs on
+   picker, the sound switches and the secret codes live here too (the
+   sounds themselves are made in sound.js). Each start-up step runs on
    its own, so one hiccup can't take the rest of the site down with it.
    ════════════════════════════════════════════════════════════════════════ */
 
@@ -38,6 +39,10 @@
     live.textContent = '';
     setTimeout(() => { live.textContent = text; }, 40);
   };
+  // A sound from sound.js (silent while sound is off). Restart closes and
+  // opens windows behind the boot screen without a peep (`hushed`).
+  let hushed = false;
+  const sound = (name, o) => !hushed && !!K.sound && K.sound.play(name, o);
   const copyright = () => (C.site && C.site.copyright) || '© 2026 Andrew Worgan (Kasai). All rights reserved.';
   // A list of lines from content.js: a missing one uses the built-in lines,
   // an empty one means none.
@@ -254,8 +259,18 @@
     focusWin(win, { push: opts.push !== false, focus: opts.focus !== false });
     if (spec.onShow) spec.onShow(win);
     if (first || back) grow(win, src); // after onShow, which may measure what's inside
+    if (first) sound('open', { pan: panOf(win) });
+    else if (back) sound('restore', { pan: panOf(win) });
     K.emit('open', { id: win.id, app: appOf(win), first });
     return win;
+  }
+
+  // Where a window sits across the desktop, as a sound's place between the
+  // left ear and the right (gently: no further than halfway).
+  function panOf(win) {
+    const W = layer.clientWidth;
+    if (!win.rect || !W || win.maximised || isPhone()) return 0;
+    return clamp(((win.rect.x + win.rect.w / 2) / W) * 2 - 1, -1, 1) * 0.5;
   }
 
   function focusWin(win, o) {
@@ -443,6 +458,7 @@
     leave(win, btn, () => { win.el.hidden = true; }); // into its taskbar button
     if (btn) btn.focus({ preventScroll: true });
     else returnFocus(win);
+    sound('minimise', { pan: panOf(win) });
     announce(win.spec.label + ' minimised');
   }
 
@@ -467,7 +483,9 @@
       if (!APPS[win.id]) { win.el.remove(); wins.delete(win.id); }
       announce(win.spec.label + ' closed');
     };
-    if (quick) { finishAnim(win); done(); } else leave(win, null, done);
+    if (quick) { finishAnim(win); done(); return; }
+    sound('close', { pan: panOf(win) });
+    leave(win, null, done);
   }
 
   // Maximised or not, at once (toggleMax glides there).
@@ -482,7 +500,9 @@
   const resized = (win) => { if (win.spec.onResize) win.spec.onResize(win); };
   function toggleMax(win, force) {
     const on = typeof force === 'boolean' ? force : !win.maximised;
+    if (on === win.maximised) return;
     glide(win, () => setMax(win, on), resized);
+    sound(on ? 'max' : 'restore', { pan: panOf(win) });
   }
 
   /* ---------- snapping ----------
@@ -519,6 +539,7 @@
       if (zone === 'max') { setRect(win, was); setMax(win, true); }
       else setSnap(win, zone, Object.assign({}, was));
     }, resized);
+    sound('snap', { pan: panOf(win) });
   }
   // A dashed outline shows where, while the window is dragged.
   let preview = null;
@@ -914,6 +935,7 @@
         <ul class="start-system" aria-label="System">
           ${K.pet && C.wizard && C.wizard.enabled ? `<li><button type="button" data-pet-exe>${doodleIcon('hat')}pet.exe</button></li>` : ''}
           <li><button type="button" data-sys="wallpaper">${doodleIcon('palette')}Wallpaper</button></li>
+          ${K.sound ? `<li><button type="button" data-sound aria-pressed="false">${soundLook(false)}</button></li>` : ''}
           <li><button type="button" data-sys="restart">${doodleIcon('refresh')}Restart</button></li>
           <li><button type="button" data-sys="shutdown">${doodleIcon('power')}Shut down</button></li>
         </ul>
@@ -931,15 +953,18 @@
       startBtn.addEventListener('click', () => {
         startMenu.hidden = !startMenu.hidden;
         startBtn.setAttribute('aria-expanded', String(!startMenu.hidden));
+        if (!startMenu.hidden) sound('menu');
       });
       document.addEventListener('click', (e) => { if (!e.target.closest('.start-btn, #start-menu')) hideStart(); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !startMenu.hidden) { hideStart(); startBtn.focus(); } });
-    }
+    } else startMenu.addEventListener('toggle', (e) => { if (e.newState === 'open') sound('menu'); });
     // Restored from the back/forward cache: never come back with it open.
     window.addEventListener('pageshow', (e) => { if (e.persisted) hideStart(); });
     // pet.exe (the wizard's own little window, pet.js), Wallpaper, Restart,
-    // Shut down and About Kasai OS.
+    // Shut down and About Kasai OS. Sound switches on or off and leaves the
+    // menu open.
     startMenu.addEventListener('click', (e) => {
+      if (e.target.closest('[data-sound]')) { K.sound.toggle(); return; }
       const b = e.target.closest('[data-pet-exe], [data-sys]');
       if (!b) return;
       hideStart();
@@ -1123,7 +1148,7 @@
   }
 
   /* ══════════════════════════════════════════════════════════════════════
-     SMALL THINGS  (clock, tray icons, tab title, console hello, dialogs)
+     SMALL THINGS  (clock, sound, tray icons, tab title, console hello, dialogs)
      ══════════════════════════════════════════════════════════════════════ */
   function wireClock() {
     const clock = $('#tray-clock');
@@ -1137,6 +1162,38 @@
     tick();
     setInterval(tick, 20000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+  }
+
+  // Sound (sound.js makes every sound; it's off until it's switched on).
+  // Two switches, a speaker beside the clock (not on phones) and Sound in
+  // the Start menu's bottom row, kept in step by the 'sound' event.
+  // A switch's insides: the speaker, crossed out while it's off, and its name.
+  function soundLook(on, iconOnly) {
+    return doodleIcon(on ? 'sound' : 'mute') + (iconOnly ? '<span class="vh">Sound</span>' : 'Sound');
+  }
+  function wireSound() {
+    if (!K.sound) return;
+    const tray = document.createElement('button');
+    tray.className = 'tray-sound';
+    tray.type = 'button';
+    tray.dataset.sound = '';
+    const clock = $('#tray-clock');
+    if (clock) clock.before(tray);
+    else taskbar.appendChild(tray);
+    tray.addEventListener('click', () => K.sound.toggle());
+    const draw = () => {
+      const on = K.sound.on;
+      $$('[data-sound]').forEach((b) => {
+        b.setAttribute('aria-pressed', String(on));
+        b.title = on ? 'Sound: on' : 'Sound: off';
+        b.innerHTML = soundLook(on, b === tray);
+      });
+    };
+    draw();
+    K.on('sound', (e) => {
+      draw();
+      announce(e.on ? 'Sound on' : 'Sound off');
+    });
   }
 
   // The tray's social icons become CSS masks so they always take the text
@@ -1201,6 +1258,7 @@
     });
     d.addEventListener('close', () => { resolve(d.returnValue); d.remove(); });
     d.showModal();
+    sound('alert');
   });
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -1320,14 +1378,20 @@
   }
 
   // Behind the boot screen, every window closes and the desktop starts the
-  // way a visit does: About open (phones: the home screen).
+  // way a visit does: About open (phones: the home screen). Quietly: the
+  // start-up chime has it covered.
   function freshStart() {
-    order.slice().reverse().forEach((id) => { const w = wins.get(id); if (w) close(w, true); });
-    notFound = false;
-    if (isPhone()) {
-      history.replaceState({ app: null, win: null, n: depth }, '', '/');
-      sync(false);
-    } else open('about', { push: false, focus: false });
+    hushed = true;
+    try {
+      order.slice().reverse().forEach((id) => { const w = wins.get(id); if (w) close(w, true); });
+      notFound = false;
+      if (isPhone()) {
+        history.replaceState({ app: null, win: null, n: depth }, '', '/');
+        sync(false);
+      } else open('about', { push: false, focus: false });
+    } finally {
+      hushed = false;
+    }
   }
   // Then focus lands where a visitor starts: the window in front, or the
   // first icon.
@@ -1338,10 +1402,13 @@
     announce('Kasai OS restarted');
   }
 
+  // The start-up chime plays on Restart and Power on (a first visit's boot
+  // screen is silent: browsers allow no sound before a click).
   function restart() {
     hideStart();
     closeMenu();
     if (bootRun) return;
+    sound('boot');
     if (REDUCE_MOTION) { freshStart(); settle(); return; }
     playBoot({ fadeIn: true, behind: freshStart, done: settle });
   }
@@ -1366,6 +1433,7 @@
     const powerOn = () => {
       if (on) return;
       on = true;
+      sound('boot');
       if (REDUCE_MOTION) { d.close(); freshStart(); settle(); return; }
       playBoot({ behind: freshStart, done: settle }); // waits under the shutdown screen until it closes
       d.close();
@@ -1376,6 +1444,7 @@
     d.addEventListener('close', () => { powerOn(); d.remove(); });
     d.showModal();
     power.focus();
+    sound('shutdown');
     if (!REDUCE_MOTION && d.animate) d.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-in-out' });
   }
 
@@ -1565,6 +1634,7 @@
     el.style.left = '0px';
     el.style.top = '0px';
     if (hasPopoverApi) { if (!el.matches(':popover-open')) el.showPopover(); } else el.hidden = false;
+    sound('menu');
     // Keep it on screen: it opens left of the pointer or above it if it must.
     const r = panel.getBoundingClientRect();
     const W = window.innerWidth;
@@ -1779,7 +1849,10 @@
       return 'the Konami code';
     },
   };
-  const secret = (name) => announce('Secret found: ' + SECRETS[name]());
+  const secret = (name) => {
+    sound('cast');
+    announce('Secret found: ' + SECRETS[name]());
+  };
   const endsWith = (list, tail) => list.length >= tail.length && tail.every((k, i) => k === list[list.length - tail.length + i]);
 
   function wireSecrets() {
@@ -1877,6 +1950,7 @@
     ['start menu', buildStart],
     ['tray', colorizeSocials],
     ['clock', wireClock],
+    ['sound switches', wireSound],
     ['pet', () => { if (K.pet) K.pet.init($('#desk-pet')); }],
     ['first window', startRoute],
     ['skip link', wireSkipLink],
