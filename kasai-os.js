@@ -61,6 +61,9 @@
   const order = []; // open windows (minimised ones too), back to front
   let cascade = 0;
   let openCount = 0;
+  const MIN_SIZE = [320, 220]; // how small a window can be resized, unless its app says
+  // Windows resize from every edge and corner, as well as by the grip.
+  const EDGES = ['n', 'e', 's', 'w', 'ne', 'se', 'sw', 'nw'];
 
   const appOf = (win) => (APPS[win.id] ? win.id : win.spec.parent || null);
   const front = () => {
@@ -107,7 +110,8 @@
         <div class="win-body"></div>
         <div class="win-status"></div>
         <span class="win-grip" aria-hidden="true"></span>
-      </div>`;
+      </div>
+      ${EDGES.map((edge) => `<span class="win-edge" data-edge="${edge}" aria-hidden="true"></span>`).join('')}`;
     layer.appendChild(el);
 
     const win = {
@@ -122,6 +126,8 @@
       open: false,
       minimised: false,
       maximised: false,
+      snap: null, // { side, was } while it fills half the desktop
+      anim: null, // its animation, while one runs (see the motion helpers)
       rect: null,
       setStatus(html) { this.status.innerHTML = html || ''; this.status.hidden = !html; },
       setTitle(file) { $('.os-title', el).textContent = file; },
@@ -152,8 +158,9 @@
 
   // Where a window first appears: centred in the free desktop (clear of the
   // icons on big screens), each new one a step down and right; a project or
-  // document opens near the folder it came from.
-  function place(win) {
+  // document opens near the folder it came from. `keepCentre` refits the
+  // image viewer around the middle it already has (the next picture).
+  function place(win, keepCentre) {
     const area = layer.getBoundingClientRect();
     const W = area.width;
     const H = area.height;
@@ -181,11 +188,14 @@
     }
     w = Math.min(w, W - 16);
     h = Math.min(h, H - 16);
-    const step = 26 * (cascade++ % 5);
+    const step = keepCentre ? 0 : 26 * (cascade++ % 5);
     const parent = spec.parent && wins.get(spec.parent);
     let x;
     let y;
-    if (spec.fit) {
+    if (spec.fit && keepCentre && win.rect) {
+      x = win.rect.x + (win.rect.w - w) / 2;
+      y = win.rect.y + (win.rect.h - h) / 2;
+    } else if (spec.fit) {
       x = (W - w) / 2;
       y = (H - h) / 2;
     } else if (parent && parent.open && !parent.minimised && parent.rect) {
@@ -198,14 +208,28 @@
     setRect(win, { x: clamp(x, 8, W - w - 8), y: clamp(y, 8, H - h - 8), w, h });
   }
 
+  // opts.from: what opened it (it grows out of that, and closing it hands
+  // focus back). opts.at: a box on screen to grow out of instead (an item
+  // in a menu that has just closed). opts.refit: a new picture in the
+  // viewer, which refits it (around its middle with opts.keepCentre).
+  // opts.push and opts.focus: false to leave the history or keyboard focus
+  // alone.
   function open(idOrSpec, opts) {
     opts = opts || {};
     const spec = specFor(idOrSpec);
     if (!spec) return null;
+    // Still shrinking away or closing: it turns round from where it is.
+    const going = wins.get(spec.id);
+    const midway = going && going.leaving ? boxOf(going.el) : null;
+    if (midway) finishAnim(going);
     let win = wins.get(spec.id);
     if (!win) win = build(spec);
     else if (!APPS[spec.id]) win.spec = Object.assign(win.spec, spec);
     const first = !win.open;
+    const back = !first && win.minimised;
+    // What it grows out of, measured before anything moves: whatever opened
+    // it, or its own taskbar button when it comes back from there.
+    const src = first || back ? midway || opts.at || rectOf(anchorOf(opts.from) || (back ? taskButton(win) : null)) : null;
     if (first) {
       win.open = true;
       win.openedAt = ++openCount; // its place along the taskbar
@@ -213,18 +237,17 @@
       order.push(win.id);
       win.el.hidden = false;
       place(win);
-      animateIn(win);
       announce(spec.label + ' opened');
-    } else if (win.minimised) {
+    } else if (back) {
       win.minimised = false;
       win.el.hidden = false;
-      animateIn(win);
-    } else if (opts.refit && spec.fit && !win.maximised) {
-      place(win); // a new picture in the viewer: refit and recentre
+    } else if (opts.refit && spec.fit && !win.maximised && !win.snap) {
+      glide(win, () => place(win, opts.keepCentre), resized);
     }
-    if (opts.from) win.from = opts.from;
+    if (opts.from && (first || opts.refit)) win.from = opts.from;
     focusWin(win, { push: opts.push !== false, focus: opts.focus !== false });
     if (spec.onShow) spec.onShow(win);
+    if (first || back) grow(win, src); // after onShow, which may measure what's inside
     K.emit('open', { id: win.id, app: appOf(win), first });
     return win;
   }
@@ -248,25 +271,156 @@
     wins.forEach((w) => w.el.classList.toggle('is-active', w === f));
   }
 
-  function hideWin(win, done) {
-    if (REDUCE_MOTION || !win.el.animate || isPhone()) { done(); return; }
-    const anim = win.el.animate(
-      [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(14px) scale(0.96)' }],
-      { duration: 140, easing: 'ease-in', fill: 'forwards' });
-    anim.finished.then(() => { done(); anim.cancel(); }).catch(done);
+  /* ---------- motion ----------
+     A window grows out of whatever opened it and shrinks into its taskbar
+     button; maximising, restoring and snapping glide from one box to the
+     next. Each window runs one animation at a time: a new one, a drag, a
+     resize or the image viewer's view transition first jumps the running
+     one to its end. Reduced motion skips them all, and phones minimise and
+     close at once (Back closes their windows one after another). */
+  const moving = () => !REDUCE_MOTION && typeof document.body.animate === 'function';
+  // The image viewer's view transition is running: that's its animation.
+  const viewing = () => document.documentElement.classList.contains('vt-viewer');
+
+  // An element's box on screen, or null when none of it shows. Taskbar
+  // buttons are cut to the strip they sit in, which hides the ones that
+  // don't fit.
+  function rectOf(el) {
+    if (!el || !el.isConnected) return null;
+    let { left, top, right, bottom } = el.getBoundingClientRect();
+    const strip = el.closest('#task-windows');
+    if (strip) {
+      const s = strip.getBoundingClientRect();
+      left = Math.max(left, s.left);
+      top = Math.max(top, s.top);
+      right = Math.min(right, s.right);
+      bottom = Math.min(bottom, s.bottom);
+    }
+    return right - left >= 1 && bottom - top >= 1 ? { left, top, width: right - left, height: bottom - top } : null;
   }
 
-  function animateIn(win) {
-    if (REDUCE_MOTION || !win.el.animate || document.documentElement.classList.contains('vt-viewer')) return;
-    win.el.animate(
-      [{ opacity: 0, transform: 'translateY(10px) scale(0.97)' }, { opacity: 1, transform: 'none' }],
-      { duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+  // What a window grows out of, and hands focus back to: the element that
+  // opened it, the Start button for a link in the Start menu (closed by
+  // then), or a hidden window's taskbar button for anything inside it.
+  function anchorOf(el) {
+    if (!el || !el.isConnected) return null;
+    if (startMenu && startMenu.contains(el)) return startBtn;
+    const box = el.closest('.win');
+    const w = box && wins.get(box.dataset.win);
+    if (w && (box.hidden || w.minimised)) return taskButton(w);
+    return el.getClientRects().length ? el : null;
   }
 
-  // Where keyboard focus goes when a window steps away.
+  // Where a window shows right now, mid-animation too, and how faintly.
+  const boxOf = (el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, top: r.top, width: r.width, height: r.height, opacity: Number(getComputedStyle(el).opacity) };
+  };
+  // The transform that lays a window's box `r` over the box `s`: one even
+  // scale, with the two middles together.
+  const over = (s, r) => `translate(${s.left + s.width / 2 - r.left - r.width / 2}px, ${s.top + s.height / 2 - r.top - r.height / 2}px) ` +
+    `scale(${clamp(Math.max(s.width / r.width, s.height / r.height), 0.06, 1)})`;
+
+  // Growing out of the taskbar or shrinking into it, the desktop sits above
+  // the taskbar, so the window can be seen doing it.
+  let lifts = 0;
+  const lift = (by) => { lifts = Math.max(0, lifts + by); os.classList.toggle('is-lifting', lifts > 0); };
+
+  function animate(win, frames, timing, done) {
+    finishAnim(win);
+    const run = { a: win.el.animate(frames, timing), done };
+    win.anim = run;
+    run.a.finished.then(() => { if (win.anim === run) finishAnim(win); }, () => {});
+  }
+  // Jumps a window's animation to its end, and runs what was waiting for it.
+  function finishAnim(win) {
+    const run = win && win.anim;
+    if (!run) return;
+    win.anim = null;
+    run.a.cancel();
+    if (run.done) run.done();
+  }
+
+  // Opening, or coming back from the taskbar: it grows out of the box `src`,
+  // or rises into place when there's none (a secret word, the address bar).
+  function grow(win, src) {
+    const r = win.el.getBoundingClientRect();
+    if (!moving() || viewing() || !r.width || !r.height) return;
+    if (!src) {
+      animate(win, [{ opacity: 0, transform: 'translateY(10px) scale(0.97)' }, { opacity: 1, transform: 'none' }],
+        { duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+      return;
+    }
+    lift(1);
+    animate(win, [
+      { transform: over(src, r), opacity: src.opacity == null ? 0 : src.opacity },
+      { opacity: 1, offset: 0.3 },
+      { transform: 'none', opacity: 1 },
+    ], { duration: 240, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }, () => lift(-1));
+  }
+
+  // Going away: it shrinks into `to` (its taskbar button) when that's on
+  // screen, or drops and fades. `done` puts it away at the end.
+  function leave(win, to, done) {
+    finishAnim(win);
+    const r = win.el.getBoundingClientRect();
+    if (!moving() || isPhone() || !r.width || !r.height) { done(); return; }
+    const dst = rectOf(to);
+    win.leaving = true;
+    win.el.classList.add('is-leaving');
+    if (dst) lift(1);
+    animate(win, dst
+      ? [{ transform: 'none', opacity: 1 }, { opacity: 1, offset: 0.5 }, { transform: over(dst, r), opacity: 0 }]
+      : [{ transform: 'none', opacity: 1 }, { transform: 'translateY(14px) scale(0.96)', opacity: 0 }],
+    { duration: dst ? 200 : 140, easing: dst ? 'cubic-bezier(0.4, 0, 0.9, 0.6)' : 'ease-in', fill: 'forwards' }, () => {
+      if (dst) lift(-1);
+      win.leaving = false;
+      win.el.classList.remove('is-leaving');
+      done();
+    });
+  }
+
+  // Glides squash what's inside for a moment. Set this to true and a flat
+  // dashed outline glides instead, while the window jumps to its new box.
+  const GLIDE_OUTLINE = false;
+
+  // Maximise, restore, snaps and the viewer's refits: `change` gives the
+  // window its new box at once, so what's inside reflows straight away, and
+  // the frame glides there from the old one ("FLIP"). `then(win)` runs once
+  // it has arrived.
+  function glide(win, change, then) {
+    const was = win.el.getBoundingClientRect();
+    finishAnim(win);
+    change();
+    const now = win.el.getBoundingClientRect();
+    const done = () => { if (then) then(win); };
+    const same = ['left', 'top', 'width', 'height'].every((k) => Math.abs(was[k] - now[k]) < 1);
+    if (!moving() || viewing() || same || !was.width || !now.width || !now.height) { done(); return; }
+    if (GLIDE_OUTLINE) { ghost(win, was, now); done(); return; }
+    animate(win, [
+      { transform: `translate(${was.left + was.width / 2 - now.left - now.width / 2}px, ${was.top + was.height / 2 - now.top - now.height / 2}px) ` +
+        `scale(${was.width / now.width}, ${was.height / now.height})` },
+      { transform: 'none' },
+    ], { duration: 200, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }, done);
+  }
+  function ghost(win, a, b) {
+    const area = layer.getBoundingClientRect();
+    const box = (r) => ({ left: `${r.left - area.left}px`, top: `${r.top - area.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+    const g = document.createElement('div');
+    g.className = 'snap-preview is-ghost';
+    g.setAttribute('aria-hidden', 'true');
+    g.style.zIndex = String(Number(win.el.style.zIndex) + 1);
+    layer.appendChild(g);
+    g.animate([box(a), box(b)], { duration: 200, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' })
+      .finished.catch(() => {}).then(() => g.remove());
+  }
+
+  // Where keyboard focus goes when a window steps away: back to what opened
+  // it (see anchorOf), else its taskbar button, the window in front or the
+  // first desktop icon.
   const returnFocus = (win) => {
     const next = front();
-    const target = (win.from && document.contains(win.from) && !win.from.closest('[hidden]') && win.from)
+    const target = anchorOf(win.from)
       || taskButton(win)
       || (next && ($('#' + next.headingId, next.el) || next.el))
       || $('.desk-icon');
@@ -274,29 +428,31 @@
   };
 
   function minimise(win) {
+    if (win.leaving) finishAnim(win); // already on its way out: that ends first
     if (!win.open || win.minimised) return;
-    hideWin(win, () => {
-      win.minimised = true;
-      win.el.hidden = true;
-      restack();
-      sync(false);
-      const btn = taskButton(win);
-      if (btn) btn.focus({ preventScroll: true });
-      else returnFocus(win);
-      announce(win.spec.label + ' minimised');
-    });
+    win.minimised = true;
+    restack();
+    sync(false);
+    const btn = taskButton(win);
+    leave(win, btn, () => { win.el.hidden = true; }); // into its taskbar button
+    if (btn) btn.focus({ preventScroll: true });
+    else returnFocus(win);
+    announce(win.spec.label + ' minimised');
   }
 
   // `quick` skips the little animation (Restart closes everything at once).
   function close(win, quick) {
+    if (win.leaving) finishAnim(win);
     if (!win.open) return;
     const done = () => {
+      if (!win.open) return;
       win.open = false;
       win.minimised = false;
       win.el.hidden = true;
       const i = order.indexOf(win.id);
       if (i !== -1) order.splice(i, 1);
-      if (win.maximised) toggleMax(win, false);
+      if (win.maximised) setMax(win, false);
+      if (win.snap) setSnap(win, null);
       restack();
       sync(false);
       if (win.spec.onClose) win.spec.onClose(win);
@@ -305,19 +461,172 @@
       if (!APPS[win.id]) { win.el.remove(); wins.delete(win.id); }
       announce(win.spec.label + ' closed');
     };
-    if (quick) done();
-    else hideWin(win, done);
+    if (quick) { finishAnim(win); done(); } else leave(win, null, done);
   }
 
-  function toggleMax(win, force) {
-    const on = typeof force === 'boolean' ? force : !win.maximised;
+  // Maximised or not, at once (toggleMax glides there).
+  function setMax(win, on) {
     win.maximised = on;
     win.el.classList.toggle('is-max', on);
     const btn = $('.os-max', win.el);
     btn.setAttribute('aria-pressed', String(on));
     btn.setAttribute('aria-label', (on ? 'Restore ' : 'Maximise ') + win.spec.label);
     btn.innerHTML = doodleIcon(on ? 'restore' : 'max');
-    if (win.spec.onResize) setTimeout(() => win.spec.onResize(win), 60);
+  }
+  const resized = (win) => { if (win.spec.onResize) win.spec.onResize(win); };
+  function toggleMax(win, force) {
+    const on = typeof force === 'boolean' ? force : !win.maximised;
+    glide(win, () => setMax(win, on), resized);
+  }
+
+  /* ---------- snapping ----------
+     A window dragged by its title bar to the left or right edge of the
+     desktop can fill that half (when the half is wide enough for it), and
+     to the top edge all of it. */
+  const SNAP_EDGE = 8; // how near an edge the pointer comes
+  const halfOf = (side, area) => {
+    const mid = Math.round(area.width / 2);
+    return side === 'left' ? { x: 0, y: 0, w: mid, h: area.height } : { x: mid, y: 0, w: area.width - mid, h: area.height };
+  };
+  const halvesFit = (win, area) => {
+    const min = win.spec.minSize || MIN_SIZE;
+    return Math.floor(area.width / 2) >= min[0] && area.height >= min[1];
+  };
+  // Snapped to a half (`side`), remembering its own box `was`, or not (null).
+  function setSnap(win, side, was) {
+    win.snap = side ? { side, was } : null;
+    win.el.classList.toggle('is-snapped', !!side);
+    if (side) setRect(win, halfOf(side, layer.getBoundingClientRect()));
+  }
+  // Where letting go would snap a window, with the pointer at (x, y) on the desktop.
+  function snapZone(win, x, y, area) {
+    if (halvesFit(win, area)) {
+      if (x <= SNAP_EDGE) return 'left';
+      if (x >= area.width - SNAP_EDGE) return 'right';
+    }
+    return y <= SNAP_EDGE ? 'max' : null;
+  }
+  // Letting go over an edge: half the desktop, or all of it. `was` is the
+  // window's own box, for when it's dragged off again or restored.
+  function snapTo(win, zone, was) {
+    glide(win, () => {
+      if (zone === 'max') { setRect(win, was); setMax(win, true); }
+      else setSnap(win, zone, Object.assign({}, was));
+    }, resized);
+  }
+  // A dashed outline shows where, while the window is dragged.
+  let preview = null;
+  function showZone(win, zone, area) {
+    if (!zone) { if (preview) preview.hidden = true; return; }
+    if (!preview) {
+      preview = document.createElement('div');
+      preview.className = 'snap-preview';
+      preview.setAttribute('aria-hidden', 'true');
+      layer.prepend(preview); // under the window being dragged, over the rest
+    }
+    const r = zone === 'max' ? { x: 0, y: 0, w: area.width, h: area.height } : halfOf(zone, area);
+    const fresh = preview.hidden || preview.dataset.zone !== zone;
+    preview.dataset.zone = zone;
+    preview.style.cssText = `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;z-index:${win.el.style.zIndex}`;
+    preview.hidden = false;
+    if (fresh && moving()) {
+      preview.animate([{ opacity: 0, transform: 'scale(0.97)' }, { opacity: 1, transform: 'none' }], { duration: 140, easing: 'ease-out' });
+    }
+  }
+  // How a window was before a gesture (Escape puts it back).
+  const stateOf = (win) => ({ rect: Object.assign({}, win.rect), max: win.maximised, snap: win.snap });
+  function putBack(win, st) {
+    setMax(win, st.max);
+    win.snap = st.snap;
+    win.el.classList.toggle('is-snapped', !!st.snap);
+    setRect(win, st.rect);
+  }
+
+  /* ---------- dragging and resizing ----------
+     One pointer gesture at a time: its moves are drawn once a frame, and it
+     ends when the pointer lets go (on.end gets 'up'), is lost ('cancel') or
+     Escape is pressed ('escape', which puts things back). */
+  function gesture(el, e, on) {
+    const id = e.pointerId;
+    let last = null;
+    let frame = 0;
+    let ended = false;
+    const draw = () => { frame = 0; if (last) on.move(last); };
+    const move = (ev) => {
+      if (ev.pointerId !== id) return;
+      last = { x: ev.clientX, y: ev.clientY };
+      if (!frame) frame = requestAnimationFrame(draw);
+    };
+    const stop = (how) => {
+      if (ended) return;
+      ended = true;
+      cancelAnimationFrame(frame);
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', lost);
+      el.removeEventListener('lostpointercapture', lost);
+      window.removeEventListener('keydown', key, true);
+      if (how === 'up') draw(); // the last move counts
+      if (el.hasPointerCapture(id)) el.releasePointerCapture(id);
+      on.end(how);
+    };
+    const up = (ev) => { if (ev.pointerId === id) stop('up'); };
+    const lost = (ev) => { if (ev.pointerId === id) stop('cancel'); };
+    const key = (ev) => {
+      if (ev.key !== 'Escape') return;
+      ev.preventDefault();
+      ev.stopPropagation(); // the window stays put rather than minimising
+      stop('escape');
+    };
+    try { el.setPointerCapture(id); } catch (err) { /* that pointer has already gone */ }
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', lost);
+    el.addEventListener('lostpointercapture', lost);
+    window.addEventListener('keydown', key, true);
+  }
+
+  // Resizing from an edge or a corner (`edge` is made of n, e, s and w; the
+  // grip is se). The far sides stay put, and the window keeps to its
+  // minimum size and to the desktop. A snapped window comes loose.
+  const RESIZE_CURSORS = { n: 'ns', s: 'ns', e: 'ew', w: 'ew', ne: 'nesw', sw: 'nesw', nw: 'nwse', se: 'nwse' };
+  function resizeFrom(win, edge, e) {
+    if (isPhone() || win.maximised || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    finishAnim(win);
+    const before = stateOf(win);
+    setSnap(win, null);
+    const area = layer.getBoundingClientRect();
+    const r0 = Object.assign({}, win.rect);
+    const min = win.spec.minSize || MIN_SIZE;
+    const minW = Math.min(min[0], r0.w); // never made bigger than it is
+    const minH = Math.min(min[1], r0.h);
+    const sx = e.clientX;
+    const sy = e.clientY;
+    const has = (side) => edge.indexOf(side) !== -1;
+    root.dataset.resizing = RESIZE_CURSORS[edge];
+    gesture(e.currentTarget, e, {
+      move(p) {
+        const r = Object.assign({}, r0);
+        if (has('e')) r.w = clamp(r0.w + p.x - sx, minW, Math.max(r0.w, area.width - r0.x - 4));
+        if (has('s')) r.h = clamp(r0.h + p.y - sy, minH, Math.max(r0.h, area.height - r0.y - 4));
+        if (has('w')) {
+          r.x = clamp(r0.x + p.x - sx, Math.min(r0.x, 0), r0.x + r0.w - minW);
+          r.w = r0.x + r0.w - r.x;
+        }
+        if (has('n')) {
+          r.y = clamp(r0.y + p.y - sy, Math.min(r0.y, 0), r0.y + r0.h - minH);
+          r.h = r0.y + r0.h - r.y;
+        }
+        setRect(win, r);
+      },
+      end(how) {
+        delete root.dataset.resizing;
+        if (how === 'escape') putBack(win, before);
+        resized(win);
+      },
+    });
   }
 
   function wireWindow(win) {
@@ -330,63 +639,54 @@
     el.addEventListener('focusin', () => { if (front() !== win && !win.minimised) focusWin(win, { focus: false, push: false }); });
     win.bar.addEventListener('dblclick', (e) => { if (!e.target.closest('button') && !isPhone()) toggleMax(win); });
 
-    // Drag by the title bar.
+    // Drag by the title bar (not on phones). Near the left or right edge of
+    // the desktop a dashed outline offers that half of it, at the top all of
+    // it, and letting go there snaps the window. A maximised or snapped
+    // window comes loose after 4px, back at its own size and held at the
+    // same spot along its title bar.
     win.bar.addEventListener('pointerdown', (e) => {
-      if (isPhone() || win.maximised || e.button !== 0 || e.target.closest('button')) return;
+      if (isPhone() || e.button !== 0 || e.target.closest('button')) return;
       e.preventDefault();
+      finishAnim(win);
       const area = layer.getBoundingClientRect();
+      const box = win.el.getBoundingClientRect(); // as it shows, maximised too
       const sx = e.clientX;
       const sy = e.clientY;
-      const r0 = Object.assign({}, win.rect);
-      win.bar.setPointerCapture(e.pointerId);
+      const before = stateOf(win);
+      let r0 = before.rect;
+      let loose = !win.maximised && !win.snap;
+      let zone = null;
       os.classList.add('is-dragging');
-      const move = (ev) => setRect(win, {
-        x: clamp(r0.x + ev.clientX - sx, 90 - r0.w, area.width - 90),
-        y: clamp(r0.y + ev.clientY - sy, 0, area.height - 44),
-        w: r0.w,
-        h: r0.h,
+      gesture(win.bar, e, {
+        move(p) {
+          if (!loose) {
+            if (Math.hypot(p.x - sx, p.y - sy) < 4) return;
+            loose = true;
+            const own = win.snap ? win.snap.was : win.rect;
+            r0 = { x: sx - area.left - ((sx - box.left) / box.width) * own.w, y: box.top - area.top, w: own.w, h: own.h };
+            glide(win, () => { setMax(win, false); setSnap(win, null); setRect(win, r0); }, resized);
+          }
+          setRect(win, {
+            x: clamp(r0.x + p.x - sx, 90 - r0.w, area.width - 90),
+            y: clamp(r0.y + p.y - sy, 0, area.height - 44),
+            w: r0.w,
+            h: r0.h,
+          });
+          zone = snapZone(win, p.x - area.left, p.y - area.top, area);
+          showZone(win, zone, area);
+        },
+        end(how) {
+          os.classList.remove('is-dragging');
+          showZone(win, null);
+          if (how === 'escape') glide(win, () => putBack(win, before), resized);
+          else if (how === 'up' && zone) snapTo(win, zone, r0);
+        },
       });
-      const up = () => {
-        os.classList.remove('is-dragging');
-        win.bar.removeEventListener('pointermove', move);
-        win.bar.removeEventListener('pointerup', up);
-        win.bar.removeEventListener('pointercancel', up);
-      };
-      win.bar.addEventListener('pointermove', move);
-      win.bar.addEventListener('pointerup', up);
-      win.bar.addEventListener('pointercancel', up);
     });
 
-    // Resize from the bottom-right corner.
-    const grip = $('.win-grip', el);
-    grip.addEventListener('pointerdown', (e) => {
-      if (isPhone() || win.maximised || e.button !== 0) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const area = layer.getBoundingClientRect();
-      const sx = e.clientX;
-      const sy = e.clientY;
-      const r0 = Object.assign({}, win.rect);
-      const min = win.spec.minSize || [320, 220];
-      grip.setPointerCapture(e.pointerId);
-      os.classList.add('is-resizing');
-      const move = (ev) => setRect(win, {
-        x: r0.x,
-        y: r0.y,
-        w: clamp(r0.w + ev.clientX - sx, min[0], area.width - r0.x - 4),
-        h: clamp(r0.h + ev.clientY - sy, min[1], area.height - r0.y - 4),
-      });
-      const up = () => {
-        os.classList.remove('is-resizing');
-        grip.removeEventListener('pointermove', move);
-        grip.removeEventListener('pointerup', up);
-        grip.removeEventListener('pointercancel', up);
-        if (win.spec.onResize) win.spec.onResize(win);
-      };
-      grip.addEventListener('pointermove', move);
-      grip.addEventListener('pointerup', up);
-      grip.addEventListener('pointercancel', up);
-    });
+    // Resize by the grip in the bottom-right corner, or any edge or corner.
+    $('.win-grip', el).addEventListener('pointerdown', (e) => resizeFrom(win, 'se', e));
+    $$('.win-edge', el).forEach((h) => h.addEventListener('pointerdown', (e) => resizeFrom(win, h.dataset.edge, e)));
   }
 
   // Escape steps the window you're in out of the way (popovers and dialogs
@@ -409,7 +709,9 @@
     wins.forEach((w) => {
       if (!w.rect) return;
       if (w.unplaced) place(w);
+      else if (w.snap && halvesFit(w, area)) setRect(w, halfOf(w.snap.side, area)); // still filling its half
       else {
+        if (w.snap) { const own = w.snap.was; setSnap(w, null); setRect(w, own); } // no room for halves now
         const r = w.rect;
         const nw = Math.min(r.w, area.width - 16);
         const nh = Math.min(r.h, area.height - 16);
@@ -434,6 +736,9 @@
     focus: (id) => { const w = wins.get(id); if (w) focusWin(w); },
     get: (id) => wins.get(id),
     front,
+    // Every window animation jumps to its end (before the image viewer's
+    // view transition takes its snapshots).
+    settle: () => wins.forEach(finishAnim),
   };
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -1119,7 +1424,7 @@
         });
         status();
       },
-    }, { from: opts && opts.from });
+    }, { from: opts && opts.from, at: opts && opts.at });
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -1163,8 +1468,9 @@
       if (!b) return;
       const icon = m.icon;
       const back = m.back;
+      const at = b.getBoundingClientRect(); // a window opened from here grows out of it
       closeMenu(true);
-      runMenu(b.dataset.act, icon, back);
+      runMenu(b.dataset.act, icon, back, at);
     });
     // The mouse and the keyboard share one highlight.
     panel.addEventListener('pointermove', (e) => {
@@ -1242,11 +1548,11 @@
     }
   }
 
-  function runMenu(act, icon, back) {
+  function runMenu(act, icon, back, at) {
     if (act === 'open' && icon) open(icon.dataset.app, { from: icon });
     else if (act === 'refresh') refreshDesktop();
     else if (act === 'folder') newFolder();
-    else if (act === 'wallpaper') openWallpaper({ from: back });
+    else if (act === 'wallpaper') openWallpaper({ from: back, at });
     else if (act === 'sort') sortIcons();
     else if (act === 'about') aboutKasaiOS();
   }

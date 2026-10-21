@@ -21,7 +21,11 @@
      ══════════════════════════════════════════════════════════════════════
      Opens on any element with data-full (the big picture). Optional extras:
      data-img (the picture's path in content.js, for its copies and size),
-     data-file (title bar name), data-caption, data-colors ("#hex #hex"). */
+     data-file (title bar name), data-caption, data-colors ("#hex #hex").
+     Opened from inside a box marked data-viewer-set (the art binder, the
+     certificates, the Trash) it steps through that box's other pictures
+     too, round and round: its arrow buttons, Left and Right (Home and End
+     for the first and last), or a swipe. */
   // An opener's big picture, every copy of it and its full size.
   const picOf = (t) => {
     const path = t.getAttribute('data-img');
@@ -68,65 +72,170 @@
     img.sizes = fit + 'px';
   };
 
-  K.openViewer = (t) => {
+  // The pictures it steps through: the ones showing in the set the picture
+  // came from, read each time, so the Art filter and Shuffle count. Anything
+  // without a big picture (a file that isn't one) is skipped.
+  const setOf = (t) => {
+    const box = t.closest('[data-viewer-set]');
+    return box ? Array.prototype.filter.call(box.querySelectorAll('[data-full]'), (el) => !el.closest('.filtered-out')) : [t];
+  };
+  const altOf = (t) => { const thumb = t.querySelector('img'); return (thumb && thumb.alt) || t.getAttribute('data-caption') || ''; };
+  const fileOf = (t) => t.getAttribute('data-file') || altOf(t) || 'picture.png';
+
+  // The viewer window, sized for the picture `t` opens.
+  const viewerSpec = (t) => {
     const pic = picOf(t);
     const thumb = t.querySelector('img');
-    const alt = (thumb && thumb.alt) || t.getAttribute('data-caption') || '';
-    const colors = (t.getAttribute('data-colors') || '').split(/\s+/).filter((c) => HEX.test(c));
-    // The picture's own shape, even before its thumbnail has loaded.
-    const ratio = pic.w ? pic.w / pic.h : thumb && thumb.naturalWidth ? thumb.naturalWidth / thumb.naturalHeight : 1;
+    return {
+      id: 'viewer',
+      label: 'Image viewer',
+      file: fileOf(t),
+      colour: 'lavender',
+      doodle: 'image',
+      // Big enough for the picture (its own shape, even before its
+      // thumbnail has loaded), never bigger than the desktop.
+      fit: { ratio: pic.w ? pic.w / pic.h : thumb && thumb.naturalWidth ? thumb.naturalWidth / thumb.naturalHeight : 1, chrome: 112 },
+      render(w) {
+        w.body.classList.add('viewer-body');
+        w.body.innerHTML = `<div class="viewer-canvas">
+            <img class="viewer-img" alt="" />
+            <button class="viewer-step is-prev" type="button" aria-label="Previous picture" hidden>${doodleIcon('back')}</button>
+            <button class="viewer-step is-next" type="button" aria-label="Next picture" hidden>${doodleIcon('next')}</button>
+          </div>
+          <p class="viewer-said vh" role="status" aria-live="polite"></p>`;
+        wireSteps(w);
+      },
+      onShow: fitViewer, // back from the taskbar
+      onResize: fitViewer, // maximised, restored, resized or a new screen size
+    };
+  };
 
-    const show = () => {
-      const win = K.wm.open({
-        id: 'viewer',
-        label: 'Image viewer',
-        file: t.getAttribute('data-file') || alt || 'picture.png',
-        colour: 'lavender',
-        doodle: 'image',
-        // Big enough for the picture, never bigger than the desktop.
-        fit: { ratio, chrome: 112 },
-        render(w) {
-          w.body.classList.add('viewer-body');
-          w.body.innerHTML = '<div class="viewer-canvas"><img class="viewer-img" alt="" /></div>';
-        },
-        onShow: fitViewer, // back from the taskbar
-        onResize: fitViewer, // maximised, restored, resized or a new screen size
-      }, { refit: true, from: t }); // closing it takes focus back to the card or file
-      const img = win.body.querySelector('.viewer-img');
-      delete img.dataset.fallback; // each picture gets its own broken-file fallback
-      img.alt = alt;
-      win.setTitle(t.getAttribute('data-file') || alt || 'picture.png');
-      win.setStatus(
-        (colors.length ? `<span class="viewer-swatches">${colors.map((c) => `<i style="--s:${c}"></i><code>${c}</code>`).join('')}</span>` : '') +
-        `<span class="viewer-caption">${esc(t.getAttribute('data-caption') || alt)}</span>`);
-      // Sized once the status bar is filled in, as it changes the room left.
-      ['srcset', 'sizes', 'width', 'height'].forEach((a) => img.removeAttribute(a)); // the last picture's
-      img.style.width = '';
-      const sized = (w, h) => { img.setAttribute('width', w); img.setAttribute('height', h); fitViewer(win); };
-      if (pic.w) sized(pic.w, pic.h);
+  // Puts the picture `t` opens in the viewer: its name, colours and place in
+  // its set, then the picture itself (the small copy at once, the big one
+  // once it's ready). A step also reads out where it landed.
+  const fill = (win, t, stepped) => {
+    const pic = picOf(t);
+    const thumb = t.querySelector('img');
+    const alt = altOf(t);
+    const colors = (t.getAttribute('data-colors') || '').split(/\s+/).filter((c) => HEX.test(c));
+    const list = setOf(t);
+    const at = list.indexOf(t);
+    const where = list.length > 1 && at !== -1 ? `${at + 1} of ${list.length}` : '';
+    win.pic = t;
+    win.body.querySelectorAll('.viewer-step').forEach((b) => { b.hidden = list.length < 2; });
+    const img = win.body.querySelector('.viewer-img');
+    delete img.dataset.fallback; // each picture gets its own broken-file fallback
+    img.alt = alt;
+    win.setTitle(fileOf(t));
+    win.setStatus(
+      (where ? `<span class="viewer-count">${where}</span>` : '') +
+      (colors.length ? `<span class="viewer-swatches">${colors.map((c) => `<i style="--s:${c}"></i><code>${c}</code>`).join('')}</span>` : '') +
+      `<span class="viewer-caption">${esc(t.getAttribute('data-caption') || alt)}</span>`);
+    if (stepped) {
+      const said = win.body.querySelector('.viewer-said');
+      said.textContent = '';
+      setTimeout(() => { said.textContent = where ? `${alt}, ${where}` : alt; }, 40);
+    }
+    // Sized once the status bar is filled in, as it changes the room left.
+    ['srcset', 'sizes', 'width', 'height'].forEach((a) => img.removeAttribute(a)); // the last picture's
+    img.style.width = '';
+    const sized = (w, h) => { img.setAttribute('width', w); img.setAttribute('height', h); fitViewer(win); };
+    if (pic.w) sized(pic.w, pic.h);
+    const pre = warm(pic, img.sizes);
+    const big = () => {
+      if (!pic.w && pre.naturalWidth) sized(pre.naturalWidth, pre.naturalHeight);
+      if (pic.set) img.srcset = pic.set;
+      else img.src = pic.src;
+    };
+    if (stepped && pre.complete && pre.naturalWidth) big(); // fetched ahead by the last step
+    else {
       // Show the small copy at once (already loaded), then swap in the big one.
       img.src = (thumb && (thumb.currentSrc || thumb.src)) || pic.src;
-      const pre = warm(pic, img.sizes);
       (pre.decode ? pre.decode() : Promise.resolve()).catch(() => {}).then(() => {
-        if (!win.body.contains(img) || img.alt !== alt) return; // closed, or showing another picture
-        if (!pic.w && pre.naturalWidth) sized(pre.naturalWidth, pre.naturalHeight);
-        if (pic.set) img.srcset = pic.set;
-        else img.src = pic.src;
+        if (img.isConnected && win.pic === t) big(); // not closed, or moved on to another picture
       });
-      return img;
-    };
+    }
+    // The pictures either side, fetched ahead of the next step.
+    if (where) {
+      [list[(at + 1) % list.length], list[(at + list.length - 1) % list.length]].forEach((n) => {
+        const p = picOf(n);
+        warm(p, roomFor(p));
+      });
+    }
+    return img;
+  };
+
+  let viewerVT = null; // the view transition opening the viewer, while it runs
+
+  // One picture along the set (`by` is 1 or -1, round and round), or to its
+  // first or last. The window refits around its middle, gliding.
+  const stepViewer = (win, by) => {
+    const cur = win.pic;
+    if (!cur || !cur.isConnected) return;
+    const list = setOf(cur);
+    if (list.length < 2) return;
+    let i = list.indexOf(cur);
+    if (by === 'first') i = 0;
+    else if (by === 'last') i = list.length - 1;
+    else if (i !== -1) i = (i + by + list.length) % list.length;
+    else {
+      // The one showing was filtered away meanwhile: go on from where it sat.
+      const after = list.findIndex((el) => cur.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
+      i = by > 0 ? Math.max(0, after) : ((after === -1 ? list.length : after) + list.length - 1) % list.length;
+    }
+    const t = list[i];
+    if (t === cur) return;
+    if (viewerVT) viewerVT.skipTransition(); // still opening: that ends first
+    // Closing the viewer takes focus back to the picture's card or file.
+    fill(K.wm.open(viewerSpec(t), { refit: true, keepCentre: true, from: t, focus: false, push: false }), t, true);
+  };
+
+  const STEP_KEYS = { ArrowLeft: -1, ArrowRight: 1, Home: 'first', End: 'last' };
+  const wireSteps = (win) => {
+    win.body.querySelector('.is-prev').addEventListener('click', () => stepViewer(win, -1));
+    win.body.querySelector('.is-next').addEventListener('click', () => stepViewer(win, 1));
+    win.el.addEventListener('keydown', (e) => {
+      const by = STEP_KEYS[e.key];
+      if (!by || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      e.preventDefault();
+      stepViewer(win, by);
+    });
+    // A quick sideways swipe on a touch screen (the picture lets the browser
+    // keep up and down, and pinching to zoom).
+    const canvas = win.body.querySelector('.viewer-canvas');
+    let swipe = null;
+    canvas.addEventListener('pointerdown', (e) => {
+      swipe = e.pointerType !== 'mouse' && e.isPrimary ? { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp } : null;
+    });
+    canvas.addEventListener('pointercancel', () => { swipe = null; });
+    canvas.addEventListener('pointerup', (e) => {
+      const s = swipe;
+      swipe = null;
+      if (!s || e.pointerId !== s.id || e.timeStamp - s.at > 700) return;
+      const dx = e.clientX - s.x;
+      if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(e.clientY - s.y) * 1.5) stepViewer(win, dx < 0 ? 1 : -1);
+    });
+  };
+
+  K.openViewer = (t) => {
+    const thumb = t.querySelector('img');
+    // Closing it takes focus back to the card or file.
+    const show = () => fill(K.wm.open(viewerSpec(t), { refit: true, from: t }), t);
 
     // The picture grows out of its card (a same-page view transition);
     // browsers without one simply open the window.
     if (K.REDUCE_MOTION || !document.startViewTransition || !thumb || !thumb.complete) { show(); return; }
+    K.wm.settle(); // no window caught mid-animation in its snapshots
     thumb.style.viewTransitionName = 'viewer-art';
     document.documentElement.classList.add('vt-viewer');
     const vt = document.startViewTransition(() => {
       thumb.style.viewTransitionName = '';
-      const img = show();
-      img.style.viewTransitionName = 'viewer-art';
+      show().style.viewTransitionName = 'viewer-art';
     });
+    viewerVT = vt;
     vt.finished.catch(() => {}).then(() => {
+      if (viewerVT !== vt) return; // a newer one took over
+      viewerVT = null;
       document.documentElement.classList.remove('vt-viewer');
       const img = document.querySelector('.viewer-img');
       if (img) img.style.viewTransitionName = '';
@@ -386,7 +495,7 @@
         win.setStatus('0 cards');
         return;
       }
-      win.body.innerHTML = `<div class="card-grid">${ART.map((it, i) => artCard(it, i, ART.length)).join('')}</div>`;
+      win.body.innerHTML = `<div class="card-grid" data-viewer-set>${ART.map((it, i) => artCard(it, i, ART.length)).join('')}</div>`;
       const grid = win.body.querySelector('.card-grid');
       if (!K.REDUCE_MOTION) grid.querySelectorAll('.art-card').forEach(tiltCard);
       grid.addEventListener('click', (e) => {
@@ -513,7 +622,7 @@
         win.setStatus('0 items');
         return;
       }
-      win.body.innerHTML = `<ul class="folder-grid">${items.map((c) => {
+      win.body.innerHTML = `<ul class="folder-grid" data-viewer-set>${items.map((c) => {
         const title = c.title || 'Certificate';
         const meta = [c.issuer, c.date].filter(Boolean).map(esc).join(' · ');
         // The tile opens the scan; the credential link sits beside it, never inside.
@@ -693,7 +802,7 @@
         return;
       }
       win.menu.innerHTML = `<div class="win-toolbar"><button class="os-button" type="button" data-empty>${doodleIcon('alert')}Empty Recycle Bin</button></div>`;
-      win.body.innerHTML = `<ul class="folder-grid folder-grid--projects">${files.map((f) => `
+      win.body.innerHTML = `<ul class="folder-grid folder-grid--projects" data-viewer-set>${files.map((f) => `
           <li><button class="file-tile recycle-tile" type="button" data-full="${esc(largeSrc(f.img))}" data-img="${esc(f.img)}"
               data-file="${esc(slug(f.name))}.png" data-caption="${esc(f.name)}">
             <span class="tile-thumb"><img src="${esc(webSrc(f.img))}"${dims(f.img)} alt="${esc(f.name)}" loading="lazy" decoding="async" draggable="false" /></span>

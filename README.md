@@ -15,7 +15,8 @@ My portfolio is a little operating system. Double-click an icon on the lavender 
 
 ## What's on the desktop
 
-- **About, Coding, Art, Writing and Certificates** each open a window you can drag, resize, maximise, minimise to the taskbar and close. Old page addresses such as `/coding_projects` still work: they open that window.
+- **About, Coding, Art, Writing and Certificates** each open a window that grows out of its icon. You can drag it (to the left or right edge of the screen to fill that half, or the top to fill all of it), resize it from any edge, maximise it, minimise it into the taskbar and close it. Old page addresses such as `/coding_projects` still work: they open that window.
+- **The image viewer** opens art, certificates and the Trash's old designs full size, and steps through the rest of that folder with its arrows, the arrow keys or a swipe.
 - **Games** holds three roguelikes:
   - **Wizard Sweeper**: Minesweeper where the mines are sleeping wizards. Every level is a little bigger, and you pick an upgrade between levels.
   - **Not Rubbish**: someone dropped the pet wizard in the Trash. He climbs out turn by turn through the site's retired designs, bonking gremlins that mark the tiles they'll strike, with a program to install after every floor and the Empty Recycle Bin dialog waiting on the lid.

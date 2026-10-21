@@ -151,6 +151,7 @@
     restore: '<rect x="4.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M8.5 8.5V5.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-3"/>',
     close: '<path d="M7 7l10 10M17 7 7 17"/>',
     back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+    next: '<path d="M5 12h14M13 6l6 6-6 6"/>',
     // A cup with a base: give it a fill (the Games window's is yellow) and
     // the cup and base fill in, the handles stay lines.
     trophy: '<path d="M7 4h10v4.5a5 5 0 0 1-10 0z"/><path d="M7 5.8H4.6v1.4a3.4 3.4 0 0 0 3 3.4M17 5.8h2.4v1.4a3.4 3.4 0 0 1-3 3.4" fill="none"/><path d="M12 13.5V17"/><path d="M8.6 17h6.8l.9 3.5H7.7z"/>',
