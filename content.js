@@ -320,6 +320,10 @@ window.CONTENT = {
        two backslashes for each one you want to see, e.g.
        address: 'C:\\Kasai\\Games'. (The About window's heading is the
        greeting in section 1.)
+     • Games can also have a "trophy": a drawing (an SVG or a square
+       transparent PNG in assets/Games/) for the trophy a game's file gets
+       once someone wins a run of it. Until there is one, a yellow doodle
+       cup on a white sticker stands in.
      • "bootLines": the boot screen, shown once per visit (but not for
        people whose device asks for less motion), on Start > Restart and
        after Shut down. It's over in under a second, so keep them short;
@@ -339,7 +343,7 @@ window.CONTENT = {
       art: { heading: 'Illustration & Design', sub: 'Drawings, characters & design work. Pick a card to see it full size.' },
       writing: { heading: 'Drafts & Complete Works', sub: 'Web novels, stories & creative writing.' },
       certificates: { heading: 'Certificates', sub: 'Courses, certifications & professional development.' },
-      games: { heading: 'Games', sub: 'Things to play when you should be working.' },
+      games: { heading: 'Games', sub: 'Things to play when you should be working.', trophy: '' },
       trash: { heading: 'Recycle Bin', sub: "Old designs I couldn't bring myself to delete." },
     },
 
@@ -486,10 +490,12 @@ window.CONTENT = {
      ──────────────────────────────────────────────────────────────────────
      Minesweeper with sleeping wizards: clear the field without waking
      any. Each level is a little bigger, and after every one you pick an
-     upgrade. A visitor's best run is remembered on their computer.
+     upgrade. Clearing level 12 wins the run, and then you can keep
+     sweeping into endless levels. A visitor's best run is remembered on
+     their computer, and a won run puts a trophy on the game's file.
      • The wizards on the board wear the pet wizard's drawings from
        section 8: "sweeperTile" (asleep), "startled" (the one you woke),
-       and "happy" cheers on the level-cleared card.
+       "happy" cheers on the level-cleared card and "party" on the win.
      • Each list of lines is said one at random. Empty a list, e.g.
        loseLines: [],  to keep the wizards quiet.
      • "upgrades" are the names and blurbs on the upgrade cards. Reword
@@ -502,11 +508,22 @@ window.CONTENT = {
     // After each level you clear.
     clearLines: ['shhh... not one of them stirred.', 'they slept right through it.', 'tiptoe champion.'],
 
+    // When you clear level 12 and win the run.
+    winLines: ['twelve levels, and they all slept through it.', 'sweet dreams, every one of them.'],
+
     // When a run beats your best.
     bestLines: ['a new best! the wizards will hear about it tomorrow.', 'record broken. quietly.'],
 
     // When a Shield saves you.
     shieldLines: ['your shield hummed him back to sleep.', 'phew. shield to the rescue.'],
+
+    // What the pet wizard tells the desktop after a run. {level} becomes
+    // the level it ended on. "endless" is for a run lost after the win.
+    deskLines: {
+      lose: ['i got to level {level} of Wizard Sweeper!', 'level {level}. a wizard woke up.'],
+      win: ['i cleared all twelve levels of Wizard Sweeper!'],
+      endless: ['i swept all the way to level {level}!'],
+    },
 
     upgrades: {
       lantern:   { name: 'Lantern',     blurb: 'Every level starts with a safe 3x3 patch already lit.' },
@@ -526,7 +543,8 @@ window.CONTENT = {
      bottom, then the Empty Recycle Bin dialog on the lid. It's turn by
      turn: gremlins mark the tiles they'll strike after his move. After
      every floor he installs a program. A visitor's best run is
-     remembered on their computer.
+     remembered on their computer, and climbing out puts a trophy on the
+     game's file.
      • He wears his own drawings from section 8: "walk1"/"walk2" (steps),
        "hop", "bonk", "hurt", "asleep" (a nap), "party" (the Party popper
        and climbing out), "happy" (a floor cleared) and "startled"
@@ -568,9 +586,10 @@ window.CONTENT = {
     lidLines: ['Are you sure?', 'Are you really sure?', 'Are you totally sure?', 'This cannot be undone!', 'Seriously, this is permanent.', 'Last chance!', 'Final answer?', 'Fine. Keep him.'],
 
     // What he tells the desktop after a run. {floor} becomes the floor he
-    // reached.
+    // reached; "lid" is for a run that ends on the lid itself.
     deskLines: {
       lose: ['i made it to floor {floor} of the Trash!', 'floor {floor}. the gremlins got me.'],
+      lid: ['i made it all the way to the lid!', 'so close. the lid got me.'],
       win: ['i climbed out of the Trash! not rubbish.'],
     },
 
@@ -598,7 +617,7 @@ window.CONTENT = {
      to Sunday (the Bogeyman's), with a new star or a charm to pick each
      morning; endless runs carry on into harder and harder weeks. A
      visitor's best week and best endless run are remembered on their
-     computer.
+     computer, and a won week puts a trophy on the game's file.
      • He wears his own drawings from section 8: "aim" (aiming the star),
        "hatless" (his hat without its star, while it flies), "asleep" (in
        bed), "startled" (a nightmare reaching the bed, and the run
@@ -669,10 +688,10 @@ window.CONTENT = {
       teddy:        { name: 'Teddy bear',      blurb: 'Guards the bed: the first nightmare or lightning to reach it each night does no harm.' },
       cocoa:        { name: 'Hot cocoa',       blurb: 'One more heart, and all your hearts back.' },
       socks:        { name: 'Lucky socks',     blurb: 'One more yellow peg in the sky.' },
-      dreamcatcher: { name: 'Dreamcatcher',    blurb: 'The green peg also hits every nightmare for 5.' },
+      dreamcatcher: { name: 'Dreamcatcher',    blurb: 'The green peg also hits every nightmare, harder as the nights get tougher.' },
       stardust:     { name: 'Stardust',        blurb: 'Every star does one more damage for each peg it pops.' },
       story:        { name: 'Bedtime story',   blurb: 'A yellow peg triples the shot instead of doubling it.' },
-      alarm:        { name: 'Alarm clock',     blurb: 'Once a night, ring it to push every nightmare back two squares. It costs no shot.' },
+      alarm:        { name: 'Alarm clock',     blurb: 'Once a night, ring it to push every nightmare but the Bogeyman back two squares. It costs no shot.' },
       jar:          { name: 'Star jar',        blurb: 'Pink, coral and white pegs each count as one more peg.' },
       telescope:    { name: 'Telescope',       blurb: 'Spots the blue moon 3 times as often.' },
       slippers:     { name: 'Fluffy slippers', blurb: 'One more star swap each night.' },

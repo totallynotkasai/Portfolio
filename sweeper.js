@@ -12,8 +12,9 @@
    hides one, and clearing every safe tile finishes the level. The first
    move of each level is always safe. A run is a string of levels, each a
    little bigger and sleepier, with an upgrade to pick after every one.
-   Wake a wizard with no Shield left and the run is over. Each visitor's
-   best is kept.
+   Clearing level 12 wins the run; you can keep sweeping into endless
+   levels after that. Wake a wizard with no Shield left and the run is
+   over. Each visitor's best is kept.
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -28,8 +29,9 @@
   const PHONE = window.matchMedia('(max-width: 760px)');
 
   /* ---------- the rules, in numbers ---------- */
-  const STORE_KEY = 'kasai:sweeper'; // { best: { score, levels, at } }
-  const LEVEL_POINTS = 100;          // for every level cleared
+  const STORE_KEY = 'kasai:sweeper'; // { best: { score, levels, at }, won: { at, times } }
+  const LAST_LEVEL = 12;             // clearing it wins the run (endless levels follow)
+  const LEVEL_POINTS = 100;          // for every level cleared (the speed bonus pays no more than this)
   const HOURGLASS_SECONDS = 20;      // each Hourglass adds this to the clock
   const LONG_PRESS = 420;            // ms a finger rests on a tile to star it
   const GAP = 3;                     // px between tiles    } the same as
@@ -42,8 +44,11 @@
     tall: [[8, 8], [8, 9], [9, 10], [9, 11], [9, 12], [9, 13], [9, 14], [9, 15], [9, 16]],
   };
   // How many tiles hide a wizard: 1 in 8 at first, a little more every
-  // level, up to 22% (about Minesweeper's expert board).
-  const density = (level) => Math.min(0.22, 0.125 + 0.009 * (level - 1));
+  // level, up to 22% (about Minesweeper's expert board) by level 12. Endless
+  // levels keep creeping up, to 26%.
+  const density = (level) => (level <= LAST_LEVEL
+    ? Math.min(0.22, 0.125 + 0.009 * (level - 1))
+    : Math.min(0.26, 0.22 + 0.004 * (level - LAST_LEVEL)));
   // Seconds on each level's speed bonus clock: bigger boards get longer.
   const clockFor = (safe, hourglasses) => 30 + Math.round(safe * 0.6) + hourglasses * HOURGLASS_SECONDS;
 
@@ -91,8 +96,16 @@
   const DEFAULT_LINES = {
     loseLines: ['WHO DARES WAKE ME?', 'five more minutes. FIVE.', "it's not even morning!"],
     clearLines: ['shhh... not one of them stirred.', 'they slept right through it.'],
+    winLines: ['twelve levels, and they all slept through it.', 'sweet dreams, every one of them.'],
     bestLines: ['a new best! the wizards will hear about it tomorrow.'],
     shieldLines: ['your shield hummed him back to sleep.'],
+  };
+  // What the pet wizard tells the desktop after a run. {level} becomes the
+  // level it ended on.
+  const DESK_LINES = {
+    lose: ['i got to level {level} of Wizard Sweeper!'],
+    win: ['i cleared all twelve levels of Wizard Sweeper!'],
+    endless: ['i swept all the way to level {level}!'],
   };
   const pick = (list) => (list.length ? list[Math.floor(Math.random() * list.length)] : '');
   // A missing list uses the lines above; an empty one (or '') keeps them quiet.
@@ -389,8 +402,9 @@
     if (run && !run.recorded && run.score > 0) finishRun(); // a run left halfway still counts
     // Nothing the old run had waiting (its end card) may turn up in the new one.
     if (view) { view.timers.forEach(clearTimeout); view.timers.clear(); }
-    // step: 'play', 'pick' (choosing an upgrade) or 'over'.
-    run = { level: 1, score: 0, bonus: 0, cleared: 0, shields: 0, have: {}, step: 'play', board: null };
+    // step: 'play', 'pick' (choosing an upgrade), 'won' (level 12 cleared)
+    // or 'over'. won: level 12 is behind you, so the levels are endless.
+    run = { level: 1, score: 0, bonus: 0, cleared: 0, shields: 0, have: {}, step: 'play', board: null, won: false };
     UPGRADE_IDS.forEach((id) => { run.have[id] = 0; });
     armed = false;
     if (view) { view.help = false; view.peek = false; }
@@ -417,25 +431,51 @@
     if (b.opened === b.safe) cleared(b);
   }
 
+  // A level cleared: points, then an upgrade to pick. Level 12 wins the run
+  // first (its card offers endless levels, and the upgrade after that).
   function cleared(b) {
     const starred = [];
     b.cells.forEach((c, i) => { if (c.wiz && c.s === 'hidden') { c.s = 'star'; starred.push(i); } });
-    const bonus = Math.ceil(secondsLeft(b));
+    // Clearing a level always counts for more than speed.
+    const bonus = Math.min(LEVEL_POINTS, Math.ceil(secondsLeft(b)));
     run.score += LEVEL_POINTS + bonus;
     run.bonus += bonus;
     run.cleared++;
     run.last = { level: b.level, bonus, line: lineOf('clearLines') };
     run.offer = shuffle(UPGRADE_IDS.filter((id) => !(UPGRADES[id].once && run.have[id]))).slice(0, 3);
-    run.step = 'pick';
+    const win = b.level === LAST_LEVEL;
+    run.step = win ? 'won' : 'pick';
     armed = false;
+    if (win) {
+      run.won = true;
+      run.line = lineOf('winLines');
+      finishRun();
+      K.trophy.award('sweeper');
+    }
     if (view) {
       starred.forEach((i) => paint(i, 'is-starring'));
       drawHud();
       drawMenu();
       drawStatus();
-      later(() => syncCard(true), RM ? 0 : 700);
+      later(() => syncCard(true), RM ? 0 : win ? 900 : 700);
     }
-    announce(`Level ${b.level} cleared! Pick an upgrade.`);
+    announce(win
+      ? `Level ${b.level} cleared! Every wizard is tucked in, so the run is won. Keep sweeping into endless levels, or start a new run.`
+      : `Level ${b.level} cleared! Pick an upgrade.`);
+    if (win) tellDesktop(true);
+  }
+
+  // After the win: on into endless levels, from the upgrade level 12 earned.
+  // The run's best is kept already; from here it counts again when it ends.
+  function keepSweeping() {
+    if (!run || run.step !== 'won') return;
+    run.step = 'pick';
+    run.recorded = false;
+    run.newBest = false;
+    run.last.line = '';
+    run.last.onwards = true;
+    if (view) syncCard(true);
+    announce('Endless levels: each one sleepier than the last, until you wake a wizard. Pick an upgrade.');
   }
 
   function lose(b, i) {
@@ -458,16 +498,33 @@
       later(() => syncCard(true), RM ? 0 : 1100);
     }
     announce('You woke a wizard! The run is over.');
+    tellDesktop(false);
   }
 
-  // A finished run (lost, or left for a new one): kept if it's the best.
+  // A finished run (won, lost, or left for a new one): kept if it's the best.
   function finishRun() {
     if (!run || run.recorded) return;
     run.recorded = true;
     const prev = bestRun();
     run.newBest = run.score > 0 && (!prev || run.score > prev.score);
     run.bestLine = run.newBest ? lineOf('bestLines') : '';
-    if (run.newBest) K.store.set(STORE_KEY, { best: { score: run.score, levels: run.cleared, at: Date.now() } });
+    if (run.newBest) K.store.merge(STORE_KEY, { best: { score: run.score, levels: run.cleared, at: Date.now() } });
+  }
+
+  // The pet wizard on the desktop tells everyone how it went (and throws
+  // himself a party for a win or a new best).
+  function tellDesktop(win) {
+    if (!K.pet || !K.pet.say) return;
+    const key = win ? 'win' : run.won ? 'endless' : 'lose';
+    const lines = linesOf((S.deskLines || {})[key], DESK_LINES[key]);
+    const text = pick(lines).replace(/\{level\}/g, String(run.level));
+    const party = win || run.newBest;
+    setTimeout(() => {
+      if (party && K.pet.party) {
+        K.pet.party();
+        if (text) setTimeout(() => K.pet.say(text, 3600), 3800);
+      } else if (text) K.pet.say(text, 3600);
+    }, 1400);
   }
 
   function choose(id) {
@@ -700,10 +757,10 @@
     view.win.setStatus(`<span class="sw-best-run">${best ? `Best run: ${best.score}` : 'No best run yet'}</span>${hint}`);
   }
 
-  /* ---------- the cards over the board (title, upgrades, run over) ---------- */
+  /* ---------- the cards over the board (title, upgrades, the win, run over) ---------- */
   function syncCard(focus) {
     if (!view) return;
-    const show = view.help || !run || run.step === 'pick' || (run.step === 'over' && !view.peek);
+    const show = view.help || !run || run.step === 'pick' || run.step === 'won' || (run.step === 'over' && !view.peek);
     view.card = show;
     view.board.inert = show;
     if (show) view.toast.hidden = true;
@@ -723,41 +780,61 @@
         <section class="sw-card" aria-labelledby="sw-card-h">
           <span class="sw-card-art">${wizardPic('asleep')}</span>
           <h3 class="sw-card-h" id="sw-card-h">Wizard Sweeper</h3>
-          <p>Clear every safe tile without waking the sleeping wizards. Levels get bigger and sleepier, with an upgrade after each.</p>
+          <p>Clear every safe tile without waking a wizard. Levels get sleepier, with an upgrade after each. Clear level ${LAST_LEVEL} to win.</p>
           <ul class="sw-rules">
             <li>A number counts the wizards on the 8 tiles touching it, corners too, even starred, spotted or shielded ones.</li>
             <li>Star the tiles you think hide a wizard. Not every covered tile beside a number does, so read the numbers together.</li>
             <li>Each level's first move is safe, and speed earns a bonus.</li>
           </ul>
-          <p class="sw-keys"><span class="hint-mouse">Click to clear a tile, right-click to star it.</span><span class="hint-touch">Tap to clear a tile. Hold it (or use Star mode) to star it.</span>
-            Keys: arrows, Enter to clear, F to star.</p>
+          <p class="sw-keys"><span class="hint-mouse">Click to clear, right-click to star.
+            Keys: arrows, Enter to clear, F to star, L for a lucky star (Esc puts it away).</span><span class="hint-touch">Tap to clear a tile. Hold it (or use Star mode) to star it.</span></p>
           ${bestText ? `<p class="sw-best">${esc(bestText)}</p>` : ''}
           <p class="sw-actions">${run
             ? '<button class="os-button" type="button" data-act="back" data-first>Back to the game</button>'
             : '<button class="os-button sw-go" type="button" data-act="start" data-first>Start a run</button>'}</p>
         </section>`;
     }
+    // What the level paid (the speed bonus stops at the level's own points).
+    const paid = (l) => `+${LEVEL_POINTS} for the level, +${l.bonus} speed bonus${l.bonus >= LEVEL_POINTS ? ' (the most it pays)' : ''}. Score: ${run.score}`;
+    const bestNote = run.newBest
+      ? `<p class="sw-best is-new">New best run!${run.bestLine ? ` <span>${esc(run.bestLine)}</span>` : ''}</p>`
+      : bestText ? `<p class="sw-best">${esc(bestText)}</p>` : '';
     if (run.step === 'pick') {
       const l = run.last;
       return `
         <section class="sw-card" aria-labelledby="sw-card-h">
           ${l.line ? `<p class="sw-said">${esc(l.line)}</p>` : ''}
           <span class="sw-card-art">${wizardPic('happy')}</span>
-          <p class="sw-kicker">Level ${l.level} cleared</p>
-          <p class="sw-tally">+${LEVEL_POINTS} for the level, +${l.bonus} speed bonus. Score: ${run.score}</p>
+          <p class="sw-kicker">${l.onwards ? 'Endless levels' : `Level ${l.level} cleared`}</p>
+          <p class="sw-tally">${l.onwards ? `Each level from here is a little sleepier than the last. Score: ${run.score}` : paid(l)}</p>
           <h3 class="sw-card-h" id="sw-card-h">Pick an upgrade</h3>
           <div class="sw-ups">${run.offer.map((id, k) => upgradeCard(id, k === 0)).join('')}</div>
         </section>`;
     }
+    if (run.step === 'won') {
+      return `
+        <section class="sw-card" aria-labelledby="sw-card-h">
+          ${run.line ? `<p class="sw-said">${esc(run.line)}</p>` : ''}
+          <span class="sw-card-art">${wizardPic('party')}</span>
+          <p class="sw-kicker">All ${LAST_LEVEL} levels cleared</p>
+          <h3 class="sw-card-h" id="sw-card-h">Every wizard tucked in</h3>
+          <p class="sw-tally">${paid(run.last)}</p>
+          ${bestNote}
+          <p>Keep sweeping into endless levels, each one sleepier than the last, until you wake a wizard.</p>
+          <p class="sw-actions">
+            <button class="os-button sw-go" type="button" data-act="onwards" data-first>Keep sweeping</button>
+            <button class="os-button" type="button" data-act="again">New run</button>
+          </p>
+        </section>`;
+    }
+    const endless = run.cleared - LAST_LEVEL;
     return `
       <section class="sw-card" aria-labelledby="sw-card-h">
         ${run.line ? `<p class="sw-said">${esc(run.line)}</p>` : ''}
         <span class="sw-card-art">${wizardPic('startled')}</span>
         <h3 class="sw-card-h" id="sw-card-h">Run over</h3>
-        <p class="sw-tally">You cleared ${plural(run.cleared, 'level')}.<br />Score: ${run.score}${run.bonus ? ` (${run.score - run.bonus} + ${run.bonus} speed bonus)` : ''}</p>
-        ${run.newBest
-          ? `<p class="sw-best is-new">New best run!${run.bestLine ? ` <span>${esc(run.bestLine)}</span>` : ''}</p>`
-          : bestText ? `<p class="sw-best">${esc(bestText)}</p>` : ''}
+        <p class="sw-tally">You cleared ${plural(run.cleared, 'level')}${run.won && endless > 0 ? `, ${endless} of them endless` : ''}.<br />Score: ${run.score}${run.bonus ? ` (${run.score - run.bonus} + ${run.bonus} speed bonus)` : ''}</p>
+        ${bestNote}
         <p class="sw-actions">
           <button class="os-button sw-go" type="button" data-act="again" data-first>New run</button>
           <button class="os-button" type="button" data-act="peek">See the board</button>
@@ -820,7 +897,7 @@
   /* ---------- mouse, touch and keyboard ----------
      Mouse: click clears, right-click stars. Touch: a tap clears, holding
      stars (Star mode swaps the two). Keyboard: arrow keys move, Enter or
-     Space clears, F stars, L uses a Lucky star. */
+     Space clears, F stars, L uses a Lucky star (Escape puts it away). */
   let press = null;     // a finger resting on a tile
   let swallowUntil = 0; // the click at the end of a long press isn't a tap
   let lastPointer = 'mouse';
@@ -974,7 +1051,7 @@
   }
 
   function askNewRun() {
-    if (!run || run.step === 'over' || (run.level === 1 && !run.board.started)) { newRun(); return; }
+    if (!run || run.step === 'over' || run.step === 'won' || (run.level === 1 && !run.board.started)) { newRun(); return; }
     K.dialog({
       title: 'New run',
       icon: 'controller',
@@ -989,6 +1066,7 @@
     if (btn.dataset.up) { choose(btn.dataset.up); return; }
     const what = btn.dataset.act;
     if (what === 'start' || what === 'again') newRun();
+    else if (what === 'onwards') keepSweeping();
     else if (what === 'back') {
       view.help = false;
       syncCard(true);

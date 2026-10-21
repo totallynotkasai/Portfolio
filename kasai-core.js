@@ -151,6 +151,9 @@
     restore: '<rect x="4.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M8.5 8.5V5.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-3"/>',
     close: '<path d="M7 7l10 10M17 7 7 17"/>',
     back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+    // A cup with a base: give it a fill (the Games window's is yellow) and
+    // the cup and base fill in, the handles stay lines.
+    trophy: '<path d="M7 4h10v4.5a5 5 0 0 1-10 0z"/><path d="M7 5.8H4.6v1.4a3.4 3.4 0 0 0 3 3.4M17 5.8h2.4v1.4a3.4 3.4 0 0 1-3 3.4" fill="none"/><path d="M12 13.5V17"/><path d="M8.6 17h6.8l.9 3.5H7.7z"/>',
   };
   K.DOODLE_ICONS = DOODLE_ICONS;
   // An unknown name falls back to the pencil, so a typo never breaks a page.
@@ -197,6 +200,39 @@
     },
     del(key, session) {
       try { area(session).removeItem(key); } catch (e) { /* blocked */ }
+    },
+    // Change some fields and keep the rest (a game's best run, its trophy...).
+    merge(key, fields, session) {
+      K.store.set(key, Object.assign({}, K.store.get(key, null, session) || {}, fields), session);
+    },
+  };
+
+  /* ---------- trophies ----------
+     A game earns its trophy the first time a run of it is completed (won).
+     The win is kept in the game's own store (kasai:sweeper, kasai:rubbish,
+     kasai:stardrop) as  won: { at, times },  and a best run saved as won
+     from before trophies existed counts too. The Games window shows each
+     trophy on its game's file and hears about new ones ('trophy' event). */
+  const SHOWN_KEY = 'kasai:trophies'; // { shown: { id: true } }: trophies that have popped in once
+  const gameStore = (id) => K.store.get('kasai:' + id, null) || {};
+  K.trophy = {
+    has(id) {
+      const s = gameStore(id);
+      return !!(s.won || (s.best && s.best.won));
+    },
+    award(id) {
+      const won = gameStore(id).won || {};
+      K.store.merge('kasai:' + id, { won: { at: won.at || Date.now(), times: (won.times || 0) + 1 } });
+      K.emit('trophy', { id });
+    },
+    // Earned, but not yet seen popping in on the Games window.
+    fresh(id) {
+      return K.trophy.has(id) && !((K.store.get(SHOWN_KEY, null) || {}).shown || {})[id];
+    },
+    seen(id) {
+      const shown = Object.assign({}, (K.store.get(SHOWN_KEY, null) || {}).shown);
+      shown[id] = true;
+      K.store.set(SHOWN_KEY, { shown });
     },
   };
 

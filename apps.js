@@ -611,6 +611,19 @@
   K.openGame = openGame;
   K.openSweeper = (from) => openGame('sweeper', from); // a secret code opens it too (kasai-os.js)
 
+  // A trophy in the corner of a game's picture, once a run of it has been
+  // completed: Andrew's drawing if content.js has one (os.windows.games
+  // .trophy), or a doodle cup on a sticker. It pops in the first time it's
+  // seen (style.css), and K.trophy remembers that it has. Screen readers
+  // hear it after the game's name (trophyWords, at the end of the file).
+  const trophyHtml = (id) => {
+    if (!K.trophy.has(id)) return '';
+    const art = String(copy('games', {}).trophy || '').trim();
+    const pic = art ? `<img src="${esc(webSrc(art))}" alt="" draggable="false" decoding="async" />` : doodleIcon('trophy');
+    return `<span class="tile-trophy${art ? ' has-art' : ''}${K.trophy.fresh(id) ? ' is-new' : ''}" data-trophy="${id}" title="Run completed" aria-hidden="true">${pic}</span>`;
+  };
+  const trophyWords = (id) => (K.trophy.has(id) ? '<span class="vh">Run completed</span>' : '');
+
   const games = {
     label: 'Games',
     colour: 'coral',
@@ -625,13 +638,27 @@
         const pic = wizardPose(g.pose);
         return `
           <li><button class="file-tile game-tile" type="button" data-game="${id}">
-            <span class="tile-thumb tile-thumb--sprite ${g.colour}">${pic ? `<img src="${esc(pic)}" alt="" loading="lazy" decoding="async" draggable="false" />` : doodleIcon('controller')}</span>
+            <span class="tile-thumb tile-thumb--sprite ${g.colour}">${pic ? `<img src="${esc(pic)}" alt="" loading="lazy" decoding="async" draggable="false" />` : doodleIcon('controller')}${trophyHtml(id)}</span>
             <span class="tile-name">${esc(g.label)}</span>
-            <span class="tile-sub">${esc(g.sub)}</span>
+            <span class="tile-sub">${esc(g.sub)}</span>${trophyWords(id)}
           </button></li>`;
       }).join('')}</ul>`;
       K.openable(win.body, '.file-tile', (el) => openGame(el.dataset.game, el));
       win.setStatus(`${plural(ids.length, 'game')}${K.hint('Double-click to play', 'Tap to play')}`);
+      // A run completed while this window's about (it always is, hidden or
+      // not): the trophy turns up on that game's file straight away.
+      K.on('trophy', (e) => {
+        const tile = win.body.querySelector(`[data-game="${e.id}"]`);
+        if (!tile || tile.querySelector('.tile-trophy')) return;
+        tile.querySelector('.tile-thumb').insertAdjacentHTML('beforeend', trophyHtml(e.id));
+        tile.insertAdjacentHTML('beforeend', trophyWords(e.id));
+      });
+      win.body.addEventListener('animationend', (e) => {
+        const t = e.target.closest('.tile-trophy.is-new');
+        if (!t) return;
+        t.classList.remove('is-new');
+        K.trophy.seen(t.dataset.trophy);
+      });
     },
   };
 

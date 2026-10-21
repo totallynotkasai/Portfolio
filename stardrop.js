@@ -33,7 +33,7 @@
   const RM = K.REDUCE_MOTION;
 
   /* ---------- the rules, in numbers ---------- */
-  const STORE_KEY = 'kasai:stardrop'; // { best: { score, night, won, at }, endless: { score, night, at } }
+  const STORE_KEY = 'kasai:stardrop'; // { best: { score, night, won, at }, endless: { score, night, at }, won: { at, times } }
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const NIGHTS = DAYS.length; // a week; Sunday night is the Bogeyman's
   const LANE = 7;             // squares between the dark and his bed
@@ -44,9 +44,10 @@
   const REFILL = 0.3;         // every peg comes back once fewer than this share are left
   const CLOUD_STOP = 3;       // storm clouds come no closer than four squares from the bed
   const CLOUD_EVERY = 3;      // turns between a storm cloud's lightning strikes
-  const CATCH = 5;            // the Dreamcatcher's damage to every nightmare
+  const CATCH = 5;            // the Dreamcatcher's damage to every nightmare (it toughens up night by night, as they do)
   const CALLED_HP = 36;       // a shadow the Bogeyman calls up
   const PUSH = 2;             // squares the Pillow star knocks a nightmare back
+  const ALARM = 2;            // ...and the Alarm clock pushes them all back
   const SHEEP = 4;            // Counting sheep: a nightmare nods off every this many turns
   const MOON = 10;            // the blue moon multiplies the shot by this...
   const MOON_ODDS = 100;      // ...and rises before about one shot in this many
@@ -98,10 +99,10 @@
     teddy: { colour: 'coral', icon: 'teddy', name: 'Teddy bear', blurb: 'Guards the bed: the first nightmare or lightning to reach it each night does no harm.', most: 2 },
     cocoa: { colour: 'pink', icon: 'cup', name: 'Hot cocoa', blurb: 'One more heart, and all your hearts back.' },
     socks: { colour: 'teal', icon: 'sock', name: 'Lucky socks', blurb: 'One more yellow peg in the sky.', most: 2 },
-    dreamcatcher: { colour: 'lavender', icon: 'web', name: 'Dreamcatcher', blurb: `The green peg also hits every nightmare for ${CATCH}.`, most: 2 },
+    dreamcatcher: { colour: 'lavender', icon: 'web', name: 'Dreamcatcher', blurb: 'The green peg also hits every nightmare, harder as the nights get tougher.', most: 2 },
     stardust: { colour: 'ink', icon: 'star', name: 'Stardust', blurb: 'Every star does one more damage for each peg it pops.', most: 2 },
     story: { colour: 'blue', icon: 'book', name: 'Bedtime story', blurb: 'A yellow peg triples the shot instead of doubling it.', most: 1 },
-    alarm: { colour: 'grey', icon: 'alarm', name: 'Alarm clock', blurb: 'Once a night, ring it to push every nightmare back two squares. It costs no shot.', most: 2 },
+    alarm: { colour: 'grey', icon: 'alarm', name: 'Alarm clock', blurb: `Once a night, ring it to push every nightmare but the Bogeyman back ${ALARM} squares. It costs no shot.`, most: 2 },
     jar: { colour: 'yellow', icon: 'jar', name: 'Star jar', blurb: 'Pink, coral and white pegs each count as one more peg.', most: 2 },
     telescope: { colour: 'blue', icon: 'telescope', name: 'Telescope', blurb: `Spots the blue moon ${SPOTTED} times as often.`, most: 1 },
     slippers: { colour: 'pink', icon: 'slipper', name: 'Fluffy slippers', blurb: 'One more star swap each night.', most: 2 },
@@ -127,7 +128,7 @@
     spider: { name: 'Spider', hp: 10, hearts: 1, icon: 'spider', rule: 'Scuttles two squares every turn.' },
     raggedy: { name: 'Raggedy teddy', hp: 40, hearts: 2, icon: 'teddy', rule: 'Big and slow: it rests, then steps, turn about. It costs two hearts if it reaches the bed.' },
     cloud: { name: 'Storm cloud', hp: 20, hearts: 1, icon: 'cloud', rule: 'Drifts in to four squares from the bed, and strikes the bed with lightning every third turn.' },
-    bogeyman: { name: 'The Bogeyman', hp: 480, hearts: 0, icon: 'eye', rule: 'Takes a step every third turn and calls up a shadow every other turn. If he reaches the bed, the run is over.' },
+    bogeyman: { name: 'The Bogeyman', hp: 440, hearts: 0, icon: 'eye', rule: 'Takes a step every third turn and calls up a shadow every other turn, and his shadows slip past him. If he reaches the bed, the run is over.' },
     // Endless only, from the second week.
     bat: { name: 'Bat', hp: 12, hearts: 1, icon: 'bat', rule: 'Flutters one square closer every turn, and flies straight over anything in its way.' },
     jack: { name: 'Jack-in-the-box', hp: 30, hearts: 1, icon: 'jack', rule: 'Winds up for two turns, then springs three squares.' },
@@ -153,7 +154,11 @@
   const weekOf = (n) => Math.ceil(n / NIGHTS);
   const extrasOn = (n) => (n > NIGHTS && n % NIGHTS ? Math.min(3, weekOf(n) - 1) : 0);
   const tougher = (n) => (n <= NIGHTS ? 1 : Math.pow(GROW, n - NIGHTS));
-  const hpOn = (n, type) => Math.round(TYPES[type].hp * (type === 'bogeyman' ? 1 : TOUGHER[Math.min(n, NIGHTS) - 1]) * tougher(n));
+  // How much tougher than a Monday's the nightmares are on night n (the
+  // Bogeyman only gets tougher in endless weeks).
+  const toughness = (n) => TOUGHER[Math.min(n, NIGHTS) - 1] * tougher(n);
+  const hpOn = (n, type) => Math.round(TYPES[type].hp * (type === 'bogeyman' ? tougher(n) : toughness(n)));
+  const catchOn = (n) => Math.round(CATCH * toughness(n)); // what the Dreamcatcher hits every nightmare for
   const comingOn = (n) => PLAN[(n - 1) % NIGHTS].length + extrasOn(n);
   function planFor(n) {
     const plan = PLAN[(n - 1) % NIGHTS];
@@ -625,7 +630,7 @@
     const up = moon ? ' And a blue moon is up!' : '';
     if (n % NIGHTS === 0) {
       say(n === NIGHTS
-        ? `${endless() ? 'Night 7: ' : ''}Sunday night. The Bogeyman is coming, and he's calling up shadows as he goes.${up}`
+        ? `${endless() ? 'Night 7: ' : ''}Sunday night. The Bogeyman is coming, calling up shadows that slip past him to the bed.${up}`
         : `Night ${n}: Sunday again. The Bogeyman is back, tougher than last week.${up}`, 4600);
     } else if (endless()) say(`Night ${n}, ${dayOf(n)}${n > NIGHTS ? ` of week ${weekOf(n)}` : ''}: ${count} to fight off.${news}${up}`, news ? 6400 : 3200);
     else say(`${dayOf(n)} night: ${count} to fight off.${up}`, 3200);
@@ -654,9 +659,10 @@
     return true;
   }
 
+  // `called`: a shadow the Bogeyman calls up (it can slip past him).
   function add(f, type, called) {
     const hp = called ? Math.round(CALLED_HP * tougher(f.n)) : hpOn(f.n, type);
-    const m = { id: f.nextId++, type, sq: LANE - 1, hp, max: hp, tick: 0, charge: CLOUD_EVERY, sleep: 0, gone: false };
+    const m = { id: f.nextId++, type, sq: LANE - 1, hp, max: hp, tick: 0, charge: CLOUD_EVERY, sleep: 0, gone: false, called: !!called };
     f.ms.push(m);
     return m;
   }
@@ -696,9 +702,9 @@
   const sheepNext = (f) => (run.have.sheep && (f.turn + 1) % SHEEP === 0 ? byLane(f).find((m) => m.sleep <= 0) || null : null);
 
   // The nightmares' turn, nearest the bed first: each steps (no further
-  // than the square behind the next one, except a bat), storm clouds
-  // count down, and new ones creep in. `dry`: a look ahead, so the hearts
-  // stay put.
+  // than the square behind the next one, except a bat, and the Bogeyman's
+  // shadows, which slip past him), storm clouds count down, and new ones
+  // creep in. `dry`: a look ahead, so the hearts stay put.
   function creep(f, ev, dry) {
     const sheep = sheepNext(f);
     f.turn++;
@@ -721,7 +727,16 @@
         else m.sq = to;
       } else for (let k = p.steps; k > 0; k--) {
         if (m.sq === 0) { reachBed(f, m, ev, dry); break; }
-        if (at(f, m.sq - 1)) break;
+        const ahead = at(f, m.sq - 1);
+        // One of his shadows, right behind him: it slips past, onto the
+        // square in front of him (or the bed, if he's beside it).
+        if (ahead && m.called && ahead.type === 'bogeyman') {
+          if (ahead.sq === 0) { reachBed(f, m, ev, dry); break; }
+          if (at(f, ahead.sq - 1)) break;
+          m.sq = ahead.sq - 1;
+          continue;
+        }
+        if (ahead) break;
         m.sq--;
       }
       if (!m.gone && m.sq !== from) ev.push({ t: 'step', id: m.id, type: m.type, from, to: m.sq });
@@ -761,18 +776,23 @@
   }
 
   // After your next shot, if nothing's beaten: who reaches the bed (and
-  // the lightning), and what it would cost.
+  // the lightning), and what it would cost; how far each one moves, and
+  // who gets to the bed even if the teddy bear stops it doing harm.
   function forecast(f) {
     const g = Object.assign({}, f, { ms: f.ms.map((m) => Object.assign({}, m)), queue: f.queue.slice() });
     const ev = [];
     creep(g, ev, true);
     const bed = new Set();
+    const moves = new Map();
     let cost = 0;
     let everything = false;
     ev.forEach((e) => {
       if (e.t === 'bed' || e.t === 'struck') { bed.add(e.id); cost += e.n; if (e.all) everything = true; }
+      if (e.t === 'step') moves.set(e.id, e.from - e.to);
     });
-    return { bed, cost, everything, guarded: ev.some((e) => e.t === 'guard') };
+    const left = new Set(g.ms.map((m) => m.id));
+    const reach = new Set(f.ms.filter((m) => alive(m) && !left.has(m.id)).map((m) => m.id));
+    return { bed, cost, everything, guarded: ev.some((e) => e.t === 'guard'), moves, reach };
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -826,10 +846,10 @@
     if (moon) { f.moon = -1; run.moons++; }
     ev.push({ t: 'shot', star: shot.star, pegs: pops.length, worth, crit, fresh, moon, times, dmg, said: shot.said || '' });
     const boss = f.ms.some((m) => m.type === 'bogeyman' && alive(m));
-    if (fresh && run.have.dreamcatcher) byLane(f).forEach((m) => hurt(f, m, CATCH * run.have.dreamcatcher, ev, 'catch'));
+    if (fresh && run.have.dreamcatcher) byLane(f).forEach((m) => hurt(f, m, catchOn(f.n) * run.have.dreamcatcher, ev, 'catch'));
     if (st.all) byLane(f).forEach((m) => hurt(f, m, Math.ceil(dmg / 2), ev, 'star', st.lull));
     else strike(f, dmg, st.lull, ev);
-    if (st.push) knock(f, st.push, ev);
+    if (st.push) knock(f, st.push, ev, new Set(ev.filter((e) => e.t === 'hurt' && e.how === 'star' && !e.dead).map((e) => e.id)));
     f.ms = f.ms.filter(alive);
     // With the Bogeyman beaten, his shadows (and the rest) scatter.
     if (boss && !f.ms.some((m) => m.type === 'bogeyman')) {
@@ -887,12 +907,12 @@
     }
   }
 
-  // The Pillow star: everything it hit that's still standing is knocked
-  // back (furthest first, so each has room), all but the Bogeyman.
-  function knock(f, squares, ev) {
-    const hit = new Set(ev.filter((e) => e.t === 'hurt' && e.how === 'star' && !e.dead).map((e) => e.id));
+  // Knocked back (furthest first, so each has room): everything the Pillow
+  // star hit that's still standing (`hit`), or the whole lane for the Alarm
+  // clock. Never the Bogeyman: he's too heavy to budge.
+  function knock(f, squares, ev, hit) {
     byLane(f).reverse().forEach((m) => {
-      if (!hit.has(m.id) || m.type === 'bogeyman') return;
+      if ((hit && !hit.has(m.id)) || m.type === 'bogeyman') return;
       const from = m.sq;
       for (let k = 0; k < squares && m.sq < LANE - 1 && !at(f, m.sq + 1); k++) m.sq++;
       if (m.sq !== from) ev.push({ t: 'push', id: m.id, type: m.type, from, to: m.sq });
@@ -934,20 +954,25 @@
     say(`Swapped: the ${words(f.stars[0]).name} drops first.`);
   }
 
+  // Every nightmare backs away, as from the Pillow star (and the Bogeyman
+  // doesn't budge either).
   function ring() {
     if (!playing()) return;
     const f = run.night;
     if (f.alarms < 1) { say('The alarm clock has rung tonight already.'); return; }
     f.alarms--;
-    let n = 0;
-    // Furthest first, so each has room to back away.
-    byLane(f).reverse().forEach((m) => {
-      const from = m.sq;
-      for (let k = 0; k < 2 && m.sq < LANE - 1 && !at(f, m.sq + 1); k++) m.sq++;
-      if (m.sq !== from) n++;
-    });
-    show([{ t: 'alarm' }]);
-    say(n ? `Brrring! ${plural(n, 'nightmare')} backed away.` : 'Brrring! Nobody had room to back away.');
+    const ev = [{ t: 'alarm' }];
+    knock(f, ALARM, ev);
+    show(ev);
+    const moved = ev.filter((e) => e.t === 'push');
+    const boss = f.ms.some((m) => m.type === 'bogeyman' && alive(m));
+    const stuck = moved.length || (boss && f.ms.length === 1) ? '' : f.ms.length ? 'Nobody had room to back away.' : 'Nobody is in the lane.';
+    const heavy = boss ? "The Bogeyman didn't budge." : '';
+    const note = moved.length ? `${plural(moved.length, 'nightmare')} backed away${boss ? ", but the Bogeyman didn't budge" : ''}.` : [stuck, heavy].filter(Boolean).join(' ');
+    say(`Brrring! ${note}`, 2800, true);
+    announce(['Brrring!']
+      .concat(moved.map((e) => `${nameOf(e.type)} backs away to ${plural(e.to + 1, 'square')} from the bed.`), [stuck, heavy, dangerText(f)])
+      .filter(Boolean).join(' '));
   }
 
   function choose(id) {
@@ -992,6 +1017,8 @@
     run.score += POINTS.night;
     const sunday = f.n % NIGHTS === 0;
     if (sunday && !endless()) { won(ev); return; }
+    // An endless run that gets through a Sunday has won a week too.
+    if (sunday) K.trophy.award('stardrop');
     const week = sunday ? POINTS.win + run.hearts * POINTS.heart : 0;
     run.score += week;
     morning(f, sunday ? 'weekLines' : 'nightLines', week);
@@ -1046,6 +1073,7 @@
     run.step = 'won';
     run.line = lineOf('winLines');
     finishRun(true);
+    K.trophy.award('stardrop');
     if (view) {
       show(ev);
       later(() => syncCard(true), RM ? 0 : 1100);
@@ -1069,7 +1097,8 @@
   }
 
   // A finished run (lost, won, or left for a new one): kept if it's the
-  // best of its kind.
+  // best of its kind. (best.won only says whether the best week was a win;
+  // every win is kept on its own as well, for the trophy.)
   function finishRun(out) {
     if (!run || run.recorded) return;
     run.recorded = true;
@@ -1077,12 +1106,11 @@
     run.newBest = run.score > 0 && (!prev || run.score > prev.score);
     run.bestLine = run.newBest ? lineOf('bestLines') : '';
     if (!run.newBest) return;
-    const all = K.store.get(STORE_KEY, null) || {};
-    const keep = { best: all.best, endless: all.endless };
-    keep[SLOTS[run.mode]] = endless()
-      ? { score: run.score, night: run.n, at: Date.now() }
-      : { score: run.score, night: run.n, won: !!out, at: Date.now() };
-    K.store.set(STORE_KEY, keep);
+    K.store.merge(STORE_KEY, {
+      [SLOTS[run.mode]]: endless()
+        ? { score: run.score, night: run.n, at: Date.now() }
+        : { score: run.score, night: run.n, won: !!out, at: Date.now() },
+    });
   }
 
   // The pet wizard on the desktop tells everyone how it went (and throws
@@ -1433,8 +1461,9 @@
       ? `<img src="${esc(src)}" alt="" draggable="false" decoding="async" />`
       : `<span class="sd-token"><span class="sd-eyes"><i></i><i></i></span>${doodleIcon(TYPES[type].icon)}</span>`;
   };
-  // The badge on a nightmare: what it does next turn.
-  function nextOf(m, f) {
+  // The badge on a nightmare: what it does next turn. `fc`: the forecast,
+  // if it's been worked out already.
+  function nextOf(m, f, fc) {
     const p = plan(m);
     if (p.asleep) return { html: 'z', text: 'asleep: it misses its next turn' };
     if (f && sheepNext(f) === m) return { html: 'z', text: 'counting sheep: it nods off and misses its next turn' };
@@ -1442,7 +1471,22 @@
       return { html: `${doodleIcon('bolt')}<i>${m.charge}</i>`, text: m.charge <= 1 ? 'lightning strikes the bed after your shot' : `lightning in ${plural(m.charge, 'turn')}`, hot: m.charge <= 1 };
     }
     if (m.type === 'jack' && !p.steps) return { html: `${doodleIcon('jack')}<i>${p.spring}</i>`, text: `springs three squares in ${plural(p.spring, 'turn')}` };
-    if (m.type === 'bat') return { html: `${doodleIcon('back')}<i>1</i>`, text: 'flutters one square next, over anything in its way' };
+    // A bat flies over what's in its way, and the Bogeyman's shadows slip
+    // past him, so either can go further than its pattern says: the badge
+    // shows how far it really goes.
+    if (f && (m.type === 'bat' || m.called)) {
+      const ahead = fc && fc.moves ? fc : forecast(f);
+      const bat = m.type === 'bat';
+      if (ahead.reach.has(m.id)) {
+        return {
+          html: `${doodleIcon('back')}<i>${m.sq + 1}</i>`,
+          text: m.sq && (bat || at(f, m.sq - 1)) ? `${bat ? 'flies over everything in its way' : 'slips past the Bogeyman'}, right to the bed` : 'reaches the bed next',
+        };
+      }
+      const n = ahead.moves.get(m.id) || 0;
+      if (bat) return { html: `${doodleIcon('back')}<i>${n}</i>`, text: n > 1 ? `flies ${n} squares next, over the ones in its way` : 'flutters one square next, over anything in its way' };
+      if (n > p.steps) return { html: `${doodleIcon('back')}<i>${n}</i>`, text: `slips past the Bogeyman: ${n} squares next` };
+    }
     const call = p.call ? ' and calls up a shadow' : '';
     if (!p.steps) return { html: '<i>-</i>', text: m.type === 'bogeyman' ? `waits${call}` : 'rests next turn' };
     return { html: `${doodleIcon('back')}<i>${p.steps}</i>`, text: `steps ${p.steps} next${call}` };
@@ -1475,7 +1519,7 @@
       el.classList.toggle('is-target', m.id === f.target && !f.idle);
       el.classList.toggle('is-danger', fc.bed.has(m.id));
       el.classList.toggle('is-asleep', m.sleep > 0);
-      const nx = nextOf(m, f);
+      const nx = nextOf(m, f, fc);
       const badge = el.querySelector('.sd-next');
       if (badge.innerHTML !== nx.html) badge.innerHTML = nx.html;
       badge.classList.toggle('is-hot', !!nx.hot);
@@ -1728,7 +1772,7 @@
     if (id === 'sheep') {
       count = SHEEP - (run.night.turn % SHEEP);
       label = `${name}: one nods off ${count === 1 ? 'after your next shot' : `in ${plural(count, 'turn')}`}`;
-    }
+    } else if (id === 'dreamcatcher') label = `${name}: the green peg hits every nightmare for ${catchOn(run.night.n) * n} tonight`;
     return `<li class="gm-chip ${c.colour}" title="${esc(label)}">${doodleIcon(c.icon)}` +
       `${count !== '' ? `<b aria-hidden="true">${count}</b>` : ''}<span class="vh">${esc(label)}</span></li>`;
   };
@@ -1839,7 +1883,7 @@
           </ul>
           ${legendHtml()}
           <p class="gm-keys"><span class="hint-mouse">Move the mouse to aim and click to drop. Click a nightmare to aim the damage at it.
-            Keys: left and right arrows to aim (Shift for small steps), Enter or Space to drop and to skip ahead, T to pick a nightmare, X to swap stars, L to look around.</span><span class="hint-touch">Drag on the sky to aim, then press Drop. Tap a nightmare to aim the damage at it and learn its moves.</span></p>
+            Keys: left and right arrows to aim (Shift for small steps), Enter or Space to drop, S or Esc to skip ahead, T to pick a nightmare, X to swap stars, A to ring the alarm, L to look around.</span><span class="hint-touch">Drag on the sky to aim, then press Drop. Tap a nightmare to aim the damage at it and learn its moves.</span></p>
           ${bests.map((t) => `<p class="gm-best">${esc(t)}</p>`).join('')}
           <p class="gm-actions">${run
             ? '<button class="os-button" type="button" data-act="back" data-first>Back to the game</button>'
@@ -1910,7 +1954,7 @@
       const n = run.bag.filter((x) => x === id).length;
       kind = n ? 'Polish' : 'New star';
       if (n) blurb = `Polish ${n > 1 ? `all ${n}` : 'yours'}: ${perPeg(id) + 1} damage for every peg ${n > 1 ? 'they pop' : 'it pops'}, up from ${perPeg(id)}.`;
-    }
+    } else if (id === 'dreamcatcher') blurb += ` Next night: ${catchOn(run.n + 1) * (run.have.dreamcatcher + 1)} each.`;
     const icon = star ? `<span class="gm-up-icon sd-up-star">${starIcon(id)}</span>` : `<span class="gm-up-icon">${doodleIcon(CHARMS[id].icon)}</span>`;
     return `<button class="gm-up ${star ? STARS[id].colour : CHARMS[id].colour}" type="button" data-up="${id}"${first ? ' data-first' : ''}>
         ${icon}
@@ -2023,9 +2067,10 @@
     const f = run.night;
     const parts = [`${cap(nightName(f.n))}, ${plural(run.hearts, 'heart')} left.`];
     const list = byLane(f);
+    const fc = forecast(f);
     if (!list.length) parts.push('No nightmares in the lane.');
     list.forEach((m) => {
-      parts.push(`${TYPES[m.type].name}${m.id === f.target ? ' (aimed at)' : ''}: ${away(m)} from the bed, ${plural(m.hp, 'hit point')}, ${nextOf(m, f).text}.`);
+      parts.push(`${TYPES[m.type].name}${m.id === f.target ? ' (aimed at)' : ''}: ${away(m)} from the bed, ${plural(m.hp, 'hit point')}, ${nextOf(m, f, fc).text}.`);
     });
     if (f.queue.length) parts.push(`${plural(f.queue.length, 'more')} to come tonight.`);
     const lit = f.live.filter(Boolean).length;
@@ -2048,9 +2093,9 @@
      Mouse: the aim follows the pointer over the sky; a click drops the
      star. Touch: drag on the sky to aim, then press Drop. Either way, a
      nightmare picked in the lane takes the damage. Keyboard: left and
-     right aim (Shift for small steps), Enter or Space drops (and skips),
-     T picks a nightmare, X swaps stars, A rings the alarm clock, L looks
-     around. */
+     right aim (Shift for small steps), Enter or Space drops (and skips,
+     as do S and Escape), T picks a nightmare, X swaps stars, A rings the
+     alarm clock, L looks around. */
   let lastPointer = 'mouse';
   let dragging = null;
 

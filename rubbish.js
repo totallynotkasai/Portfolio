@@ -27,7 +27,7 @@
   const RM = K.REDUCE_MOTION;
 
   /* ---------- the rules, in numbers ---------- */
-  const STORE_KEY = 'kasai:rubbish'; // { best: { score, floor, won, at } }
+  const STORE_KEY = 'kasai:rubbish'; // { best: { score, floor, won, at }, won: { at, times } }
   const COLS = 7;
   const ROWS = 8;
   const N = COLS * ROWS;
@@ -38,7 +38,7 @@
   const NAPS = 1;           // naps on each floor (the Snooze button adds more)
   const LID_HP = 8;         // bonks the Empty Recycle Bin dialog can take
   const MOST_GREMLINS = 9;  // copies and summons stop here
-  const POINTS = { floor: 100, gremlin: 10, star: 25, lid: 300, heart: 50 };
+  const POINTS = { floor: 100, gremlin: 10, star: 25, lid: 300, heart: 50 }; // (a printed copy or a summoned gremlin is worth nothing)
 
   /* ---------- the floors: Andrew's retired designs, oldest first ----------
      Two floors each, dressed in style.css (.nr-stage.era-...). The picture
@@ -142,7 +142,7 @@
     bestLines: ['a new best! the gremlins are fuming.'],
   };
   const LID_LINES = ['Are you sure?', 'Are you really sure?', 'Are you totally sure?', 'This cannot be undone!', 'Seriously, this is permanent.', 'Last chance!', 'Final answer?', 'Fine. Keep him.'];
-  const DESK_LINES = { lose: ['i made it to floor {floor} of the Trash!'], win: ['i climbed out of the Trash! not rubbish.'] };
+  const DESK_LINES = { lose: ['i made it to floor {floor} of the Trash!'], lid: ['i made it all the way to the lid!'], win: ['i climbed out of the Trash! not rubbish.'] };
   const rand = (n) => Math.floor(Math.random() * n);
   const pick = (list) => (list.length ? list[rand(list.length)] : '');
   const shuffle = (list) => {
@@ -273,7 +273,9 @@
     return f;
   }
 
-  function addGremlin(f, type, i, stun) {
+  // `extra`: a printer's copy or one the dialog called in, which earns no
+  // points (so they can't be farmed).
+  function addGremlin(f, type, i, stun, extra) {
     const g = {
       id: f.nextId++,
       type,
@@ -285,6 +287,7 @@
       dir: '',
       copy: -1,      // printer: where its copy turns up
       hitsLid: false,
+      extra: !!extra,
       stun,          // turns left sitting dizzy
       reload: 0,     // webcams: a turn to recharge after firing
       tick: rand(3), // printer: copies itself every fourth turn
@@ -560,7 +563,7 @@
     if (g.hp === 0) {
       g.marks = null;
       g.copy = -1;
-      run.score += POINTS.gremlin;
+      if (!g.extra) run.score += POINTS.gremlin;
       run.bonked++;
     }
   }
@@ -607,7 +610,7 @@
       g.marks = null;
       g.copy = -1;
       if (copy >= 0 && alive(g) && vacant(f, copy) && f.gs.filter(alive).length < MOST_GREMLINS) {
-        ev.push({ t: 'spawn', id: addGremlin(f, 'printer', copy, 1).id, type: 'printer' });
+        ev.push({ t: 'spawn', id: addGremlin(f, 'printer', copy, 1, true).id, type: 'printer' });
       }
       if (!marks || !alive(g)) return;
       ev.push({ t: 'strike', kind: g.kind, tiles: marks });
@@ -626,7 +629,7 @@
       b.summon.forEach((j) => {
         if (!vacant(f, j) || f.gs.filter(alive).length >= MOST_GREMLINS) return;
         const type = SUMMONS[b.called++ % SUMMONS.length];
-        ev.push({ t: 'spawn', id: addGremlin(f, type, j, 1).id, type });
+        ev.push({ t: 'spawn', id: addGremlin(f, type, j, 1, true).id, type });
       });
       b.summon = null;
     }
@@ -817,6 +820,7 @@
     f.gs.forEach((g) => { g.marks = null; g.copy = -1; });
     if (f.lid) { f.lid.marks = null; f.lid.summon = null; }
     finishRun(true);
+    K.trophy.award('rubbish');
     if (view) {
       show(ev);
       later(() => syncCard(true), RM ? 0 : 1300);
@@ -825,21 +829,22 @@
     tellDesktop(true);
   }
 
-  // A finished run (lost, won, or left for a new one): kept if it's the best.
+  // A finished run (lost, won, or left for a new one): kept if it's the
+  // best. (A win is kept on its own as well, for the trophy: see won.)
   function finishRun(out) {
     if (!run || run.recorded) return;
     run.recorded = true;
     const prev = bestRun();
     run.newBest = run.score > 0 && (!prev || run.score > prev.score);
     run.bestLine = run.newBest ? lineOf('bestLines') : '';
-    if (run.newBest) K.store.set(STORE_KEY, { best: { score: run.score, floor: run.n, won: !!out, at: Date.now() } });
+    if (run.newBest) K.store.merge(STORE_KEY, { best: { score: run.score, floor: run.n, won: !!out, at: Date.now() } });
   }
 
   // The pet wizard on the desktop tells everyone how it went (and throws
   // himself a party for a new best).
   function tellDesktop(out) {
     if (!K.pet || !K.pet.say) return;
-    const key = out ? 'win' : 'lose';
+    const key = out ? 'win' : run.n > FLOORS ? 'lid' : 'lose';
     const lines = linesOf((R.deskLines || {})[key], DESK_LINES[key]);
     const text = pick(lines).replace(/\{floor\}/g, String(run.n));
     const best = run.newBest;
