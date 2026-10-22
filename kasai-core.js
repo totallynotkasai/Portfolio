@@ -161,6 +161,11 @@
     power: '<path d="M12 3.5v8"/><path d="M7.2 6.6a7 7 0 1 0 9.6 0"/>',
     refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M18.6 3.2v4.3h-4.3"/>',
     sort: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
+    // The desktop menu's window items: three windows in a staircase, two
+    // side by side, and a screen with nothing on it.
+    cascade: '<rect x="10" y="10" width="10.5" height="10" rx="1.5"/><path d="M10 13.5h10.5"/><path d="M10 16.5H8A1.5 1.5 0 0 1 6.5 15V8A1.5 1.5 0 0 1 8 6.5h7.5A1.5 1.5 0 0 1 17 8v2"/><path d="M6.5 13H4.5A1.5 1.5 0 0 1 3 11.5v-7A1.5 1.5 0 0 1 4.5 3H12a1.5 1.5 0 0 1 1.5 1.5v2"/>',
+    tile: '<rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M12 4.5v15M3 8.5h18"/>',
+    desktop: '<rect x="3" y="4" width="18" height="12.5" rx="1.5"/><path d="M12 16.5V20M8 20h8"/><path d="M6.5 7.5h.01M6.5 10.5h.01"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6h.01"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     min: '<path d="M6 17h12"/>',

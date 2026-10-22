@@ -15,7 +15,7 @@
     if (wall && wall.v === 1) {
       // Only known values ever reach the page.
       if (/^(lavender|blue|yellow|teal|pink|navy|blush)$/.test(wall.colour)) html.setAttribute('data-wall', wall.colour);
-      if (/^(dots|grid|plain)$/.test(wall.pattern)) html.setAttribute('data-pattern', wall.pattern);
+      if (/^(dots|grid|stars|checker|waves|plain)$/.test(wall.pattern)) html.setAttribute('data-pattern', wall.pattern);
     }
   } catch (e) { /* storage blocked: the default wallpaper */ }
   // Light or dark: the visitor's pick in Wallpaper (kasai:theme), or the

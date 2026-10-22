@@ -71,6 +71,9 @@
   const wins = new Map(); // id -> window
   const order = []; // open windows (minimised ones too), back to front
   let cascade = 0;
+  let stairs = false; // Cascade lined the windows up from the top left
+  const STAIRS = 8; // steps in its staircase before it starts again
+  let tucked = null; // the windows Show desktop put away, back to front
   let openCount = 0;
   const MIN_SIZE = [320, 220]; // how small a window can be resized, unless its app says
   // Windows resize from every edge and corner, as well as by the grip.
@@ -209,7 +212,7 @@
     }
     w = Math.min(w, W - 16);
     h = Math.min(h, H - 16);
-    const step = keepCentre ? 0 : 26 * (cascade++ % 5);
+    const step = keepCentre ? 0 : 26 * (cascade++ % (stairs ? STAIRS : 5));
     const parent = spec.parent && wins.get(spec.parent);
     let x;
     let y;
@@ -222,6 +225,10 @@
     } else if (parent && parent.open && !parent.minimised && parent.rect) {
       x = parent.rect.x + 48 + step;
       y = parent.rect.y + 40 + step;
+    } else if (stairs) {
+      // After Cascade, new windows join its staircase.
+      x = iconRail + step;
+      y = 12 + step;
     } else {
       x = iconRail + Math.max(0, (W - iconRail - 12 - w) / 2) + step - 26;
       y = Math.max(12, (H - h) / 2 - 24) + step - 13;
@@ -248,6 +255,7 @@
     else if (!APPS[spec.id]) win.spec = Object.assign(win.spec, spec);
     const first = !win.open;
     const back = !first && win.minimised;
+    if ((first || back) && !opts.untuck) tucked = null; // Show windows has nothing left to bring back
     // Really opening, or coming back from the taskbar: one step in the
     // history (bringing an open window forward is none).
     const stepped = opts.push !== false && (first || back) && !win.ownsStep;
@@ -496,6 +504,7 @@
       if (i !== -1) order.splice(i, 1);
       if (win.maximised) setMax(win, false);
       if (win.snap) setSnap(win, null);
+      if (!order.length) stairs = false; // the next window opens in the middle again
       restack();
       sync(false);
       giveBack(win);
@@ -531,21 +540,33 @@
   /* ---------- snapping ----------
      A window dragged by its title bar to the left or right edge of the
      desktop can fill that half (when the half is wide enough for it), and
-     to the top edge all of it. */
+     to the top edge all of it. Side by side can also give it a tile: a
+     box kept as fractions of the desktop (`box`), so it follows a resize. */
   const SNAP_EDGE = 8; // how near an edge the pointer comes
-  const halfOf = (side, area) => {
+  const HALF = { w: 0.5, h: 1 };
+  const halfOf = (side, area, box) => {
+    if (side === 'tile') {
+      // (Neighbouring tiles share their edges exactly.)
+      const x = Math.round(box.x * area.width);
+      const y = Math.round(box.y * area.height);
+      return { x, y, w: Math.round((box.x + box.w) * area.width) - x, h: Math.round((box.y + box.h) * area.height) - y };
+    }
     const mid = Math.round(area.width / 2);
     return side === 'left' ? { x: 0, y: 0, w: mid, h: area.height } : { x: mid, y: 0, w: area.width - mid, h: area.height };
   };
-  const halvesFit = (win, area) => {
+  // Whether a window has room in a half of the desktop (or in `box`, or in
+  // the tile it has), at its smallest size.
+  const halvesFit = (win, area, box) => {
     const min = win.spec.minSize || MIN_SIZE;
-    return Math.floor(area.width / 2) >= min[0] && area.height >= min[1];
+    box = box || (win.snap && win.snap.side === 'tile' ? win.snap.box : HALF);
+    return Math.floor(area.width * box.w) >= min[0] && Math.floor(area.height * box.h) >= min[1];
   };
-  // Snapped to a half (`side`), remembering its own box `was`, or not (null).
-  function setSnap(win, side, was) {
-    win.snap = side ? { side, was } : null;
+  // Snapped to a half or a tile (`side`, with the tile's `box`),
+  // remembering its own box `was`, or not (null).
+  function setSnap(win, side, was, box) {
+    win.snap = side ? { side, was, box } : null;
     win.el.classList.toggle('is-snapped', !!side);
-    if (side) setRect(win, halfOf(side, layer.getBoundingClientRect()));
+    if (side) setRect(win, halfOf(side, layer.getBoundingClientRect(), box));
   }
   // Where letting go would snap a window, with the pointer at (x, y) on the desktop.
   function snapZone(win, x, y, area) {
@@ -775,7 +796,7 @@
     wins.forEach((w) => {
       if (!w.rect) return;
       if (w.unplaced) place(w);
-      else if (w.snap && halvesFit(w, area)) setRect(w, halfOf(w.snap.side, area)); // still filling its half
+      else if (w.snap && halvesFit(w, area)) setRect(w, halfOf(w.snap.side, area, w.snap.box)); // still filling its half or tile
       else {
         if (w.snap) { const own = w.snap.was; setSnap(w, null); setRect(w, own); } // no room for halves now
         const r = w.rect;
@@ -794,6 +815,93 @@
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && Array.from(wins.values()).some((w) => w.unplaced)) refit();
   });
+
+  /* ---------- tidying up (the desktop menu) ----------
+     Cascade lines the windows up, Side by side shares the desktop out
+     between them, and Show desktop puts them all in the taskbar (Show
+     windows brings them back). */
+  const showing = () => order.map((id) => wins.get(id)).filter((w) => w && w.open && !w.minimised);
+  // A window's own box (not the half or tile it fills), within the desktop.
+  const ownBox = (win, area) => {
+    const r = win.snap ? win.snap.was : win.rect;
+    return { x: r.x, y: r.y, w: Math.min(r.w, area.width - 16), h: Math.min(r.h, area.height - 16) };
+  };
+
+  // Every window at its own size, a step down and right of the one behind
+  // it, from the top left (beside the icons).
+  function cascadeWindows() {
+    const ws = showing();
+    if (!ws.length) return;
+    const area = layer.getBoundingClientRect();
+    const iconRail = area.width >= 1000 ? 132 : 12;
+    ws.forEach((w, k) => {
+      const r = ownBox(w, area);
+      const step = 26 * (k % STAIRS);
+      r.x = clamp(iconRail + step, 8, area.width - r.w - 8);
+      r.y = clamp(12 + step, 8, area.height - r.h - 8);
+      glide(w, () => { setMax(w, false); setSnap(w, null); setRect(w, r); }, resized);
+    });
+    cascade = ws.length;
+    stairs = true;
+    sound('snap');
+    announce('Windows cascaded');
+  }
+
+  // Two windows take a half each, as dragging them to the edges does; more
+  // share the desktop in columns, or in rows of up to three when the
+  // columns would be too narrow for them. Left to right as they are now.
+  function sideBySide() {
+    const ws = showing().sort((a, b) => (a.rect.x + a.rect.w / 2) - (b.rect.x + b.rect.w / 2));
+    if (ws.length < 2) return;
+    const area = layer.getBoundingClientRect();
+    const n = ws.length;
+    let boxes;
+    if (n === 2 && ws.every((w) => halvesFit(w, area, HALF))) boxes = ['left', 'right'];
+    else {
+      const minW = Math.max(...ws.map((w) => (w.spec.minSize || MIN_SIZE)[0]));
+      let cols = n;
+      if (area.width / n < minW) {
+        cols = Math.min(3, n);
+        while (cols > 1 && area.width / cols < minW) cols--;
+      }
+      const rows = Math.ceil(n / cols);
+      boxes = ws.map((w, i) => {
+        const row = Math.floor(i / cols);
+        const inRow = row === rows - 1 ? n - cols * (rows - 1) : cols; // the last row shares its width out
+        const col = i - row * cols;
+        return { x: col / inRow, y: row / rows, w: 1 / inRow, h: 1 / rows };
+      });
+    }
+    ws.forEach((w, i) => {
+      const own = ownBox(w, area);
+      const b = boxes[i];
+      glide(w, () => {
+        setMax(w, false);
+        if (typeof b === 'string') setSnap(w, b, own);
+        else setSnap(w, 'tile', own, b);
+      }, resized);
+    });
+    sound('snap');
+    announce('Windows side by side');
+  }
+
+  // Show desktop: every window into the taskbar, their history steps taken
+  // off together (see dropSteps). Show windows: back in the same order.
+  function showDesktop() {
+    const ws = showing();
+    if (!ws.length) return;
+    ws.forEach((w) => minimise(w));
+    tucked = ws.map((w) => w.id);
+    announce('Showing the desktop');
+  }
+  function showWindows() {
+    const ids = tucked || [];
+    tucked = null;
+    const ws = ids.map((id) => wins.get(id)).filter((w) => w && w.open && w.minimised);
+    ws.forEach((w, k) => open(APPS[w.id] ? w.id : w.spec, { untuck: true, focus: k === ws.length - 1 }));
+    if (ws.length) announce('Windows back');
+  }
+  const tuckedAway = () => !!tucked && tucked.some((id) => { const w = wins.get(id); return w && w.open && w.minimised; });
 
   K.wm = {
     open,
@@ -1599,12 +1707,41 @@
      drawn, so it never flashes. Lavender grid is the default. */
   const WALL_COLOURS = [['lavender', 'Lavender'], ['blue', 'Blue'], ['yellow', 'Yellow'], ['teal', 'Teal'],
     ['pink', 'Pink'], ['navy', 'Navy'], ['blush', 'Blush']];
-  const WALL_PATTERNS = [['dots', 'Dots'], ['grid', 'Grid'], ['plain', 'Plain']];
+  const WALL_PATTERNS = [['dots', 'Dots'], ['grid', 'Grid'], ['stars', 'Stars'], ['checker', 'Checker'], ['waves', 'Waves'], ['plain', 'Plain']];
   // Light or dark (head.js applies it): Auto follows the computer.
   const MODES = [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']];
   const modeNow = () => (window.KasaiTheme ? window.KasaiTheme.get() : 'auto');
   const wallNow = () => ({ colour: root.getAttribute('data-wall') || 'lavender', pattern: root.getAttribute('data-pattern') || 'grid' });
   const wallName = (w) => `${(WALL_COLOURS.find((c) => c[0] === w.colour) || [0, w.colour])[1]}, ${w.pattern}`;
+
+  // Light to dark (or back) in a circle that grows out of the Mode chip
+  // picked, as a view transition. At once with reduced motion, without
+  // view transitions, or when the screen won't change (Auto already
+  // matching).
+  let wipeVT = null;
+  function wipeTo(mode, chip) {
+    const set = () => window.KasaiTheme.set(mode);
+    const dark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const change = (dark ? 'dark' : 'light') !== root.getAttribute('data-theme');
+    if (!change || REDUCE_MOTION || !document.startViewTransition || !chip) { set(); return; }
+    K.wm.settle(); // no window caught mid-animation in the snapshots
+    const r = chip.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const y = r.top + r.height / 2;
+    const far = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+    root.style.setProperty('--wipe-x', Math.round(x) + 'px');
+    root.style.setProperty('--wipe-y', Math.round(y) + 'px');
+    root.style.setProperty('--wipe-r', Math.ceil(far) + 'px');
+    root.classList.add('vt-theme');
+    const vt = document.startViewTransition(set);
+    wipeVT = vt;
+    vt.finished.catch(() => {}).then(() => {
+      if (wipeVT !== vt) return; // a newer one took over
+      wipeVT = null;
+      root.classList.remove('vt-theme');
+      ['--wipe-x', '--wipe-y', '--wipe-r'].forEach((p) => root.style.removeProperty(p));
+    });
+  }
 
   function openWallpaper(opts) {
     open({
@@ -1652,7 +1789,7 @@
         form.addEventListener('change', (e) => {
           if (e.target.name === 'mode') {
             const mode = e.target.value;
-            if (window.KasaiTheme) window.KasaiTheme.set(mode);
+            if (window.KasaiTheme) wipeTo(mode, e.target.nextElementSibling);
             if (mode === 'auto') K.store.del('kasai:theme');
             else K.store.set('kasai:theme', { mode });
             announce(mode === 'auto' ? 'Light or dark, as your computer is' : `${mode === 'dark' ? 'Dark' : 'Light'} mode`);
@@ -1690,8 +1827,11 @@
     ['open', 'Open'], ['-', 'open'],
     ['refresh', 'Refresh', 'refresh'], ['folder', 'New folder', 'folder'], ['-'],
     ['wallpaper', 'Change wallpaper', 'palette'], ['sort', 'Sort icons', 'sort'], ['-'],
+    ['cascade', 'Cascade windows', 'cascade'], ['tile', 'Side by side', 'tile'], ['desktop', 'Show desktop', 'desktop'], ['-', 'wins'],
     ['about', 'About Kasai OS', 'info'],
   ];
+  // Phones show one window at a time, full screen: these don't apply there.
+  const WINDOW_ACTS = ['cascade', 'tile', 'desktop'];
   const hasPopoverApi = typeof HTMLElement !== 'undefined' && Object.prototype.hasOwnProperty.call(HTMLElement.prototype, 'popover');
   let menu = null; // { el, panel, icon, back } once it's been opened
   const menuOpen = () => !!menu && (hasPopoverApi ? menu.el.matches(':popover-open') : !menu.el.hidden);
@@ -1717,7 +1857,7 @@
 
     panel.addEventListener('click', (e) => {
       const b = e.target.closest('[data-act]');
-      if (!b) return;
+      if (!b || b.getAttribute('aria-disabled') === 'true') return;
       const icon = m.icon;
       const back = m.back;
       const at = b.getBoundingClientRect(); // a window opened from here grows out of it
@@ -1775,6 +1915,19 @@
       openItem.innerHTML = `${navIcon(app.icon)}<span>Open ${esc(app.label)}</span>`;
     }
     $('[data-act="sort"]', panel).hidden = isPhone(); // a phone's home screen is always in order
+    // The window items: hidden on phones, greyed out with nothing to tidy.
+    const n = showing().length;
+    const away = !n && tuckedAway();
+    const dsk = $('[data-act="desktop"]', panel);
+    $('span', dsk).textContent = away ? 'Show windows' : 'Show desktop';
+    WINDOW_ACTS.forEach((act) => {
+      const b = $(`[data-act="${act}"]`, panel);
+      b.hidden = isPhone();
+      const off = act === 'tile' ? n < 2 : act === 'desktop' ? !n && !away : !n;
+      if (off) b.setAttribute('aria-disabled', 'true');
+      else b.removeAttribute('aria-disabled');
+    });
+    $('[data-sep="wins"]', panel).hidden = isPhone();
     el.style.left = '0px';
     el.style.top = '0px';
     if (hasPopoverApi) { if (!el.matches(':popover-open')) el.showPopover(); } else el.hidden = false;
@@ -1807,6 +1960,9 @@
     else if (act === 'folder') newFolder();
     else if (act === 'wallpaper') openWallpaper({ from: back, at });
     else if (act === 'sort') sortIcons();
+    else if (act === 'cascade') cascadeWindows();
+    else if (act === 'tile') sideBySide();
+    else if (act === 'desktop') { if (showing().length) showDesktop(); else showWindows(); }
     else if (act === 'about') aboutKasaiOS();
   }
 
