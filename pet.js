@@ -10,8 +10,7 @@
    He remembers where you left him and whether you petted him, and pet.exe
    in the Start menu shows how he's doing. Pet him ten times for a surprise.
    The desktop menu's Refresh makes him do a trick, and the secret codes
-   (kasai-os.js) throw him a party. He hears the sound switch, and with
-   sound on he snores while he naps.
+   (kasai-os.js) throw him a party. He hears the sound switch.
    On the desktop he's the animated drawing in wizard-rig.js (made by the
    Wizard Virtual Pet project): this file says what he's up to by setting
    data-state, data-play and data-eyes on it, and the drawing's own CSS
@@ -341,15 +340,12 @@
        (just petted), asleep, held (being carried), dizzy (just put down)
        or party (a secret code). A one-shot may be playing over any of them. */
     let state = 'idle';
-    // (Every way in and out of his nap comes through here, so the snoring
-    // starts and stops here too.)
     const setState = (s) => {
       if (s === 'asleep' && state !== 'asleep') dozedAt = Date.now();
       state = s;
       el.classList.toggle('is-teleporting', s === 'teleport');
       el.classList.toggle('is-held', s === 'held');
       btn.classList.toggle('asleep', s === 'asleep');
-      snoreSoon();
       syncExe();
     };
     // Sitting about with nothing playing: free for whatever's next.
@@ -1125,40 +1121,13 @@
       }, 400);
     });
 
-    /* ---------- snoring ----------
-       With sound on, he snores while he naps: once at the deepest point of
-       each breath (47% of the way through it), the first one after he has
-       finished nodding off, so it keeps time with his breathing and the
-       rising Zs. Never while the tab is hidden; muffled when a window hides
-       most of him. */
-    const DOZE = STILLS ? 0 : DUR.doze || 2400;
-    const BREATH = DUR.sleep || 3600;
-    let snoreTimer = 0;
-    function snoreSoon() {
-      clearTimeout(snoreTimer);
-      if (snoreTimer && state !== 'asleep' && K.sound) K.sound.stop('snore'); // woken mid-snore
-      snoreTimer = 0;
-      if (state !== 'asleep' || !K.sound || !K.sound.on) return;
-      const first = dozedAt + DOZE + BREATH * 0.47;
-      const now = Date.now();
-      const at = now < first ? first : first + (Math.floor((now - first) / BREATH) + 1) * BREATH;
-      snoreTimer = setTimeout(snore, at - now);
-    }
-    function snore() {
-      snoreTimer = 0;
-      if (state !== 'asleep') return;
-      if (!document.hidden) sound('snore', { gain: coverNow().win > 0.45 ? 0.5 : 1 });
-      snoreSoon();
-    }
-
     /* ---------- the sound switch ----------
        Switched on, he perks up ("ooh, i can hear again!") once the switch's
        own chime is done; switched off, he shushes, eyes shut. Only when
-       he's sitting about: asleep, the snoring just starts or stops. The OS
-       already reads out "Sound on" or "off", so his words stay in the bubble. */
+       he's sitting about: asleep, he sleeps on. The OS already reads out
+       "Sound on" or "off", so his words stay in the bubble. */
     let hearTimer = 0;
     K.on('sound', (e) => {
-      snoreSoon();
       clearTimeout(hearTimer);
       if (document.hidden) return; // (switched in another tab)
       hearTimer = setTimeout(() => {

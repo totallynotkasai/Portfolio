@@ -503,8 +503,8 @@ window.CONTENT = {
     partyLines: ["it's a party!", 'nobody said there was a dress code', 'secret code accepted. party mode: on.'],
 
     // The sound switch (the speaker by the clock, or Sound in the Start
-    // menu): what he says when it's turned on, and off. Asleep, he snores
-    // instead (or stops). Empty a list, e.g.  soundOff: [],  to keep him quiet.
+    // menu): what he says when it's turned on, and off (not while
+    // he's asleep). Empty a list, e.g.  soundOff: [],  to keep him quiet.
     soundOn: ['ooh, i can hear again!', 'la la laaa!', 'is that my theme tune?'],
     soundOff: ['shhh...', 'quiet time.', 'library rules, got it.'],
   },
