@@ -16,7 +16,8 @@
    been clicked, tapped or typed in yet (no sound is allowed before that),
    the tab is hidden, that sound played a moment ago, or there's no sound
    by that name.
-   Also: K.sound.on, set(on), toggle() and hush() (silence, now).
+   Also: K.sound.on, set(on), toggle(), stop(name) (that sound, now) and
+   hush() (silence, now).
    Turning it on or off fires K.emit('sound', { on }).
    ════════════════════════════════════════════════════════════════════════ */
 
@@ -366,6 +367,13 @@
       hiss(v, { kind: 'lowpass', f: 900, dur: 0.2, peak: 0.16, a: 0.01 });
       tone(v, { f: 620, to: 940, at: 0.22, dur: 0.09, peak: 0.07 });
     },
+    // The wizard snoring: one slow breath in, a low rumble swelling for
+    // about a second, then gone (pet.js plays it in time with his breathing).
+    snore(v) {
+      tone(v, { type: 'sawtooth', lp: 420, f: 66, to: 78, glide: 0.95, then: 70, dur: 1.3, peak: 0.075, a: 0.9 });
+      tone(v, { type: 'sawtooth', lp: 300, f: 99, to: 117, glide: 0.95, then: 105, dur: 1.3, peak: 0.03, a: 0.9 });
+      hiss(v, { kind: 'lowpass', f: 450, to: 800, glide: 0.95, then: 550, dur: 1.3, peak: 0.07, a: 0.9 });
+    },
     // A run won: a fanfare up to a held chord.
     win(v) {
       [67, 72, 76, 79].forEach((m, k) => tone(v, { type: 'square', lp: 2600, f: hz(m), at: k * 0.09, dur: 0.16, peak: 0.07 }));
@@ -427,7 +435,7 @@
     const imp = !!IMPORTANT[name];
     if (voices.length >= MOST && !steal(imp)) return false;
     lastAt[name] = now;
-    const v = { imp, t: ctx.currentTime + 0.008, out: ctx.createGain(), pan: null, srcs: [], live: 0, end: 0 };
+    const v = { name, imp, t: ctx.currentTime + 0.008, out: ctx.createGain(), pan: null, srcs: [], live: 0, end: 0 };
     v.out.gain.value = clamp(o.gain == null ? 1 : Number(o.gain) || 0, 0, 2);
     const bus = imp ? important : everyday;
     if (o.pan && ctx.createStereoPanner) {
@@ -476,6 +484,11 @@
     return sound(name, o);
   }
 
+  // Every `name` sound still playing stops, now (a snore when he wakes).
+  function stop(name) {
+    if (ctx) voices.filter((v) => v.name === name).forEach(fade);
+  }
+
   // Silence, now (the everyday channel back to full).
   function hush() {
     if (!ctx) return;
@@ -513,6 +526,7 @@
     set,
     toggle: () => set(!on),
     play,
+    stop,
     hush,
   };
 })();
