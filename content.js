@@ -92,9 +92,8 @@ window.CONTENT = {
     // Empty the list,  ticker: [],  to hide the strip.
     ticker: ['Digital illustration', 'Graphic design', 'Web design', 'Creative writing', 'IT', 'QA', 'Automation'],
 
-    // Your photo: in a little me.png window beside the text, and in the
-    // circle at the top of the Start menu. "photoAlt" describes it for
-    // people using screen readers.
+    // Your photo: beside the text, and in the circle at the top of the
+    // Start menu. "photoAlt" describes it for people using screen readers.
     photo: 'assets/photos/About Me Photo.png',
     photoAlt: 'Photo of Andrew',
 
@@ -844,9 +843,9 @@ window.CONTENT = {
      13. PAINT  (paint.exe, hidden in the Trash)
      ──────────────────────────────────────────────────────────────────────
      The Trash has one file that isn't an old design: paint.exe, an old
-     paint program that still works. Pencil, brush, line, rectangle, fill
-     bucket, eyedropper and eraser in the brand colours, on a 640x480
-     picture. Save downloads the
+     paint program that still works. Pencil, brush, line, curve,
+     rectangle, fill bucket, eyedropper and eraser in the brand colours,
+     on a 640x480 picture that zooms. Save downloads the
      picture as a PNG to the visitor's own computer (nothing is ever sent
      anywhere), and the pet wizard rates it.
      • "drawing": a drawing for paint.exe's file in the Trash (an SVG or

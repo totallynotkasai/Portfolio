@@ -244,7 +244,7 @@ html[data-theme="dark"] .ink { --acc-tint: #2B2E44; --acc-ink: var(--text); }
 /* Words on the bright colours (and the pink-ink badges, which go light
    pink) stay ink. */
 html[data-theme="dark"] :is(.skip-link, .os-min:hover, .os-max:hover, .os-close:hover, .os-button:hover,
-  .start-btn[aria-expanded="true"], .start-btn:has(+ .start-menu:popover-open), .start-head, .hl, .mini-bar,
+  .start-btn[aria-expanded="true"], .start-btn:has(+ .start-menu:popover-open), .start-head, .hl,
   .os-links a:hover, .os-dialog-icon, .desk-menu-panel button:focus, .desk-icon.is-selected .desk-ico, .viewer-step:hover,
   .sw-level, .gm-level, .sw-best.is-new, .gm-best.is-new, .sw-go, .gm-go, .sw-up-icon, .gm-up-icon,
   .sw-board.is-lucky .sw-cell.is-hidden:hover, .sw-cell.is-woken,
@@ -986,26 +986,23 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .about-text { margin-top: 18px; display: grid; gap: 12px; color: var(--ink-soft); max-width: 62ch; }
 .about-contact { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 22px; }
 .about-email { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-soft); }
-/* The photo sits in its own little picture window. */
-.about-photo { overflow: hidden; background: var(--surface); border: var(--border); border-radius: 12px; rotate: 1.5deg; }
+/* The photo, in a plain black border, level with the middle of the text.
+   Hovered, the border flashes yellow and a yellow ring ripples out from it. */
+.about-photo { align-self: center; overflow: hidden; background: var(--surface); border: 4px solid var(--ink); border-radius: 12px; transition: border-color 0.15s; }
+.about-photo:hover { border-color: var(--yellow); animation: photo-ring 0.6s ease-out; }
+@keyframes photo-ring {
+  from { box-shadow: 0 0 0 0 var(--yellow); }
+  to { box-shadow: 0 0 0 16px rgba(254, 218, 116, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .about-photo:hover { animation: none; }
+}
 .about-photo img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
 .about-photo-empty { display: grid; place-items: center; aspect-ratio: 3 / 4; color: var(--periwinkle); background: var(--periwinkle-tint); }
 .about-photo-empty svg { width: 56px; height: 56px; }
-.mini-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: var(--yellow);
-  border-bottom: var(--border);
-}
-.mini-bar svg.doodle { width: 16px; height: 16px; }
 @container win (max-width: 600px) {
   .about { grid-template-columns: minmax(0, 1fr); padding: 20px; }
-  .about-photo { width: min(100%, 220px); }
+  .about-photo { justify-self: center; width: min(100%, 220px); }
 }
 
 /* ============================================================
@@ -2858,7 +2855,8 @@ button.ss-scry-pick:hover { background: var(--yellow-tint); }
 .pt-loading { display: grid; flex: 1; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; color: var(--ink-soft); }
 .pt-loading svg.doodle { width: 64px; height: 64px; color: var(--acc-ink); }
 .pt { display: flex; flex: 1; flex-direction: column; min-height: 0; }
-.pt-menu [data-act="save"] { margin-left: auto; }
+.pt-menu [data-act="zoomOut"] { margin-left: auto; }
+.pt-menu [data-act="zoomFit"] b { min-width: 3.4em; }
 .pt-menu button[aria-disabled="true"] { opacity: 0.5; cursor: default; }
 .pt-menu button[aria-disabled="true"]:hover { background: none; }
 .pt-main { display: flex; flex: 1; min-height: 0; container: pt-main / size; }
@@ -2892,6 +2890,11 @@ button.ss-scry-pick:hover { background: var(--yellow-tint); }
 .pt-paper { background: var(--white); box-shadow: 0 0 0 var(--line) var(--ink), 6px 6px 0 var(--line) rgba(22, 26, 46, 0.2); }
 .pt-canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair; touch-action: none; }
 .pt-canvas.is-smooth { image-rendering: auto; }
+/* Zoomed, the picture scrolls when it's bigger than the window, and a
+   middle-button or Space drag moves it about. */
+.pt-work.is-zoomed { overflow: auto; padding: 14px; scrollbar-width: thin; }
+.pt-work.can-pan .pt-canvas { cursor: grab; }
+.pt-work.is-panning, .pt-work.is-panning .pt-canvas { cursor: grabbing; }
 /* The colour in use, then the site's colours in two rows of eight. */
 .pt-colours { display: flex; flex: none; align-items: center; gap: 10px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; background: var(--surface); border-top: var(--border); }
 .pt-current { flex: none; width: 44px; height: 44px; background: var(--s, var(--ink)); border: var(--border); border-radius: 9px; box-shadow: inset 0 0 0 3px var(--surface); }
@@ -2911,9 +2914,9 @@ button.ss-scry-pick:hover { background: var(--yellow-tint); }
   .pt-swatches { flex: 1; grid-template-columns: repeat(8, minmax(0, 1fr)); }
   .pt-current { width: 36px; height: 36px; }
 }
-/* Too short for seven tools in a column (a phone, a small window): two
+/* Too short for eight tools in a column (a phone, a small window): two
    to a row, and the sizes side by side under them. */
-@container pt-main (max-height: 440px) {
+@container pt-main (max-height: 490px) {
   .pt-tools { display: grid; grid-template-columns: repeat(2, auto); align-content: start; justify-content: center; gap: 3px; width: auto; padding: 6px; }
   .pt-sizes { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 2px; padding-top: 5px; }
   .pt-size { width: auto; height: 26px; }

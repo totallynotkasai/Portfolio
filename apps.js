@@ -279,10 +279,7 @@
               ${a.email ? `<span class="about-email">${esc(a.email).replace('@', '<wbr>@')}</span>` : ''}
             </p>` : ''}
           </div>
-          <figure class="about-photo">
-            <figcaption class="mini-bar"><span class="os-app" aria-hidden="true">${doodleIcon('image')}</span>me.png</figcaption>
-            ${photo}
-          </figure>
+          <figure class="about-photo">${photo}</figure>
         </div>`;
       win.setStatus(a.signoff ? esc(a.signoff) : '');
     },

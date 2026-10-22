@@ -7,13 +7,14 @@
    the desktop never waits for it.
 
    An old paint program that still works: a 640x480 picture, a pencil, a
-   brush, a line and a rectangle (three sizes each), a fill bucket, an
-   eyedropper, an eraser, the site's colours, undo and redo, Clear and
-   Save. Every tool lays down hard-edged pixels, as the old paint programs
-   did, so the bucket always fills right up to a line. The picture is shown at full size (or double, with room to
-   spare) and crisp, or smaller to fit a small window. It stays in this
-   tab when paint.exe closes, and Save downloads it as a PNG: nothing is
-   ever sent anywhere.
+   brush, a line, a curve and a rectangle (three sizes each), a fill
+   bucket, an eyedropper, an eraser, the site's colours, undo and redo,
+   Clear and Save. Every tool lays down hard-edged pixels, as the old
+   paint programs did, so the bucket always fills right up to a line. The
+   picture is shown at full size (or double, with room to spare) and
+   crisp, or smaller to fit a small window, and zooms from a quarter size
+   to eight times. It stays in this tab when paint.exe closes, and Save
+   downloads it as a PNG: nothing is ever sent anywhere.
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -37,12 +38,15 @@
     { id: 'pencil', key: 'p', name: 'Pencil', icon: 'pencil' },
     { id: 'brush', key: 'b', name: 'Brush', icon: 'brush', sizes: [3, 7, 13] },
     { id: 'line', key: 'l', name: 'Line', icon: 'line', sizes: [1, 3, 7], shape: true },
+    { id: 'curve', key: 'c', name: 'Curve', icon: 'curve', sizes: [1, 3, 7], shape: true },
     { id: 'rect', key: 'r', name: 'Rectangle', icon: 'rect', sizes: [1, 3, 7], shape: true },
     { id: 'fill', key: 'f', name: 'Fill', icon: 'bucket' },
     { id: 'dropper', key: 'i', name: 'Eyedropper', icon: 'dropper' },
     { id: 'eraser', key: 'e', name: 'Eraser', icon: 'eraser', sizes: [8, 16, 28] },
   ];
   const toolOf = (id) => TOOLS.find((t) => t.id === id) || TOOLS[0];
+  // How big the picture can be shown (picture pixels to screen pixels).
+  const ZOOMS = [0.25, 0.5, 1, 2, 3, 4, 6, 8];
   // The site's colours: the deep inks along the top row, the brights below.
   const COLOURS = [
     ['Ink', '#161A2E'], ['Grey ink', '#5F647F'], ['Lavender ink', '#5E46B8'], ['Blue ink', '#1F5FC0'],
@@ -66,6 +70,9 @@
     // The shapes show their handles, so the box never reads as Maximise.
     line: '<path d="M6.5 17.5l11-11"/><path d="M3 18h3v3H3zM18 3h3v3h-3z"/>',
     rect: '<path d="M7.5 6h9M7.5 18h9M5 8.5v7M19 8.5v7"/><path d="M3 4h3v3H3zM18 4h3v3h-3zM3 17h3v3H3zM18 17h3v3h-3z"/>',
+    curve: '<path d="M5.5 17.5C6 9 12 5 17.5 6"/><path d="M3 18h3v3H3zM18 4.5h3v3h-3z"/>',
+    zoomin: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3l5.2 5.2"/><path d="M10.5 7.8v5.4M7.8 10.5h5.4"/>',
+    zoomout: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3l5.2 5.2"/><path d="M7.8 10.5h5.4"/>',
     dropper: '<path d="M13 7.5 4.6 15.9a2 2 0 0 0-.5 2L3.5 20.5l2.6-.6a2 2 0 0 0 2-.5l8.4-8.4"/><path d="M11 5.5l7.5 7.5"/><path d="M15.3 8.7l3.3-3.3a2 2 0 0 0-2.8-2.8l-3.3 3.3"/>',
     undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     redo: '<path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
@@ -107,6 +114,8 @@
   let view = null;  // the window's moving parts, while paint.exe is open
   let dirty = null; // the box changed since the canvas was last drawn: { x0, y0, x1, y1 }
   let stroke = null; // the line being drawn: { id, x, y, before, box }, and for a shape { shape, end, shift, shown }
+                     // (a curve also { curve: 'end' or 'bend', bend, held, started, from })
+  let zoom = 0;     // 0: as big as fits the window; or one of ZOOMS
 
   const blankPicture = () => {
     img = new ImageData(W, H);
@@ -207,22 +216,33 @@
     stroke.x = x1;
     stroke.y = y1;
   }
-  // A line of dabs from (x0, y0) to (x1, y1), both ends included.
-  function lineBetween(x0, y0, x1, y1) {
-    if (![x0, y0, x1, y1].every(Number.isFinite)) return;
-    dab(x0, y0);
-    walk(x0, y0, x1, y1);
+  // A curve from (x0, y0) to (x1, y1) that passes through (bx, by) halfway
+  // along, as points close enough together to join with straight steps.
+  function curvePoints(x0, y0, x1, y1, bx, by) {
+    const cx = 2 * bx - (x0 + x1) / 2; // the pull that bends it through (bx, by)
+    const cy = 2 * by - (y0 + y1) / 2;
+    const n = Math.max(2, Math.ceil((Math.hypot(cx - x0, cy - y0) + Math.hypot(x1 - cx, y1 - cy)) / 3));
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const u = 1 - t;
+      pts.push([Math.round(u * u * x0 + 2 * u * t * cx + t * t * x1), Math.round(u * u * y0 + 2 * u * t * cy + t * t * y1)]);
+    }
+    return pts;
   }
 
-  /* ---------- the line and the rectangle ----------
-     While the pointer is down the shape is a preview: each move puts back
+  /* ---------- the line, the curve and the rectangle ----------
+     While the shape is being placed it is a preview: each move puts back
      the box the last one covered (from the copy taken at the start) and
      draws it again to the newest point. Shift keeps a line to 0, 45 or 90
-     degrees and makes the box a square. */
+     degrees and makes the box a square.
+     The curve is placed as in Clip Studio Paint: click where it starts,
+     click where it ends, then move to bend it from the middle and click
+     again to put it down. */
   function shapeEnd(s) {
     let x = s.end.x;
     let y = s.end.y;
-    if (!s.shift) return { x, y };
+    if (!s.shift || s.curve === 'bend') return { x, y };
     const dx = x - s.x;
     const dy = y - s.y;
     const ax = Math.abs(dx);
@@ -244,31 +264,75 @@
       touched(b.x0, b.y0, b.x1, b.y1);
     }
     const { x, y } = shapeEnd(s);
-    if (tool === 'rect') {
-      lineBetween(s.x, s.y, x, s.y);
-      lineBetween(x, s.y, x, y);
-      lineBetween(x, y, s.x, y);
-      lineBetween(s.x, y, s.x, s.y);
-    } else lineBetween(s.x, s.y, x, y);
-    // The box it covers (the dabs reach r past the ends), on the picture.
+    const pts = tool === 'rect' ? [[s.x, s.y], [x, s.y], [x, y], [s.x, y], [s.x, s.y]]
+      : s.bend ? curvePoints(s.x, s.y, x, y, s.bend.x, s.bend.y)
+      : [[s.x, s.y], [x, y]];
+    if (!pts.every(([px, py]) => Number.isFinite(px) && Number.isFinite(py))) return;
+    dab(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) walk(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
+    // The box it covers (the dabs reach r past its points), on the picture.
     const r = Math.floor(toolOf(tool).sizes[size] / 2);
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
     const b = {
-      x0: Math.max(0, Math.min(s.x, x) - r), y0: Math.max(0, Math.min(s.y, y) - r),
-      x1: Math.min(W - 1, Math.max(s.x, x) + r), y1: Math.min(H - 1, Math.max(s.y, y) + r),
+      x0: Math.max(0, Math.min(...xs) - r), y0: Math.max(0, Math.min(...ys) - r),
+      x1: Math.min(W - 1, Math.max(...xs) + r), y1: Math.min(H - 1, Math.max(...ys) + r),
     };
     s.shown = b.x0 <= b.x1 && b.y0 <= b.y1 ? b : null;
   }
-  // Esc while dragging: the picture goes back as it was, with no undo step.
+  // The picture as it was before the shape `s` began.
+  function unshow(s) {
+    if (!s.box) return;
+    const b = s.box;
+    for (let r = b.y0; r <= b.y1; r++) pix.set(s.before.subarray(r * W + b.x0, r * W + b.x1 + 1), r * W + b.x0);
+    touched(b.x0, b.y0, b.x1, b.y1);
+  }
+  // Esc while placing: the picture goes back as it was, with no undo step.
   function dropShape() {
     const s = stroke;
     stroke = null;
-    if (s.box) {
-      const b = s.box;
-      for (let r = b.y0; r <= b.y1; r++) pix.set(s.before.subarray(r * W + b.x0, r * W + b.x1 + 1), r * W + b.x0);
-      touched(b.x0, b.y0, b.x1, b.y1);
-    }
+    unshow(s);
     try { view.canvas.releasePointerCapture(s.id); } catch (err) { /* that pointer has already gone */ }
+    syncTools();
     announce(`${toolOf(tool).name} dropped`, true);
+  }
+
+  // The curve's clicks. The first sets the start, and the end follows the
+  // pointer until the second click sets it. Then the curve starts out
+  // straight and bends from its middle as the pointer moves away from
+  // where it was (a finger: from where it next touches down), and the
+  // third click puts it down.
+  function curveDown(e, p) {
+    stroke.id = e.pointerId;
+    stroke.held = true;
+    try { view.canvas.setPointerCapture(e.pointerId); } catch (err) { /* that pointer has already gone */ }
+    curveMove(p, e.shiftKey);
+  }
+  function curveMove(p, shift) {
+    const s = stroke;
+    if (s.curve === 'end') {
+      s.end = p;
+      s.shift = shift;
+    } else {
+      if (!s.from) s.from = { p, bend: s.bend };
+      s.bend = { x: s.from.bend.x + p.x - s.from.p.x, y: s.from.bend.y + p.y - s.from.p.y };
+    }
+    drawShape();
+  }
+  function curveUp(e) {
+    const s = stroke;
+    s.held = false;
+    if (s.curve === 'end') {
+      if (!s.started) { s.started = true; return; } // the start is down: now click where it ends
+      s.end = shapeEnd(s);
+      s.curve = 'bend';
+      s.bend = { x: Math.round((s.x + s.end.x) / 2), y: Math.round((s.y + s.end.y) / 2) };
+      s.from = e.pointerType === 'touch' ? null : { p: at(e) || s.end, bend: s.bend };
+      drawShape();
+      syncTools();
+      return;
+    }
+    endStroke();
   }
 
   // The eyedropper: the colour under (x, y) becomes the colour in use (the
@@ -463,11 +527,14 @@
         <button type="button" data-act="redo">${doodleIcon('redo')}Redo</button>
         <button type="button" data-act="clear">${doodleIcon('page')}Clear</button>
         <button type="button" data-act="save">${doodleIcon('floppy')}Save PNG</button>
+        <button type="button" data-act="zoomOut" title="Zoom out (-)">${doodleIcon('zoomout')}<span class="vh">Zoom out</span></button>
+        <button type="button" data-act="zoomFit" title="Fit the window (0)"><b data-zoom>100%</b><span class="vh">Fit the window</span></button>
+        <button type="button" data-act="zoomIn" title="Zoom in (+)">${doodleIcon('zoomin')}<span class="vh">Zoom in</span></button>
       </div>`;
     win.menu.hidden = false;
     if (saved) win.setTitle(`${FILE} - paint.exe`);
     win.setStatus(`<span class="pt-said" data-said></span><span class="pt-pos" data-pos></span>` +
-      K.hint('P B L R F I E pick a tool, [ ] its size', 'Pick a tool and a colour, then draw'));
+      K.hint('P B L C R F I E pick a tool, [ ] its size, + - 0 zoom', 'Pick a tool and a colour, then draw'));
     const q = (s) => root.querySelector(s);
     const canvas = q('canvas');
     view = {
@@ -481,6 +548,10 @@
       live: q('[data-live]'),
       said: win.status.querySelector('[data-said]'),
       pos: win.status.querySelector('[data-pos]'),
+      zoomed: win.menu.querySelector('[data-zoom]'),
+      scale: 0,   // how big the picture is shown now
+      pan: null,  // a drag moving the picture about: { id, x, y, left, top }
+      space: false, // Space held: a drag moves the picture
       raf: 0,
       sayTimer: 0,
     };
@@ -505,16 +576,51 @@
   // The picture as big as the window allows: whole steps (full size, or
   // double) while it fits, so every pixel stays a crisp square, and
   // smaller only when it must (then smoothed, so thin lines don't vanish).
+  // Zoomed, it's the size picked, and scrolls when it's bigger than the window.
   function fit() {
     if (!view) return;
     const margin = view.work.clientWidth < 420 ? 14 : 28; // a phone keeps more of its width for the picture
     const room = Math.min((view.work.clientWidth - margin) / W, (view.work.clientHeight - margin) / H);
     if (!(room > 0)) return;
-    const scale = room >= 2 ? 2 : room >= 1 ? 1 : room;
+    const scale = zoom || (room >= 2 ? 2 : room >= 1 ? 1 : room);
+    view.scale = scale;
     view.paper.style.width = Math.floor(W * scale) + 'px';
     view.paper.style.height = Math.floor(H * scale) + 'px';
     view.canvas.classList.toggle('is-smooth', scale * (window.devicePixelRatio || 1) < 1);
+    view.work.classList.toggle('is-zoomed', !!zoom);
+    view.zoomed.textContent = `${Math.round(scale * 100)}%`;
+    const m = view.win.menu;
+    m.querySelector('[data-act="zoomIn"]').setAttribute('aria-disabled', String(scale >= ZOOMS[ZOOMS.length - 1]));
+    m.querySelector('[data-act="zoomOut"]').setAttribute('aria-disabled', String(scale <= ZOOMS[0]));  }
+
+  // One step bigger (dir 1) or smaller (-1), keeping the spot under the
+  // pointer (or the middle of the window) where it is.
+  function zoomBy(dir, e) {
+    if (!view || !view.scale) return;
+    const s = view.scale;
+    const next = dir > 0 ? ZOOMS.find((z) => z > s + 0.001) : ZOOMS.filter((z) => z < s - 0.001).pop();
+    if (next) zoomTo(next, e);
   }
+  function zoomTo(z, e) {
+    const work = view.work;
+    const wr = work.getBoundingClientRect();
+    const cx = e ? e.clientX : wr.left + wr.width / 2;
+    const cy = e ? e.clientY : wr.top + wr.height / 2;
+    const r = view.canvas.getBoundingClientRect();
+    const fx = (cx - r.left) / r.width;
+    const fy = (cy - r.top) / r.height;
+    zoom = z;
+    fit();
+    if (zoom) {
+      const r2 = view.canvas.getBoundingClientRect();
+      work.scrollLeft += r2.left + fx * r2.width - cx;
+      work.scrollTop += r2.top + fy * r2.height - cy;
+    }
+    announce(zoom ? `Zoom ${Math.round(view.scale * 100)}%` : 'Fit the window', true);
+  }
+  const zoomIn = () => zoomBy(1);
+  const zoomOut = () => zoomBy(-1);
+  const zoomFit = () => { if (zoom) zoomTo(0); };
 
   // Where a pointer is on the picture, in its own pixels (null while the
   // picture has no size: its window is minimised).
@@ -527,9 +633,11 @@
   function wire(v, root) {
     const canvas = v.canvas;
     canvas.addEventListener('pointerdown', (e) => {
-      if (stroke || !e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0) || v.pan || (v.space && zoom)) return;
       const p = at(e);
       if (!p) return;
+      if (stroke && stroke.curve && !stroke.held) { curveDown(e, p); return; }
+      if (stroke) return;
       canvas.focus({ preventScroll: true }); // so the keys work straight away
       if (tool === 'fill') { fillAt(p.x, p.y); return; }
       if (tool === 'dropper') { pickAt(p.x, p.y); return; }
@@ -537,6 +645,10 @@
       stroke = { id: e.pointerId, x: p.x, y: p.y, before: pix.slice(), box: null };
       if (toolOf(tool).shape) {
         Object.assign(stroke, { shape: true, end: p, shift: e.shiftKey, shown: null });
+        if (tool === 'curve') {
+          Object.assign(stroke, { curve: 'end', bend: null, held: true, started: false, from: null });
+          syncTools();
+        }
         drawShape();
       } else dab(p.x, p.y);
     });
@@ -545,7 +657,14 @@
       // No size (minimised mid-stroke): the stroke ends there, as a lift would.
       if (!p) { if (stroke && e.pointerId === stroke.id) endStroke(); return; }
       v.pos.textContent = p.x >= 0 && p.y >= 0 && p.x < W && p.y < H ? `${p.x}, ${p.y}px` : '';
+      // A curve between clicks follows a mouse or pen about (a finger has
+      // to touch down to move it).
+      if (stroke && stroke.curve && !stroke.held && e.isPrimary && e.pointerType !== 'touch') {
+        curveMove(p, e.shiftKey);
+        return;
+      }
       if (!stroke || e.pointerId !== stroke.id) return;
+      if (stroke.curve) { curveMove(p, e.shiftKey); return; }
       // A shape only needs the newest point.
       if (stroke.shape) {
         stroke.end = p;
@@ -556,7 +675,11 @@
       const all = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
       (all.length ? all : [e]).forEach((ev) => { const q = at(ev); if (q) lineTo(q.x, q.y); });
     });
-    const up = (e) => { if (stroke && e.pointerId === stroke.id) endStroke(); };
+    const up = (e) => {
+      if (!stroke || e.pointerId !== stroke.id) return;
+      if (!stroke.curve) endStroke();
+      else if (stroke.held && e.type !== 'lostpointercapture') curveUp(e);
+    };
     canvas.addEventListener('pointerup', up);
     canvas.addEventListener('pointercancel', up);
     canvas.addEventListener('lostpointercapture', up);
@@ -586,13 +709,44 @@
     v.win.menu.addEventListener('click', (e) => {
       const b = e.target.closest('[data-act]');
       if (!b || b.getAttribute('aria-disabled') === 'true') return;
-      ({ undo, redo, clear, save })[b.dataset.act]();
+      ({ undo, redo, clear, save, zoomIn, zoomOut, zoomFit })[b.dataset.act]();
     });
+    // Ctrl (or Cmd) and the wheel, or a pinch on a trackpad, zooms where
+    // the pointer is; the wheel alone scrolls a zoomed picture.
+    v.work.addEventListener('wheel', (e) => {
+      if (!(e.ctrlKey || e.metaKey) || !e.deltaY) return;
+      e.preventDefault();
+      zoomBy(e.deltaY < 0 ? 1 : -1, e);
+    }, { passive: false });
+    // Dragging with the middle button, or with Space held, moves a zoomed
+    // picture about.
+    v.work.addEventListener('pointerdown', (e) => {
+      if (!zoom || stroke || !(e.button === 1 || (v.space && e.button === 0))) return;
+      e.preventDefault();
+      v.pan = { id: e.pointerId, x: e.clientX, y: e.clientY, left: v.work.scrollLeft, top: v.work.scrollTop };
+      v.work.classList.add('is-panning');
+      try { v.work.setPointerCapture(e.pointerId); } catch (err) { /* that pointer has already gone */ }
+    });
+    v.work.addEventListener('pointermove', (e) => {
+      if (!v.pan || e.pointerId !== v.pan.id) return;
+      v.work.scrollLeft = v.pan.left - (e.clientX - v.pan.x);
+      v.work.scrollTop = v.pan.top - (e.clientY - v.pan.y);
+    });
+    const stopPan = (e) => {
+      if (!v.pan || e.pointerId !== v.pan.id) return;
+      v.pan = null;
+      v.work.classList.remove('is-panning');
+    };
+    v.work.addEventListener('pointerup', stopPan);
+    v.work.addEventListener('pointercancel', stopPan);
+    v.work.addEventListener('lostpointercapture', stopPan);
     v.win.el.addEventListener('keydown', onKey);
     // Shift let go mid-shape: the line comes unsnapped, the square a box again.
     v.win.el.addEventListener('keyup', (e) => {
       if (e.key === 'Shift' && stroke && stroke.shape) { stroke.shift = false; drawShape(); }
+      if (e.key === ' ') { v.space = false; v.work.classList.remove('can-pan'); }
     });
+    v.win.el.addEventListener('focusout', () => { v.space = false; v.work.classList.remove('can-pan'); });
     if (window.ResizeObserver) {
       v.ro = new ResizeObserver(fit);
       v.ro.observe(v.work);
@@ -600,22 +754,34 @@
     window.addEventListener('resize', fit);
   }
 
+  // A curve that hasn't been bent yet goes nowhere; one being bent goes
+  // down as it's shown.
   function endStroke() {
     const s = stroke;
     stroke = null;
+    if (s && s.curve) syncTools();
+    if (s && s.curve === 'end') { unshow(s); return; }
     if (!s || !s.box) return;
     remember(s.box, s.before);
     strokes++;
   }
 
-  // P, B, L, R, F, I and E pick a tool, [ and ] its size; Ctrl+Z undoes,
-  // Ctrl+Y (or Ctrl+Shift+Z) redoes and Ctrl+S saves. Mid-shape, Shift
-  // snaps it and Esc drops it (rather than minimising the window).
+  // P, B, L, C, R, F, I and E pick a tool, [ and ] its size; + and -
+  // zoom, 0 fits the window, and Space held (on the picture) lets a drag
+  // move it about. Ctrl+Z undoes, Ctrl+Y (or Ctrl+Shift+Z) redoes and
+  // Ctrl+S saves. Mid-shape, Shift snaps it and Esc drops it (rather than
+  // minimising the window).
   function onKey(e) {
     if (!view || e.defaultPrevented || e.altKey || e.isComposing || document.querySelector('dialog[open]')) return;
     if (stroke && stroke.shape) {
       if (e.key === 'Escape') { e.preventDefault(); dropShape(); return; }
       if (e.key === 'Shift') { stroke.shift = true; drawShape(); return; }
+    }
+    if (e.key === ' ' && e.target === view.canvas) {
+      e.preventDefault();
+      view.space = true;
+      view.work.classList.toggle('can-pan', !!zoom);
+      return;
     }
     const k = (e.key || '').toLowerCase();
     if (e.ctrlKey || e.metaKey) {
@@ -630,6 +796,9 @@
     if (t) pickTool(t.id);
     else if (e.key === '[') pickSize(size - 1);
     else if (e.key === ']') pickSize(size + 1);
+    else if (e.key === '+' || e.key === '=') zoomIn();
+    else if (e.key === '-' || e.key === '_') zoomOut();
+    else if (e.key === '0') zoomFit();
     else return;
     e.preventDefault();
   }
@@ -656,6 +825,8 @@
   }
   const toolName = () => {
     const t = toolOf(tool);
+    if (stroke && stroke.curve === 'end') return 'Curve: click its end';
+    if (stroke && stroke.curve === 'bend') return 'Curve: bend, then click';
     return t.sizes ? `${t.name}, ${SIZE_NAMES[size]}` : t.name;
   };
 
