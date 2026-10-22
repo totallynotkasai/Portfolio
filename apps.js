@@ -782,7 +782,7 @@
       sub: 'Chase off his nightmares', pose: 'aim', script: '/stardrop.js', prefix: 'gm',
     },
     solitaire: {
-      label: 'Spell Solitaire', file: 'solitaire.exe', colour: 'lavender', size: [560, 760], minSize: [340, 480],
+      label: 'Spell Solitaire', file: 'solitaire.exe', colour: 'lavender', size: [900, 680], minSize: [520, 500],
       sub: 'Chain spells up the peaks', pose: 'cards', script: '/solitaire.js', prefix: 'gm',
     },
   };

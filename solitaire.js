@@ -14,10 +14,10 @@
    and clearing a peak pays a bonus. A run is seven deals, each with a
    target: a deal under its target costs a heart, and the Final Deal
    must be beaten. Between deals you pick a spell (Wild, Fireball, Echo,
-   Rewind or Moonlight) or a charm, and from the fourth deal on curses
-   join in. Beat the Final Deal to complete the run, then keep dealing
-   for as long as your hearts last. Nothing is ever timed. Each visitor's
-   best is kept.
+   Rewind, Moonlight, Scry or Undraw) or a charm, and from the fourth
+   deal on curses join in. Beat the Final Deal to complete the run, then
+   keep dealing for as long as your hearts last. Nothing is ever timed.
+   Each visitor's best is kept.
    ════════════════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -33,7 +33,7 @@
   /* ---------- the rules, in numbers ---------- */
   const STORE_KEY = 'kasai:solitaire'; // { best: { score, deal, won, streak, at }, endless: { score, deal, at }, longest, won: { at, times } }
   const DEALS = 7;               // a run: six deals, then the Final Deal
-  const TARGETS = [700, 850, 1000, 1050, 1150, 1250, 1675]; // the points each deal must reach (deals 4 to 7 are cursed too)
+  const TARGETS = [700, 850, 1000, 1050, 1150, 1250, 1600]; // the points each deal must reach (deals 4 to 7 are cursed too)
   const GROW = 1.08;             // endless: every deal's target this much higher than the last
   const HEARTS = 3;              // at the start of a run
   const MOST_HEARTS = 5;         // the Healing Potion stops offering itself here
@@ -85,13 +85,15 @@
   /* ---------- spells ----------
      Each pick of a spell is one more charge of it in every deal (up to
      CHARGES); they're all back at the start of the next deal. Wild and
-     Fireball are cast on a card. */
+     Fireball are cast on a card. step: where its cast sound starts. */
   const SPELLS = {
-    wild: { key: 'w', icon: 'wild', colour: 'pink', name: 'Wild', blurb: 'Play any uncovered card, whatever its rank. The streak carries on.', aim: true },
-    fireball: { key: 'f', icon: 'fireball', colour: 'coral', name: 'Fireball', blurb: 'Burn an uncovered card away. The streak carries on, and a peak still pays.', aim: true },
-    echo: { key: 'e', icon: 'echo', colour: 'blue', name: 'Echo', blurb: 'Draw a card without breaking your streak.' },
-    rewind: { key: 'r', icon: 'rewind', colour: 'teal', name: 'Rewind', blurb: 'Take back your last play.' },
-    moonlight: { key: 'm', icon: 'moonlight', colour: 'lavender', name: 'Moonlight', blurb: 'Every face-down card turns face up for this deal.', most: 1 },
+    wild: { key: 'w', icon: 'wild', colour: 'pink', step: 0, name: 'Wild', blurb: 'Play any uncovered card, whatever its rank. The streak carries on.', aim: true },
+    fireball: { key: 'f', icon: 'fireball', colour: 'coral', step: 2, name: 'Fireball', blurb: 'Burn an uncovered card away. The streak carries on, and a peak still pays.', aim: true },
+    echo: { key: 'e', icon: 'echo', colour: 'blue', step: 4, name: 'Echo', blurb: 'Draw a card without breaking your streak.' },
+    rewind: { key: 'r', icon: 'rewind', colour: 'teal', step: 6, name: 'Rewind', blurb: 'Take back your last play.' },
+    moonlight: { key: 'm', icon: 'moonlight', colour: 'lavender', step: 8, name: 'Moonlight', blurb: 'Every face-down card turns face up for this deal.', most: 1 },
+    scry: { key: 's', icon: 'scry', colour: 'yellow', step: 5, name: 'Scry', blurb: 'See the next three cards of the stock, and put them back in any order.' },
+    undraw: { key: 'u', icon: 'undraw', colour: 'grey', step: 3, name: 'Undraw', blurb: 'Take back your last draw: the streak comes back, and the card goes under the stock.' },
   };
   const SPELL_IDS = Object.keys(SPELLS);
 
@@ -193,14 +195,17 @@
     }
     if (id === 'echo') return canDraw(d) ? '' : 'empty';
     if (id === 'rewind') return d.undo.length ? '' : 'nothing';
-    return d.slots.some((c, k) => c >= 0 && !d.up[k]) ? '' : 'nothing'; // moonlight
+    if (id === 'scry') return d.stock.length ? '' : 'empty';
+    if (id === 'undraw') return d.drawn ? '' : 'nothing';
+    if (id === 'moonlight') return d.slots.some((c, k) => c >= 0 && !d.up[k]) ? '' : 'nothing';
+    return 'later';
   }
   const usable = (id, i) => !why(id, i);
   // A deal that reached its target keeps it, whatever the Toll takes after.
   const madeIt = (d) => !!d.reached || d.score >= d.target;
   // Nothing left to try: no play, nothing to draw, and no spell that could
   // change that. The deal ends by itself then.
-  const hopeless = () => stuck() && !usable('wild') && !usable('fireball') && !usable('rewind');
+  const hopeless = () => stuck() && !usable('wild') && !usable('fireball') && !usable('rewind') && !usable('undraw');
 
   // A new run, from the first deal. seed: which run (the same one deals
   // the same cards), or none for a fresh one. Anything still being drawn
@@ -276,6 +281,8 @@
       eaten: [],
       burnt: [],
       undo: [],      // what Rewind can take back (since the last draw)
+      drawn: null,   // what Undraw can take back: the last draw, until the next play, burn or cast
+      seen: null,    // the cards Scry is showing, waiting to be put back in order
       score: 0,
       streak: 0,
       best: 0,       // the longest streak this deal
@@ -345,8 +352,11 @@
     return settle(ev);
   }
 
-  // Kept before every move on the peaks, for Rewind.
+  // Kept before every move on the peaks, for Rewind (and from then on the
+  // last draw can't be taken back, nor Scry's cards put back).
   function keep(d, i) {
+    d.drawn = null;
+    d.seen = null;
     d.undo.push({ i, card: d.slots[i], slots: d.slots.slice(), pile: d.pile.slice(), burnt: d.burnt.slice(), score: d.score, streak: d.streak, peaks: d.peaks, reached: d.reached });
   }
 
@@ -397,13 +407,50 @@
     }
     const card = d.stock.pop();
     d.pile.push(card);
-    d.undo = [];
     const broke = echo ? 0 : d.streak;
-    if (!echo) d.streak = 0;
     const toll = cursed(d, 'toll') ? Math.min(TOLL, d.score) : 0;
+    d.drawn = { card, streak: d.streak, toll, undo: d.undo }; // (for Undraw)
+    d.seen = null;
+    d.undo = [];
+    if (!echo) d.streak = 0;
     d.score -= toll;
     ev.push({ t: 'draw', card, broke, echo: !!echo, toll, left: d.stock.length });
     return settle(ev);
+  }
+
+  // Undraw: the last draw taken back. The card goes under the stock (so
+  // the next draw is a new one), the streak it broke and the Toll it took
+  // come back, and so does what Rewind could take back before it. A
+  // Second Deck refill stays shuffled.
+  function undraw() {
+    const d = run.deal;
+    const s = d.drawn;
+    d.drawn = null;
+    d.pile.pop();
+    d.stock.unshift(s.card); // (on top again instead: d.stock.push(s.card))
+    d.streak = s.streak;
+    d.score += s.toll;
+    d.undo = s.undo;
+    return settle([{ t: 'undraw', card: s.card, streak: d.streak, toll: s.toll, left: d.stock.length }]);
+  }
+
+  // Scry: the next three cards of the stock (fewer if that's all there
+  // is), in draw order, next first. They wait in d.seen for reorder().
+  function scry() {
+    const d = run.deal;
+    d.seen = d.stock.slice(-3).reverse();
+    return [{ t: 'scry', cards: d.seen.slice() }];
+  }
+  // Scry's cards put back, `cards` in the order they'll be drawn (the
+  // same cards Scry showed; anything else is refused).
+  function reorder(cards) {
+    if (!playing()) return [];
+    const d = run.deal;
+    const seen = d.seen;
+    if (!seen || !Array.isArray(cards) || cards.length !== seen.length || seen.some((c) => cards.indexOf(c) === -1)) return [];
+    d.seen = null;
+    d.stock.splice(d.stock.length - cards.length, cards.length, ...cards.slice().reverse());
+    return [{ t: 'reorder', cards: cards.slice(), moved: cards.some((c, k) => c !== seen[k]) }];
   }
 
   // Cast a spell (on place i, for Wild and Fireball).
@@ -414,10 +461,15 @@
     const d = run.deal;
     d.charges[id]--;
     const ev = [{ t: 'cast', spell: id, i }];
+    if (id === 'undraw') return ev.concat(undraw());
+    // Any other spell: the last draw can't be taken back from here on.
+    d.drawn = null;
+    d.seen = null;
     if (id === 'wild') return ev.concat(put(i, true));
     if (id === 'fireball') return ev.concat(burn(i));
     if (id === 'echo') return ev.concat(draw(true));
     if (id === 'rewind') return ev.concat(rewind());
+    if (id === 'scry') return ev.concat(scry());
     // Moonlight: every card still face down turns up.
     const flipped = range(PLACES).filter((k) => d.slots[k] >= 0 && !d.up[k]);
     flipped.forEach((k) => { d.up[k] = true; });
@@ -546,6 +598,8 @@
     echo: '<path d="M4 12h2.5"/><path d="M9.5 8.5a5 5 0 0 1 0 7M13 5.5a9.5 9.5 0 0 1 0 13M16.5 3a13 13 0 0 1 0 18"/>',
     rewind: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M5.4 3.2v4.3h4.3"/>',
     moonlight: '<path d="M15.5 5a6.8 6.8 0 1 0 4.5 11.4A5.6 5.6 0 0 1 15.5 5z"/><path d="M4 3.5l1.5 1.5M3 8.5h2M8.5 2.5v2"/>',
+    scry: '<path d="M2.5 14S6 8 12 8s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="14" r="2.8"/><path d="M12 2.5v2.5M5.5 4.2l1.3 2M18.5 4.2l-1.3 2"/>',
+    undraw: '<rect x="10" y="2.5" width="10.5" height="14.5" rx="2"/><path d="M7 6.5c-3.6 2.6-3.6 9.6 1 13h7.5"/><path d="M12.5 16.5l3 3-3 3"/>',
     ember: '<path d="M12 20.5c-3 0-5-2-5-4.8 0-2.4 1.7-3.9 2.7-5.8.5 1.1 1.2 1.8 2 2.2-.1-2.3 1-4.5 2.8-6.1 0 2.4 1 3.7 2 5.1.9 1.2 1.5 2.4 1.5 4.3 0 3-2.3 5.1-6 5.1z"/><path d="M5 5.5h.01M19 4h.01M18.5 9.5h.01"/>',
     peaks: '<path d="M2.5 19.5 8.5 8.5l3.6 6.3 3-4.8 6.4 9.5z"/>',
     kindred: '<rect x="3.5" y="5" width="10" height="14" rx="2"/><rect x="10.5" y="5" width="10" height="14" rx="2"/>',
@@ -579,6 +633,12 @@
   const cardArt = (p) => {
     const i = K.imgInfo && K.imgInfo(p);
     return i ? i.card || i.thumb || i.web : K.webSrc(p);
+  };
+  // ...and that copy beside the binder's (about 400px), for an <img srcset>:
+  // big cards and high-density screens get the sharper one.
+  const cardArtSet = (p) => {
+    const i = K.imgInfo && K.imgInfo(p);
+    return i && i.card && i.thumb && i.tw > i.cw ? `${i.card} ${i.cw}w, ${i.thumb} ${i.tw}w` : '';
   };
   const iconOf = (id, cls) => {
     const src = drawing(id);
@@ -783,6 +843,7 @@
       card: false,     // a card is over the table
       cardClosedAt: -Infinity, // when the last one went (see wire)
       help: false,     // ...and it's the help card
+      scry: null,      // Scry's cards over the table: { cards (as dealt), order (as you've put them), sel (one picked to swap) }
       peek: false,     // the run's over and you're looking at the table
       moving: new Set(), // cards in flight, and anything else that can skip to its end
       timers: new Set(),
@@ -792,6 +853,10 @@
       lastStreak: 0,
     };
     wire(view);
+    if (window.ResizeObserver) {
+      view.sizer = new ResizeObserver(fitArt);
+      view.sizer.observe(view.peaks);
+    }
     primeFaces();
     // Fetch his poses now, so none of them flickers in mid-game.
     ['idle', 'happy', 'party', 'startled', 'cards'].forEach((k) => {
@@ -805,6 +870,7 @@
   function unmount(win) {
     if (!view || (win && view.win !== win)) return;
     hush();
+    if (view.sizer) view.sizer.disconnect();
     view.win.el.removeEventListener('keydown', view.keys, true);
     view.win.el.removeEventListener('keydown', view.onKey);
     clearTimeout(view.toastTimer);
@@ -877,13 +943,32 @@
   const live = (d) => !!(run && run.deal === d && playing());
 
   const suitPic = (id) => iconOf(id, 'ss-suit');
-  const faceHtml = (c) => {
+  const PILE = 1.35; // the pile's card is this many card widths wide (style.css .ss-pile)
+  // A card's width in pixels, `scale` card widths wide (view.cw follows the window, see fitArt).
+  const cardPx = (scale) => (view && view.cw ? view.cw : 60) * (scale || 1);
+  // The window changed size: the art's `sizes` follow, so bigger cards
+  // fetch the sharper copy.
+  function fitArt() {
+    if (!view) return;
+    const w = view.peaks.offsetWidth;
+    if (!w) return;
+    view.cw = w / 10.585; // (ten cards and nine gaps, style.css .ss-peaks)
+    // (Layout widths: a window gliding or growing is scaled for a moment.)
+    view.root.querySelectorAll('.ss-art img[sizes]').forEach((img) => {
+      if (img.offsetWidth) img.sizes = `${img.offsetWidth}px`;
+    });
+  }
+  // A card's face. `px`: how wide it's drawn (a card on the peaks unless
+  // said), so its art is fetched at the size it shows.
+  const faceHtml = (c, px) => {
     const s = SUITS[suitOf(c)];
     const r = rankOf(c) - 1;
     const f = faceOf(c);
     const art = f ? cardArt(f.img) : '';
+    const set = f ? cardArtSet(f.img) : '';
+    const sizes = set ? ` srcset="${esc(set)}" sizes="${Math.max(20, Math.round((px || cardPx()) * 0.86))}px"` : '';
     return `<span class="ss-face ${s.colour}${r === 9 ? ' is-10' : ''}"><span class="ss-corner"><b>${RANKS[r]}</b>${suitPic(s.id)}</span>` +
-      `<span class="ss-art">${art ? `<img src="${esc(art)}" alt="" draggable="false" decoding="async" />` : suitPic(s.id)}</span>` +
+      `<span class="ss-art">${art ? `<img src="${esc(art)}"${sizes} alt="" draggable="false" decoding="async" />` : suitPic(s.id)}</span>` +
       `<span class="ss-big"><b>${RANKS[r]}</b>${suitPic(s.id)}</span></span>`;
   };
   // The back: Andrew's drawing (a Final Deal can have its own), or a
@@ -1006,7 +1091,7 @@
     const f = c >= 0 ? faceOf(c) : null;
     const want = c >= 0 ? `${c}|${f ? f.img : ''}` : ''; // a new run can deal the same card in other art
     if (view.pile.dataset.show !== want) {
-      view.pile.innerHTML = c >= 0 ? `<div class="ss-card is-pile">${faceHtml(c)}</div>` : '<span class="ss-empty"></span>';
+      view.pile.innerHTML = c >= 0 ? `<div class="ss-card is-pile">${faceHtml(c, cardPx(PILE))}</div>` : '<span class="ss-empty"></span>';
       view.pile.dataset.show = want;
     }
     view.pile.title = c >= 0 ? `The pile: ${caption(c)}` : 'The pile';
@@ -1028,7 +1113,7 @@
       ? range(backs).map((k) => `<div class="ss-card is-stock" style="--k:${k}">${backHtml(finalDeal(d.n))}</div>`).join('')
       : `<span class="ss-empty">${refill ? doodleIcon('deck') : ''}</span>`) +
       `<b class="ss-count">${n}</b>` +
-      (peek.length ? `<span class="ss-peek">${peek.map((c) => `<span class="ss-card is-peek">${faceHtml(c)}</span>`).join('')}</span>` : '');
+      (peek.length ? `<span class="ss-peek">${peek.map((c) => `<span class="ss-card is-peek">${faceHtml(c, cardPx(0.72))}</span>`).join('')}</span>` : '');
     view.stock.title = n ? `The stock: ${plural(n, 'card')} left${peek.length ? `. Next: ${peek.map(cardName).join(', then ')}` : ''}` : refill ? 'The stock is empty: the Second Deck fills it again when you draw' : 'The stock is empty';
   }
 
@@ -1050,6 +1135,7 @@
       else if (e.t === 'flip') flips.push(e.i);
       else if (e.t === 'moonlight') flips.push(...e.flipped);
       else if (e.t === 'rewind') { rewound = e.i; view.pileCard = topOf(d); }
+      else if (e.t === 'undraw') { view.pileCard = topOf(d); flyToStock(e.card); }
     });
     syncCards();
     syncPile();
@@ -1080,11 +1166,11 @@
     if (ev.some((e) => e.t === 'deal')) sound('deal');
     const play = ev.find((e) => e.t === 'play');
     if (play) sound('card', { step: play.streak, pan: panAt(play.i) });
-    if (ev.some((e) => e.t === 'draw' || e.t === 'flip' || e.t === 'moonlight')) sound('flip');
+    if (ev.some((e) => e.t === 'draw' || e.t === 'undraw' || e.t === 'flip' || e.t === 'moonlight')) sound('flip');
     if (ev.some((e) => e.t === 'burn')) sound('hit', { step: 3 });
     if (ev.some((e) => e.t === 'deny')) sound('deny');
     const cast = ev.find((e) => e.t === 'cast');
-    if (cast) sound('cast', { step: SPELL_IDS.indexOf(cast.spell) * 2 });
+    if (cast) sound('cast', { step: SPELLS[cast.spell].step });
     if (ev.some((e) => e.t === 'peak')) sound('gold');
     if (ev.some((e) => e.t === 'target')) sound('tally');
     if (ev.some((e) => e.t === 'sweep')) sound('clear');
@@ -1104,7 +1190,7 @@
     const el = document.createElement('div');
     el.className = 'ss-card ss-flyer';
     el.innerHTML = faceHtml(c);
-    const w = i >= 0 ? from.width : to.width / 1.6;
+    const w = i >= 0 ? from.width : to.width / PILE;
     el.style.cssText = `left:${from.left - box.left + (from.width - w) / 2}px;top:${from.top - box.top}px;width:${w}px`;
     view.table.appendChild(el);
     const k = to.width / w;
@@ -1113,6 +1199,26 @@
       { transform: `translate(${to.left - from.left - (from.width - w) / 2}px, ${to.top - from.top}px) scale(${k.toFixed(3)})` },
     ], { duration: i >= 0 ? 280 : 240, easing: 'cubic-bezier(0.25, 0.8, 0.35, 1)', fill: 'forwards' });
     track(a, () => { el.remove(); land(); });
+  }
+
+  // Undraw: the card flies off the pile and under the stock.
+  function flyToStock(c) {
+    if (RM || !view.pile.animate) return;
+    const from = view.pile.getBoundingClientRect();
+    const to = view.stock.getBoundingClientRect();
+    const box = view.table.getBoundingClientRect();
+    if (!from.width || !to.width) return;
+    const el = document.createElement('div');
+    el.className = 'ss-card ss-flyer';
+    el.innerHTML = faceHtml(c, from.width);
+    el.style.cssText = `left:${from.left - box.left}px;top:${from.top - box.top}px;width:${from.width}px;transform-origin:0 0`;
+    view.table.appendChild(el);
+    const k = 1 / PILE;
+    const a = el.animate([
+      { transform: 'none' },
+      { transform: `translate(${to.left - from.left}px, ${to.bottom - from.height * k - from.top}px) scale(${k.toFixed(3)})`, opacity: 0.5 },
+    ], { duration: 260, easing: 'cubic-bezier(0.25, 0.8, 0.35, 1)', fill: 'forwards' });
+    track(a, () => el.remove());
   }
 
   // Fireball: the card at place i goes up in flames.
@@ -1294,6 +1400,7 @@
         `${iconOf(SPELLS[id].icon)}<span class="ss-spell-name">${esc(words(id).name)}</span><b></b><kbd class="hint-mouse">${SPELLS[id].key.toUpperCase()}</kbd></button>`).join('')
       : `<p class="ss-nospells">${run && !d.idle ? 'Spells you pick between deals show up here.' : ''}</p>`;
     if (view.spellHtml !== html) { view.spellBox.innerHTML = html; view.spellHtml = html; }
+    view.spellBox.dataset.n = have.length; // (style.css: how crowded the dock is)
     view.spellBox.querySelectorAll('[data-spell]').forEach((btn) => {
       const id = btn.dataset.spell;
       const left = d.charges[id] || 0;
@@ -1323,7 +1430,7 @@
   /* ---------- the cards over the game (the title, a pick, the end) ---------- */
   function syncCard(focus) {
     if (!view) return;
-    const up = view.help || !run || run.step === 'pick' || ((run.step === 'over' || run.step === 'won') && !view.peek);
+    const up = view.help || !run || !!view.scry || run.step === 'pick' || ((run.step === 'over' || run.step === 'won') && !view.peek);
     if (view.card && !up) view.cardClosedAt = performance.now();
     view.card = up;
     view.stage.inert = up;
@@ -1370,11 +1477,24 @@
             <li>A streak scores more with every card: 10, 20, 30... A draw ends it.</li>
             <li>Seven deals, each with a target: miss one and lose a heart. Spells and charms come between deals, curses from deal 4.</li>
           </ul>
-          <p class="gm-keys"><span class="hint-mouse">Keys: arrows, Enter to play, D to draw, W F E R M to cast, L to look.</span><span class="hint-touch">Tap a card to play it, or the stock to draw.</span></p>
+          <p class="gm-keys"><span class="hint-mouse">Keys: arrows, Enter to play, D to draw, ${SPELL_IDS.map((id) => SPELLS[id].key.toUpperCase()).join(' ')} to cast, L to look.</span><span class="hint-touch">Tap a card to play it, or the stock to draw.</span></p>
           ${bests.map((t) => `<p class="gm-best">${esc(t)}</p>`).join('')}
           <p class="gm-actions">${run
             ? '<button class="os-button" type="button" data-act="back" data-first>Back to the game</button>'
             : '<button class="os-button gm-go" type="button" data-act="start" data-first>Deal me in</button>'}</p>
+        </section>`;
+    }
+    if (view.scry) {
+      const s = view.scry;
+      const many = s.order.length > 1;
+      return `
+        <section class="gm-card ss-scry-card" aria-labelledby="ss-card-h">
+          <p class="gm-kicker">Scry</p>
+          <h3 class="gm-card-h" id="ss-card-h">${many ? `The next ${s.order.length} cards` : 'The last card in the stock'}</h3>
+          <p>${many ? K.hint('Click one, then another, to swap them. The first is drawn first.', 'Tap one, then another, to swap them. The first is drawn first.') : 'There is only this one left to draw.'}</p>
+          <ol class="ss-scry">${s.order.map((c, k) => `<li>${scryButton(c, k, many)}</li>`).join('')}</ol>
+          ${many ? '<p class="gm-keys"><span class="hint-mouse">Keys: arrows, Space to pick and swap, Enter when done, Esc to leave them as they were.</span></p>' : ''}
+          <p class="gm-actions"><button class="os-button gm-go" type="button" data-act="scry-done"${many ? '' : ' data-first'}>Done</button></p>
         </section>`;
     }
     const d = run.deal;
@@ -1443,6 +1563,69 @@
       </button>`;
   };
 
+  // One of Scry's cards on its card: a button to pick and swap (just a
+  // picture when it's the only one), with where it is in the draw.
+  const SCRY_PX = 96; // (style.css .ss-scry)
+  const scryPlace = (k, n) => (k === 0 ? 'Next' : k === n - 1 ? 'Last' : 'Then');
+  const scryButton = (c, k, many) => {
+    const s = view.scry;
+    const place = scryPlace(k, s.order.length);
+    const inner = `<span class="ss-card">${faceHtml(c, SCRY_PX)}</span><span class="ss-scry-n">${place}</span>`;
+    const label = esc(`${place}: ${caption(c)}`);
+    return many
+      ? `<button class="ss-scry-pick${s.sel === k ? ' is-picked' : ''}" type="button" data-scry="${k}"${k === 0 ? ' data-first' : ''} aria-pressed="${s.sel === k}" aria-label="${label}">${inner}</button>`
+      : `<span class="ss-scry-pick" role="img" aria-label="${label}">${inner}</span>`;
+  };
+
+  // Scry has been cast: its cards come up over the table.
+  function openScry(cards) {
+    view.scry = { cards: cards.slice(), order: cards.slice(), sel: -1 };
+    syncCard(true);
+  }
+  // A click (or Space) on one of them: pick it, then another to swap them.
+  function scryPick(k) {
+    const s = view.scry;
+    if (!s || s.order.length < 2 || !(k >= 0 && k < s.order.length)) return;
+    if (s.sel < 0) {
+      s.sel = k;
+      announce(`${cardName(s.order[k])} picked: now the card to swap it with.`);
+    } else if (s.sel === k) {
+      s.sel = -1;
+      announce(`${cardName(s.order[k])} put down.`);
+    } else {
+      [s.order[s.sel], s.order[k]] = [s.order[k], s.order[s.sel]];
+      s.sel = -1;
+      sound('flip');
+      announce(`Swapped. Now ${s.order.map(cardName).join(', then ')}.`);
+    }
+    // (Redrawn in place, so the card doesn't bounce in again.)
+    view.overlay.querySelectorAll('[data-scry]').forEach((b) => {
+      const i = Number(b.dataset.scry);
+      b.outerHTML = scryButton(s.order[i], i, true);
+    });
+    const at = view.overlay.querySelector(`[data-scry="${k}"]`);
+    if (at) at.focus({ preventScroll: true });
+  }
+  // Done (Enter): the cards go back in the order shown; Esc leaves them
+  // as they were dealt.
+  function scryDone(keep) {
+    const s = view.scry;
+    if (!s) return;
+    view.scry = null;
+    syncCard(false);
+    act(reorder(keep ? s.order : s.cards));
+    focusTable();
+  }
+  // Arrows along Scry's cards.
+  function scryMove(key) {
+    const btns = Array.prototype.slice.call(view.overlay.querySelectorAll('[data-scry]'));
+    if (!btns.length) return;
+    const at = btns.indexOf(document.activeElement);
+    const to = key === 'Home' ? 0 : key === 'End' ? btns.length - 1
+      : Math.max(0, Math.min(btns.length - 1, (at < 0 ? 0 : at) + (key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1)));
+    btns[to].focus({ preventScroll: true });
+  }
+
   /* ---------- telling you things ---------- */
   // A note over the table, read out by screen readers too (unless `quiet`:
   // the move's own summary is about to say it).
@@ -1493,6 +1676,9 @@
       } else if (e.t === 'refill') out.push(`The Second Deck shuffles ${plural(e.n, 'card')} back into the stock.`);
       else if (e.t === 'burn') out.push(`Fireball: the ${cardName(e.card)} burns away. The streak carries on at ${d.streak}.`);
       else if (e.t === 'rewind') out.push(`Rewind: the ${cardName(e.card)} goes back. Streak ${d.streak}.`);
+      else if (e.t === 'undraw') out.push(`Undraw: the ${cardName(e.card)} goes under the stock. Streak ${e.streak}${e.toll ? `, and the Toll's ${e.toll} comes back` : ''}.`);
+      else if (e.t === 'scry') out.push(`Scry: the next ${e.cards.length > 1 ? `${e.cards.length} cards are` : 'card is'} ${e.cards.map(cardName).join(', then ')}.${e.cards.length > 1 ? ' Swap them round, then Done.' : ''}`);
+      else if (e.t === 'reorder') out.push(e.moved ? `Back on the stock: ${e.cards.map(cardName).join(', then ')}.` : 'Back on the stock as they were.');
       else if (e.t === 'moonlight') out.push(e.flipped.length ? `${plural(e.flipped.length, 'card')} turn face up.` : 'Every card was face up already.');
       else if (e.t === 'flip') out.push(`Turned over: ${caption(e.card)}.`);
       else if (e.t === 'peak') out.push(`Peak! Plus ${e.pts}.`);
@@ -1517,8 +1703,12 @@
     if (e.spell) {
       return {
         none: `No ${words(e.spell).name} left this deal.`,
-        empty: 'The stock is empty: there is nothing to draw.',
-        nothing: e.spell === 'rewind' ? 'Nothing to take back since the last draw.' : e.spell === 'moonlight' ? 'Every card is face up already.' : 'No uncovered card to cast it on.',
+        empty: e.spell === 'scry' ? 'The stock is empty: there is nothing to see.' : 'The stock is empty: there is nothing to draw.',
+        nothing: {
+          rewind: 'Nothing to take back since the last draw.',
+          moonlight: 'Every card is face up already.',
+          undraw: 'No draw to take back: a play or a spell since the last one keeps it.',
+        }[e.spell] || 'No uncovered card to cast it on.',
         sealed: 'That card is sealed until both outer peaks are clear.',
         covered: 'That card is covered.',
       }[e.why] || 'Not now.';
@@ -1549,6 +1739,7 @@
     parts.push(`Stock: ${plural(d.stock.length, 'card')}${peek.length ? `, next ${peek.map(cardName).join(', then ')}` : ''}.`);
     const spells = SPELL_IDS.filter((id) => d.charges[id] > 0).map((id) => `${words(id).name} ${d.charges[id]}`);
     if (spells.length) parts.push(`Spells: ${spells.join(', ')}.`);
+    if (usable('undraw')) parts.push(`Undraw would put the ${cardName(d.drawn.card)} under the stock and bring back a streak of ${d.drawn.streak}.`);
     announce(parts.join(' '));
   }
 
@@ -1556,7 +1747,7 @@
      Mouse and touch: a card plays it, the stock draws, a spell in the dock
      casts it (Wild and Fireball then want a card). Keys: the arrows move
      between the uncovered cards (only they are in the tab order), Enter or
-     Space plays one, D draws (or ends the deal), W, F, E, R and M cast,
+     Space plays one, D draws (or ends the deal), W, F, E, R, M, S and U cast,
      Escape cancels a spell, L looks. Any press first skips whatever is
      moving to its end. */
   let lastInput = 'pointer';
@@ -1571,6 +1762,8 @@
     tell(ev);
     if (held && !(document.activeElement && document.activeElement.classList.contains('is-free'))) focusCard();
     afterMove(ev);
+    const seen = ev.find((e) => e.t === 'scry');
+    if (seen) openScry(seen.cards);
   }
 
   // After a deal ends: the trophy, saving, the desktop, and (once
@@ -1743,8 +1936,9 @@
   }
 
   function onKey(e) {
-    if (e.altKey || e.metaKey || e.ctrlKey || e.defaultPrevented || !view || !run || view.card) return;
+    if (e.altKey || e.metaKey || e.ctrlKey || e.defaultPrevented || !view || !run) return;
     if (e.target.closest && e.target.closest('.win-bar, .gm-menu, input, textarea')) return;
+    if (view.card) { cardKey(e); return; }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     const onCardEl = e.target.closest && e.target.closest('.ss-card.is-free');
     if (k === 'Escape') {
@@ -1772,6 +1966,24 @@
       if (k === 'd') act(draw(false, true));
       else if (k === 'l') look();
       else spell(id);
+    }
+  }
+
+  // Keys while a card is over the table: Esc on Help goes back to the game
+  // (and never tucks the window away); Scry's card has keys of its own.
+  function cardKey(e) {
+    const k = e.key;
+    if (view.help) {
+      if (k === 'Escape') { e.preventDefault(); backToGame(); }
+      return;
+    }
+    if (!view.scry) return;
+    if (k === 'Escape' || k === 'Enter') {
+      e.preventDefault();
+      if (!e.repeat) scryDone(k === 'Enter');
+    } else if (/^Arrow|^Home$|^End$/.test(k)) {
+      e.preventDefault();
+      scryMove(k);
     }
   }
 
@@ -1812,6 +2024,7 @@
     if (!view) return;
     primeFaces();
     view.help = false;
+    view.scry = null;
     view.peek = false;
     syncCard(false);
     show(ev);
@@ -1831,9 +2044,16 @@
     wizardSays(lineOf(finalDeal(run.deal.n) ? 'finalLines' : 'dealLines'), 2400);
   }
 
+  function backToGame() {
+    view.help = false;
+    syncCard(true);
+    if (!view.card) focusTable();
+  }
+
   function onCard(e) {
     const btn = e.target.closest('button');
     if (!btn || !view) return;
+    if (btn.dataset.scry) { scryPick(Number(btn.dataset.scry)); return; }
     if (btn.dataset.up) {
       const ev = choose(btn.dataset.up);
       if (!ev.length) return;
@@ -1857,11 +2077,9 @@
       sound('pick');
       syncCard(true);
       announce(`Endless deals: a curse on every deal, and higher targets. Pick a spell or a charm. ${nextWords(run.next)}`);
-    } else if (what === 'back') {
-      view.help = false;
-      syncCard(true);
-      if (!view.card) focusTable();
-    } else if (what === 'peek') {
+    } else if (what === 'back') backToGame();
+    else if (what === 'scry-done') scryDone(true);
+    else if (what === 'peek') {
       view.peek = true;
       syncCard(false);
       focusTable();

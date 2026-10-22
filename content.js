@@ -897,11 +897,13 @@ window.CONTENT = {
       stars: '',
       moons: '',
       leaves: '',
-      wild: '',      // the five spells, in the dock and on their cards
+      wild: '',      // the seven spells, in the dock and on their cards
       fireball: '',
       echo: '',
       rewind: '',
       moonlight: '',
+      scry: '',
+      undraw: '',
       circle: '',    // the five curses, on the bar along the top (Broken Circle, Seal, Moths, Hex, Toll)
       seal: '',
       moth: '',
@@ -949,6 +951,8 @@ window.CONTENT = {
       echo:      { name: 'Echo',      blurb: 'Draw a card without breaking your streak.' },
       rewind:    { name: 'Rewind',    blurb: 'Take back your last play.' },
       moonlight: { name: 'Moonlight', blurb: 'Every face-down card turns face up for this deal.' },
+      scry:      { name: 'Scry',      blurb: 'See the next three cards of the stock, and put them back in any order.' },
+      undraw:    { name: 'Undraw',    blurb: 'Take back your last draw: the streak comes back, and the card goes under the stock.' },
     },
 
     charms: {

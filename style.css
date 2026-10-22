@@ -2474,10 +2474,13 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
    TriPeaks on the binder's starry mat: the three peaks, and under
    them the stock, the pile (bigger, to show off the art) and the
    wizard. The cards size themselves to the window (the stage is a
-   container): about 50px wide in the window, 34px on a phone, up to
-   96px maximised. Each card is a container too, so one under 44px
-   wide hides its art and shows a big rank instead. The menu bar,
-   scores, notes and cards are Wizard Sweeper's (the .gm- names). */
+   container), until the peaks fill its width or the table its height:
+   about 66px wide in the window, 34px on a phone, up to 150px
+   maximised. The height takes 3.5 card widths for the peaks, 0.25 for
+   the gap and 1.89 for the pile (1.35 cards wide), plus the padding.
+   Each card is a container too, so one under 44px wide hides its art
+   and shows a big rank instead. The menu bar, scores, notes and cards
+   are Wizard Sweeper's (the .gm- names). */
 .ss-stage {
   position: absolute;
   inset: 0;
@@ -2487,7 +2490,7 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
   background: var(--ink) var(--tx-stars);
 }
 .ss-table {
-  --cw: clamp(26px, min((100cqw - 20px) / 10.65, (100cqh - 28px) / 6.35), 96px);
+  --cw: clamp(26px, min((100cqw - 20px) / 10.65, (100cqh - 28px) / 5.7), 150px);
   --ch: calc(var(--cw) * 1.4);
   --gap: calc(var(--cw) * 0.065);
   --step: calc(var(--cw) + var(--gap));
@@ -2496,7 +2499,7 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--cw) * 0.45);
+  gap: calc(var(--cw) * 0.25);
   margin: auto;
   padding: 10px;
   user-select: none;
@@ -2619,7 +2622,7 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
    beside it (never over the peaks' uncovered cards). */
 .ss-peek { position: absolute; right: calc(100% + 8px); bottom: 0; display: flex; flex-direction: row-reverse; gap: 3px; pointer-events: none; }
 .ss-peek .ss-card.is-peek { position: relative; width: calc(var(--cw) * 0.72); box-shadow: 0 0 0 2px var(--blue); }
-.ss-pile { position: relative; width: calc(var(--cw) * 1.6); aspect-ratio: 5 / 7; cursor: var(--cursor-pointer); }
+.ss-pile { position: relative; width: calc(var(--cw) * 1.35); aspect-ratio: 5 / 7; /* (solitaire.js PILE) */ cursor: var(--cursor-pointer); }
 .ss-pile .ss-card { inset: 0; width: 100%; }
 .ss-pile.is-kin .ss-card { box-shadow: 0 0 0 3px var(--pink); }
 .ss-pile .ss-empty { inset: 0; width: auto; }
@@ -2714,8 +2717,18 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .gm-chip.is-spent { opacity: 0.55; }
 .ss-where { font-family: var(--font-mono); }
 
-/* The dock: Draw (End deal, once nothing's left), then the spells. */
-.ss-dock { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; background: var(--surface); border-top: var(--border); }
+/* The chips along the top a little smaller than the other games', so a
+   late run's curses and charms stay on one row. */
+.ss .gm-hud { padding-block: 6px; }
+.ss .gm-owned { gap: 3px; }
+.ss .gm-chip { height: 28px; padding: 0 5px; }
+.ss .gm-chip svg.doodle, .ss .gm-chip .ss-pic { width: 16px; height: 16px; }
+
+/* The dock: Draw (End deal, once nothing's left), then the spells. When
+   there are too many for one row, they lose their names (still in each
+   button's title and label): the dock is a container, and data-n on the
+   spells says how many. */
+.ss-dock { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; background: var(--surface); border-top: var(--border); container: ss-dock / inline-size; }
 .ss-dock[hidden] { display: none; }
 /* (It stays beside Draw and wraps its own buttons, so Draw is never alone on a row.) */
 .ss-spells { display: flex; flex: 1 1 0; flex-wrap: wrap; gap: 6px; min-width: 0; }
@@ -2746,13 +2759,43 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .ss-spell[aria-pressed="true"] { color: var(--ink); background: var(--acc); box-shadow: inset 0 0 0 2px var(--ink); }
 .ss-spell[aria-pressed="true"] kbd { color: var(--ink); }
 .ss-nospells { align-self: center; font-size: 0.8rem; line-height: 1.3; color: var(--ink-soft); }
+@container ss-dock (max-width: 1100px) { .ss-spells[data-n="7"] .ss-spell-name { display: none; } }
+@container ss-dock (max-width: 980px) { .ss-spells[data-n="6"] .ss-spell-name { display: none; } }
+@container ss-dock (max-width: 860px) { .ss-spells[data-n="5"] .ss-spell-name { display: none; } }
+@container ss-dock (max-width: 730px) { .ss-spells[data-n="4"] .ss-spell-name { display: none; } }
+@container ss-dock (max-width: 585px) { .ss-spells[data-n="3"] .ss-spell-name { display: none; } }
+
+/* Scry's card: the next three cards, to pick and swap. */
+.ss-scry { --cw: 96px; display: flex; justify-content: center; gap: 10px; margin-top: 14px; }
+.ss-scry-pick {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 6px 6px 4px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text);
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 14px;
+}
+button.ss-scry-pick { cursor: var(--cursor-pointer); }
+button.ss-scry-pick:hover { background: var(--yellow-tint); }
+.ss-scry-pick.is-picked { background: var(--yellow-tint); border-color: currentColor; }
+.ss-scry-pick:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.ss-scry .ss-card { position: relative; }
+.ss-scry-pick.is-picked .ss-card { box-shadow: 0 0 0 3px var(--yellow), 0 0 0 5px var(--ink); }
 .gm-card .ss-next { margin-top: 14px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--text); }
 .ss .gm-card-art :is(img, svg) { width: 56px; height: 56px; }
+/* (The window is wide: so are its cards, and they're shorter for it.) */
+.ss .gm-card { width: min(100%, 580px); }
 .gm-up-have kbd { margin-left: 6px; font-family: var(--font-mono); }
 @container win (max-width: 460px) {
   .ss-spell-name, .ss-act kbd, .ss-wide { display: none; }
   .ss-act { padding: 0 9px; }
   .ss-bar { width: 44px; }
+  .ss-scry { --cw: 76px; gap: 4px; }
   /* A phone has room under the table, not over it: the bubble hangs below
      him, clear of the peaks' bottom row. */
   .ss-said { top: calc(100% + 6px); bottom: auto; }
