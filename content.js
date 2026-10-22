@@ -227,7 +227,7 @@ window.CONTENT = {
       title: 'This Portfolio',
       window: 'portfolio.html',             // title bar name (optional)
       accent: 'teal',
-      desc: 'The site you are looking at: a hand-built static portfolio with a one-file content system.',
+      desc: 'The site you\'re looking at: a little operating system I built by hand in plain HTML, CSS and JavaScript. Windows drag, snap and tidy themselves, a pet wizard roams the desktop, there are four games, every sound is made in the browser, and paint.exe hides in the Trash. Everything on it comes from one content file.',
       tags: ['HTML', 'CSS', 'JavaScript'],
       links: [
         { label: 'GitHub', url: 'https://github.com/totallynotkasai/Portfolio' },
