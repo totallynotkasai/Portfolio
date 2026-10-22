@@ -2840,7 +2840,7 @@ button.ss-scry-pick:hover { background: var(--yellow-tint); }
 .pt-menu [data-act="save"] { margin-left: auto; }
 .pt-menu button[aria-disabled="true"] { opacity: 0.5; cursor: default; }
 .pt-menu button[aria-disabled="true"]:hover { background: none; }
-.pt-main { display: flex; flex: 1; min-height: 0; }
+.pt-main { display: flex; flex: 1; min-height: 0; container: pt-main / size; }
 .pt-tools {
   display: flex;
   flex: none;
@@ -2859,9 +2859,10 @@ button.ss-scry-pick:hover { background: var(--yellow-tint); }
 .pt-tool svg.doodle { width: 22px; height: 22px; }
 .pt-tool:hover, .pt-size:hover { background: var(--acc-tint); }
 .pt-tool[aria-pressed="true"] { color: var(--ink); background: var(--acc); border-color: var(--ink); }
-/* The brush's or eraser's three sizes (round or square), under the tools. */
+/* The tool's three sizes (round, or square for the eraser), under the
+   tools. A tool with no sizes gives the space back. */
 .pt-sizes { display: grid; gap: 3px; margin-top: 6px; padding-top: 8px; border-top: 2px dashed var(--grey); }
-.pt-sizes.is-off { visibility: hidden; }
+.pt-sizes.is-off { display: none; }
 .pt-size { height: 28px; }
 .pt-size i { width: var(--d); height: var(--d); background: currentColor; border-radius: 50%; }
 .pt-sizes.is-square .pt-size i { border-radius: 2px; }
@@ -2888,6 +2889,13 @@ button.ss-scry-pick:hover { background: var(--yellow-tint); }
   .pt-tool { height: 36px; }
   .pt-swatches { flex: 1; grid-template-columns: repeat(8, minmax(0, 1fr)); }
   .pt-current { width: 36px; height: 36px; }
+}
+/* Too short for seven tools in a column (a phone, a small window): two
+   to a row, and the sizes side by side under them. */
+@container pt-main (max-height: 440px) {
+  .pt-tools { display: grid; grid-template-columns: repeat(2, auto); align-content: start; justify-content: center; gap: 3px; width: auto; padding: 6px; }
+  .pt-sizes { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 2px; padding-top: 5px; }
+  .pt-size { width: auto; height: 26px; }
 }
 
 /* paint.exe's file in the Trash: until Andrew draws its icon, a tiny

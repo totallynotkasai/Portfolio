@@ -7,10 +7,10 @@
    the desktop never waits for it.
 
    An old paint program that still works: a 640x480 picture, a pencil, a
-   brush (three sizes), a fill bucket and an eraser, the site's colours,
-   undo and redo, Clear and Save. Every tool lays down hard-edged pixels,
-   as the old paint programs did, so the bucket always fills right up to
-   a line. The picture is shown at full size (or double, with room to
+   brush, a line and a rectangle (three sizes each), a fill bucket, an
+   eyedropper, an eraser, the site's colours, undo and redo, Clear and
+   Save. Every tool lays down hard-edged pixels, as the old paint programs
+   did, so the bucket always fills right up to a line. The picture is shown at full size (or double, with room to
    spare) and crisp, or smaller to fit a small window. It stays in this
    tab when paint.exe closes, and Save downloads it as a PNG: nothing is
    ever sent anywhere.
@@ -31,11 +31,15 @@
   const UNDO_STEPS = 20;         // how far back Undo goes
   const FILE = 'kasai-paint.png'; // what Save calls the picture
   const SIZE_NAMES = ['small', 'medium', 'large'];
-  // The tools: their keys, and (brush and eraser) their three sizes in pixels.
+  // The tools: their keys, and (the brush, the shapes and the eraser)
+  // their three sizes in pixels. A line or box of size 1 is one pixel wide.
   const TOOLS = [
     { id: 'pencil', key: 'p', name: 'Pencil', icon: 'pencil' },
     { id: 'brush', key: 'b', name: 'Brush', icon: 'brush', sizes: [3, 7, 13] },
+    { id: 'line', key: 'l', name: 'Line', icon: 'line', sizes: [1, 3, 7], shape: true },
+    { id: 'rect', key: 'r', name: 'Rectangle', icon: 'rect', sizes: [1, 3, 7], shape: true },
     { id: 'fill', key: 'f', name: 'Fill', icon: 'bucket' },
+    { id: 'dropper', key: 'i', name: 'Eyedropper', icon: 'dropper' },
     { id: 'eraser', key: 'e', name: 'Eraser', icon: 'eraser', sizes: [8, 16, 28] },
   ];
   const toolOf = (id) => TOOLS.find((t) => t.id === id) || TOOLS[0];
@@ -59,6 +63,10 @@
     brush: '<path d="M20 4c-2.3 1.6-6.7 6-8.4 8.3l2 2C15.9 12.7 20.4 8.3 22 6z"/><path d="M11.2 13.3c-2.1 0-3.7 1.4-3.9 3.5-.1 1.5-1.1 2.5-2.8 3.2 3.4 1.1 7.3.2 8.3-3"/>',
     bucket: '<path d="M9 4.5 3.5 10l7.5 7.5L18 10.5z"/><path d="M3.5 10h14"/><path d="M20 13.5c1.1 1.5 1.7 2.6 1.7 3.4a1.7 1.7 0 0 1-3.4 0c0-.8.6-1.9 1.7-3.4z"/>',
     eraser: '<path d="M9 19.5 3.8 14.3 13.3 4.8l6.9 6.9-7.8 7.8z"/><path d="M8.6 9.5l6.9 6.9"/><path d="M9 19.5h11"/>',
+    // The shapes show their handles, so the box never reads as Maximise.
+    line: '<path d="M6.5 17.5l11-11"/><path d="M3 18h3v3H3zM18 3h3v3h-3z"/>',
+    rect: '<path d="M7.5 6h9M7.5 18h9M5 8.5v7M19 8.5v7"/><path d="M3 4h3v3H3zM18 4h3v3h-3zM3 17h3v3H3zM18 17h3v3h-3z"/>',
+    dropper: '<path d="M13 7.5 4.6 15.9a2 2 0 0 0-.5 2L3.5 20.5l2.6-.6a2 2 0 0 0 2-.5l8.4-8.4"/><path d="M11 5.5l7.5 7.5"/><path d="M15.3 8.7l3.3-3.3a2 2 0 0 0-2.8-2.8l-3.3 3.3"/>',
     undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     redo: '<path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
     page: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
@@ -91,13 +99,14 @@
   const undos = []; // { x, y, w, h, data }
   const redos = [];
   let tool = 'pencil';
+  let lastTool = 'pencil'; // the tool the eyedropper goes back to
   let size = 1;     // 0, 1 or 2: small, medium or large
   let colour = 0;   // its place in COLOURS
   let strokes = 0;  // lines drawn and areas filled (the wizard notices effort)
   let saved = false; // saved once: the title bar shows the file's name
   let view = null;  // the window's moving parts, while paint.exe is open
   let dirty = null; // the box changed since the canvas was last drawn: { x0, y0, x1, y1 }
-  let stroke = null; // the line being drawn: { id, x, y, before, box }
+  let stroke = null; // the line being drawn: { id, x, y, before, box }, and for a shape { shape, end, shift, shown }
 
   const blankPicture = () => {
     img = new ImageData(W, H);
@@ -175,11 +184,10 @@
       touched(x - r, y - r, x + r, y + r);
     }
   }
-  // A line of dabs from where the pointer was to (x1, y1), with no gaps.
-  function lineTo(x1, y1) {
-    if (!Number.isFinite(x1) || !Number.isFinite(y1)) return; // a walk that could never arrive
-    let x = stroke.x;
-    let y = stroke.y;
+  // Dabs from (x, y) to (x1, y1) with no gaps, not counting (x, y) itself.
+  // False for a point that isn't a number: a walk that could never arrive.
+  function walk(x, y, x1, y1) {
+    if (![x, y, x1, y1].every(Number.isFinite)) return false;
     const dx = Math.abs(x1 - x);
     const dy = -Math.abs(y1 - y);
     const sx = x < x1 ? 1 : -1;
@@ -191,8 +199,90 @@
       if (e2 <= dx) { err += dx; y += sy; }
       dab(x, y);
     }
+    return true;
+  }
+  // A line of dabs from where the pointer was to (x1, y1).
+  function lineTo(x1, y1) {
+    if (!walk(stroke.x, stroke.y, x1, y1)) return;
     stroke.x = x1;
     stroke.y = y1;
+  }
+  // A line of dabs from (x0, y0) to (x1, y1), both ends included.
+  function lineBetween(x0, y0, x1, y1) {
+    if (![x0, y0, x1, y1].every(Number.isFinite)) return;
+    dab(x0, y0);
+    walk(x0, y0, x1, y1);
+  }
+
+  /* ---------- the line and the rectangle ----------
+     While the pointer is down the shape is a preview: each move puts back
+     the box the last one covered (from the copy taken at the start) and
+     draws it again to the newest point. Shift keeps a line to 0, 45 or 90
+     degrees and makes the box a square. */
+  function shapeEnd(s) {
+    let x = s.end.x;
+    let y = s.end.y;
+    if (!s.shift) return { x, y };
+    const dx = x - s.x;
+    const dy = y - s.y;
+    const ax = Math.abs(dx);
+    const ay = Math.abs(dy);
+    if (tool === 'rect' || (ay > ax * 0.414 && ax > ay * 0.414)) {
+      const n = Math.max(ax, ay);
+      x = s.x + (dx < 0 ? -n : n);
+      y = s.y + (dy < 0 ? -n : n);
+    } else if (ax >= ay) y = s.y;
+    else x = s.x;
+    return { x, y };
+  }
+  function drawShape() {
+    const s = stroke;
+    if (!s || !s.shape) return;
+    if (s.shown) {
+      const b = s.shown;
+      for (let r = b.y0; r <= b.y1; r++) pix.set(s.before.subarray(r * W + b.x0, r * W + b.x1 + 1), r * W + b.x0);
+      touched(b.x0, b.y0, b.x1, b.y1);
+    }
+    const { x, y } = shapeEnd(s);
+    if (tool === 'rect') {
+      lineBetween(s.x, s.y, x, s.y);
+      lineBetween(x, s.y, x, y);
+      lineBetween(x, y, s.x, y);
+      lineBetween(s.x, y, s.x, s.y);
+    } else lineBetween(s.x, s.y, x, y);
+    // The box it covers (the dabs reach r past the ends), on the picture.
+    const r = Math.floor(toolOf(tool).sizes[size] / 2);
+    const b = {
+      x0: Math.max(0, Math.min(s.x, x) - r), y0: Math.max(0, Math.min(s.y, y) - r),
+      x1: Math.min(W - 1, Math.max(s.x, x) + r), y1: Math.min(H - 1, Math.max(s.y, y) + r),
+    };
+    s.shown = b.x0 <= b.x1 && b.y0 <= b.y1 ? b : null;
+  }
+  // Esc while dragging: the picture goes back as it was, with no undo step.
+  function dropShape() {
+    const s = stroke;
+    stroke = null;
+    if (s.box) {
+      const b = s.box;
+      for (let r = b.y0; r <= b.y1; r++) pix.set(s.before.subarray(r * W + b.x0, r * W + b.x1 + 1), r * W + b.x0);
+      touched(b.x0, b.y0, b.x1, b.y1);
+    }
+    try { view.canvas.releasePointerCapture(s.id); } catch (err) { /* that pointer has already gone */ }
+    announce(`${toolOf(tool).name} dropped`, true);
+  }
+
+  // The eyedropper: the colour under (x, y) becomes the colour in use (the
+  // picture only ever holds the palette's colours), then the tool you had
+  // before comes back.
+  function pickAt(x, y) {
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    const v = pix[y * W + x];
+    const i = COLOURS.findIndex(([, hex]) => pixel(hex) === v);
+    if (i < 0) return;
+    colour = i;
+    tool = lastTool;
+    syncTools();
+    announce(`${COLOURS[i][0]} picked. ${toolName()}`, true);
   }
 
   // The fill bucket: every pixel joined to (x, y) that's the same colour
@@ -377,7 +467,7 @@
     win.menu.hidden = false;
     if (saved) win.setTitle(`${FILE} - paint.exe`);
     win.setStatus(`<span class="pt-said" data-said></span><span class="pt-pos" data-pos></span>` +
-      K.hint('P, B, F and E pick a tool; [ and ] its size', 'Pick a tool and a colour, then draw'));
+      K.hint('P B L R F I E pick a tool, [ ] its size', 'Pick a tool and a colour, then draw'));
     const q = (s) => root.querySelector(s);
     const canvas = q('canvas');
     view = {
@@ -442,9 +532,13 @@
       if (!p) return;
       canvas.focus({ preventScroll: true }); // so the keys work straight away
       if (tool === 'fill') { fillAt(p.x, p.y); return; }
+      if (tool === 'dropper') { pickAt(p.x, p.y); return; }
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* that pointer has already gone */ }
       stroke = { id: e.pointerId, x: p.x, y: p.y, before: pix.slice(), box: null };
-      dab(p.x, p.y);
+      if (toolOf(tool).shape) {
+        Object.assign(stroke, { shape: true, end: p, shift: e.shiftKey, shown: null });
+        drawShape();
+      } else dab(p.x, p.y);
     });
     canvas.addEventListener('pointermove', (e) => {
       const p = at(e);
@@ -452,6 +546,13 @@
       if (!p) { if (stroke && e.pointerId === stroke.id) endStroke(); return; }
       v.pos.textContent = p.x >= 0 && p.y >= 0 && p.x < W && p.y < H ? `${p.x}, ${p.y}px` : '';
       if (!stroke || e.pointerId !== stroke.id) return;
+      // A shape only needs the newest point.
+      if (stroke.shape) {
+        stroke.end = p;
+        stroke.shift = e.shiftKey;
+        drawShape();
+        return;
+      }
       const all = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
       (all.length ? all : [e]).forEach((ev) => { const q = at(ev); if (q) lineTo(q.x, q.y); });
     });
@@ -488,6 +589,10 @@
       ({ undo, redo, clear, save })[b.dataset.act]();
     });
     v.win.el.addEventListener('keydown', onKey);
+    // Shift let go mid-shape: the line comes unsnapped, the square a box again.
+    v.win.el.addEventListener('keyup', (e) => {
+      if (e.key === 'Shift' && stroke && stroke.shape) { stroke.shift = false; drawShape(); }
+    });
     if (window.ResizeObserver) {
       v.ro = new ResizeObserver(fit);
       v.ro.observe(v.work);
@@ -503,10 +608,15 @@
     strokes++;
   }
 
-  // P, B, F and E pick a tool, [ and ] its size; Ctrl+Z undoes, Ctrl+Y (or
-  // Ctrl+Shift+Z) redoes and Ctrl+S saves.
+  // P, B, L, R, F, I and E pick a tool, [ and ] its size; Ctrl+Z undoes,
+  // Ctrl+Y (or Ctrl+Shift+Z) redoes and Ctrl+S saves. Mid-shape, Shift
+  // snaps it and Esc drops it (rather than minimising the window).
   function onKey(e) {
     if (!view || e.defaultPrevented || e.altKey || e.isComposing || document.querySelector('dialog[open]')) return;
+    if (stroke && stroke.shape) {
+      if (e.key === 'Escape') { e.preventDefault(); dropShape(); return; }
+      if (e.key === 'Shift') { stroke.shift = true; drawShape(); return; }
+    }
     const k = (e.key || '').toLowerCase();
     if (e.ctrlKey || e.metaKey) {
       if (k === 'z' && !e.shiftKey) undo();
@@ -526,7 +636,9 @@
 
   function pickTool(id) {
     if (stroke) endStroke();
-    tool = toolOf(id).id;
+    const next = toolOf(id).id;
+    if (next === 'dropper' && tool !== 'dropper') lastTool = tool;
+    tool = next;
     syncTools();
     announce(toolName());
   }
