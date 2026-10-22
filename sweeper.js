@@ -96,7 +96,7 @@
      From sound.js (silent while sound is off), only while the game is on
      screen. A tile sounds from its column: further left on the board,
      further left in your ears. */
-  const sound = (name, o) => !!view && !!K.sound && K.sound.play(name, o);
+  const sound = (name, o) => !!view && !view.win.minimised && !!K.sound && K.sound.play(name, o);
   const panOf = (b, i) => (b.cols > 1 ? ((i % b.cols) / (b.cols - 1) - 0.5) : 0);
 
   /* ---------- what they say (content.js, under "sweeper") ---------- */
@@ -310,7 +310,8 @@
     const found = around.filter((j) => FOUND.has(b.cells[j].s)).length;
     const need = b.cells[i].adj;
     if (found !== need) {
-      say(need === 1 ? 'Star the wizard beside it first.' : `Star all ${need} wizards beside it first.`, 0, i);
+      say(found > need ? 'There are too many stars round it: one of them is wrong.'
+        : need === 1 ? 'Star the wizard beside it first.' : `Star all ${need} wizards beside it first.`, 0, i);
       sound('deny', { pan: panOf(b, i) });
       return;
     }
@@ -541,6 +542,15 @@
     if (run.newBest) K.store.merge(STORE_KEY, { best: { score: run.score, levels: run.cleared, at: Date.now() } });
   }
 
+  // A run left halfway when the page goes (a reload, closing the tab):
+  // its score is kept if it's the best, and the run carries on as it was
+  // if the page comes back.
+  window.addEventListener('pagehide', () => {
+    if (!run || run.recorded || !(run.score > 0)) return;
+    const prev = bestRun();
+    if (!prev || run.score > prev.score) K.store.merge(STORE_KEY, { best: { score: run.score, levels: run.cleared, at: Date.now() } });
+  });
+
   // The pet wizard on the desktop tells everyone how it went (and throws
   // himself a party for a win or a new best).
   function tellDesktop(win) {
@@ -612,9 +622,9 @@
     else win.body.appendChild(root);
     win.menu.innerHTML = `
       <div class="sw-menu" role="group" aria-label="Game">
-        <button type="button" data-act="new">${doodleIcon('controller')}New run</button>
-        <button type="button" data-act="star" aria-pressed="false">${STAR}Star mode</button>
-        <button type="button" data-act="lucky" aria-pressed="false" hidden>${STAR}Lucky star <b>0</b></button>
+        <button type="button" data-act="new">${doodleIcon('controller')}New<span class="sw-wide"> run</span></button>
+        <button type="button" data-act="star" aria-pressed="false">${STAR}Star<span class="sw-wide"> mode</span></button>
+        <button type="button" data-act="lucky" aria-pressed="false" hidden>${STAR}Lucky<span class="sw-wide"> star</span> <b>0</b></button>
         <button type="button" data-act="help">Help</button>
       </div>`;
     win.menu.hidden = false;
@@ -636,6 +646,7 @@
       cursor: 0,       // the tile keyboard focus sits on
       shown: null,     // the board drawn
       card: false,     // a card is over the board
+      cardClosedAt: -Infinity, // when the last one went (see wire)
       help: false,     // ...and it's the help card
       peek: false,     // the run is over and you're looking at the board
       timers: new Set(),
@@ -655,6 +666,7 @@
     view.timers.forEach(clearTimeout);
     dropPress();
     armed = false;
+    view.win.el.removeEventListener('keydown', view.esc);
     view = null;
   }
 
@@ -798,14 +810,15 @@
   function syncCard(focus) {
     if (!view) return;
     const show = view.help || !run || run.step === 'pick' || run.step === 'won' || (run.step === 'over' && !view.peek);
+    if (view.card && !show) view.cardClosedAt = performance.now();
     view.card = show;
     view.board.inert = show;
     if (show) view.toast.hidden = true;
     view.overlay.hidden = !show;
     view.overlay.innerHTML = show ? cardHtml() : '';
-    if (show && focus) {
+    if (show && focus && !view.win.minimised) { // (a card shown while minimised leaves focus alone)
       const go = view.overlay.querySelector('[data-first]') || view.overlay.querySelector('button');
-      if (go) go.focus({ preventScroll: true });
+      if (go) { go.focus({ preventScroll: true }); go.scrollIntoView({ block: 'nearest' }); }
     }
   }
 
@@ -839,7 +852,7 @@
     if (run.step === 'pick') {
       const l = run.last;
       return `
-        <section class="sw-card" aria-labelledby="sw-card-h">
+        <section class="sw-card is-pick" aria-labelledby="sw-card-h">
           ${l.line ? `<p class="sw-said">${esc(l.line)}</p>` : ''}
           <span class="sw-card-art">${wizardPic('happy')}</span>
           <p class="sw-kicker">${l.onwards ? 'Endless levels' : `Level ${l.level} cleared`}</p>
@@ -885,9 +898,8 @@
     const n = owned(id);
     return `<button class="sw-up ${u.colour}" type="button" data-up="${id}"${first ? ' data-first' : ''}>
         <span class="sw-up-icon">${doodleIcon(u.icon)}</span>
-        <span class="sw-up-name">${esc(w.name)}</span>
+        <span class="sw-up-name">${esc(w.name)}${n ? ` <span class="sw-up-have">You have ${n}</span>` : ''}</span>
         <span class="sw-up-blurb">${esc(w.blurb)}</span>
-        ${n ? `<span class="sw-up-have">You have ${n}</span>` : ''}
       </button>`;
   };
 
@@ -937,6 +949,7 @@
      Space clears, F stars, L uses a Lucky star (Escape puts it away). */
   let press = null;     // a finger resting on a tile
   let swallowUntil = 0; // the click at the end of a long press isn't a tap
+  let swallowTile = -1; // (only on the tile that was held)
   let lastPointer = 'mouse';
   const tileOf = (t) => (t && t.closest ? t.closest('.sw-cell') : null);
   const tileIndex = (el) => Number(el.dataset.i);
@@ -951,9 +964,14 @@
 
   function wire(v) {
     const { board } = v;
+    // The second click of a double-click lands on whatever is under it: never
+    // on a card's button, and never on the game just after a card goes.
+    v.win.body.addEventListener('click', (e) => {
+      if (e.detail > 1 && (v.overlay.contains(e.target) || performance.now() - v.cardClosedAt < 500)) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
     board.addEventListener('click', (e) => {
       const el = tileOf(e.target);
-      if (!el || !inPlay() || performance.now() < swallowUntil) return;
+      if (!el || !inPlay() || (performance.now() < swallowUntil && tileIndex(el) === swallowTile)) return;
       setCursor(tileIndex(el));
       act(tileIndex(el), starMode ? 'star' : 'clear');
     });
@@ -971,7 +989,7 @@
       if (!el || e.pointerType !== 'touch' || !e.isPrimary || !inPlay()) return;
       dropPress();
       const i = tileIndex(el);
-      const p = { id: e.pointerId, x: e.clientX, y: e.clientY, done: false };
+      const p = { id: e.pointerId, i, x: e.clientX, y: e.clientY, done: false };
       p.timer = setTimeout(() => {
         p.done = true;
         setCursor(i);
@@ -987,7 +1005,7 @@
     });
     const endPress = (e) => {
       if (!press || e.pointerId !== press.id) return;
-      if (press.done) swallowUntil = performance.now() + 450;
+      if (press.done) { swallowUntil = performance.now() + 450; swallowTile = press.i; }
       dropPress();
     };
     board.addEventListener('pointerup', endPress);
@@ -1001,6 +1019,17 @@
     });
     v.menu.addEventListener('click', onMenu);
     v.overlay.addEventListener('click', onCard);
+    // Escape puts an armed Lucky star away from anywhere in the window
+    // (otherwise it tucks the window away).
+    v.esc = (e) => {
+      if (e.key !== 'Escape' || !armed || e.defaultPrevented) return;
+      e.preventDefault();
+      armed = false;
+      drawMenu();
+      drawStatus();
+      say('Lucky star put away.');
+    };
+    v.win.el.addEventListener('keydown', v.esc);
   }
 
   function setCursor(i, focus) {
@@ -1036,7 +1065,7 @@
       case ' ':
         if (e.ctrlKey) return;
         e.preventDefault();
-        if (!e.repeat && inPlay()) act(i, starMode ? 'star' : 'clear');
+        if (!e.repeat && inPlay()) act(i, 'clear'); // (F stars: Star mode is for taps and clicks)
         return;
       case 'f':
       case 'F':
@@ -1049,15 +1078,6 @@
         if (e.ctrlKey) return;
         e.preventDefault();
         if (!e.repeat) lucky(i);
-        return;
-      case 'Escape':
-        // Puts a Lucky star away (otherwise Escape tucks the window away).
-        if (!armed) return;
-        e.preventDefault();
-        armed = false;
-        drawMenu();
-        drawStatus();
-        say('Lucky star put away.');
         return;
       default:
         return;

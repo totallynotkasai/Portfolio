@@ -84,6 +84,14 @@
     }
     return null;
   };
+  // When a finger last lifted, and until when taps inside windows are
+  // ignored (see open).
+  let lastTouch = -Infinity;
+  let tapsFrom = 0;
+  document.addEventListener('pointerup', (e) => { if (e.pointerType === 'touch') lastTouch = performance.now(); }, true);
+  layer.addEventListener('click', (e) => {
+    if (performance.now() < tapsFrom) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
   const specFor = (idOrSpec) => (typeof idOrSpec === 'string'
     ? (named(idOrSpec) ? Object.assign({ id: idOrSpec }, APPS[idOrSpec] || SUBS[idOrSpec]) : null)
     : idOrSpec);
@@ -178,7 +186,9 @@
     const spec = win.spec;
     // A tab opened in the background can have no size yet: park the window
     // and place it properly once the desktop has a size (see refit below).
-    win.unplaced = W < 120 || H < 120;
+    // So does one opened in the phone layout, where windows fill the screen:
+    // a phone turned sideways (or a browser widened) places it afresh.
+    win.unplaced = W < 120 || H < 120 || isPhone();
     if (win.unplaced) {
       const [w0, h0] = spec.size || [720, 520];
       setRect(win, { x: 8, y: 8, w: w0, h: h0 });
@@ -238,6 +248,9 @@
     else if (!APPS[spec.id]) win.spec = Object.assign(win.spec, spec);
     const first = !win.open;
     const back = !first && win.minimised;
+    // Really opening, or coming back from the taskbar: one step in the
+    // history (bringing an open window forward is none).
+    const stepped = opts.push !== false && (first || back) && !win.ownsStep;
     // What it grows out of, measured before anything moves: whatever opened
     // it, or its own taskbar button when it comes back from there.
     const src = first || back ? midway || opts.at || rectOf(anchorOf(opts.from) || (back ? taskButton(win) : null)) : null;
@@ -252,13 +265,19 @@
     } else if (back) {
       win.minimised = false;
       win.el.hidden = false;
+      // The viewer brought back for a new picture takes that picture's shape.
+      if (opts.refit && spec.fit && !win.maximised && !win.snap) place(win, opts.keepCentre);
     } else if (opts.refit && spec.fit && !win.maximised && !win.snap) {
       glide(win, () => place(win, opts.keepCentre), resized);
     }
     if (opts.from && (first || opts.refit)) win.from = opts.from;
-    focusWin(win, { push: opts.push !== false, focus: opts.focus !== false });
+    if (stepped) win.ownsStep = true;
+    focusWin(win, { push: stepped, focus: opts.focus !== false });
     if (spec.onShow) spec.onShow(win);
     if (first || back) grow(win, src); // after onShow, which may measure what's inside
+    // A phone's tap that opened it: the second tap of a double-tap lands
+    // inside it, so taps in there wait a moment.
+    if ((first || back) && isPhone() && performance.now() - lastTouch < 600) tapsFrom = performance.now() + 350;
     if (first) sound('open', { pan: panOf(win) });
     else if (back) sound('restore', { pan: panOf(win) });
     K.emit('open', { id: win.id, app: appOf(win), first });
@@ -454,12 +473,14 @@
     win.minimised = true;
     restack();
     sync(false);
+    giveBack(win);
     const btn = taskButton(win);
     leave(win, btn, () => { win.el.hidden = true; }); // into its taskbar button
-    if (btn) btn.focus({ preventScroll: true });
+    if (btn && rectOf(btn)) btn.focus({ preventScroll: true }); // (only a button you can see)
     else returnFocus(win);
     sound('minimise', { pan: panOf(win) });
     announce(win.spec.label + ' minimised');
+    K.emit('minimise', { id: win.id, app: appOf(win) });
   }
 
   // `quick` skips the little animation (Restart closes everything at once).
@@ -477,10 +498,12 @@
       if (win.snap) setSnap(win, null);
       restack();
       sync(false);
+      giveBack(win);
       if (win.spec.onClose) win.spec.onClose(win);
       returnFocus(win);
-      // Projects, documents and pictures are made fresh next time.
-      if (!APPS[win.id]) { win.el.remove(); wins.delete(win.id); }
+      // Projects, documents and pictures are made fresh next time (Forward
+      // makes them again from what they were).
+      if (!APPS[win.id]) { closedSpecs.set(win.id, win.spec); win.el.remove(); wins.delete(win.id); }
       announce(win.spec.label + ' closed');
     };
     if (quick) { finishAnim(win); done(); return; }
@@ -621,6 +644,7 @@
     if (isPhone() || win.maximised || e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
+    focusInto(win);
     finishAnim(win);
     const before = stateOf(win);
     setSnap(win, null);
@@ -656,11 +680,21 @@
     });
   }
 
+  // Off the left edge, this much of a window stays on screen: part of the
+  // title bar beside its buttons can still be grabbed.
+  const KEEP_LEFT = 160;
+  // Keyboard focus moves into a window whose title bar or edge is pressed
+  // (unless it's in there already), so Escape and the keys go to it.
+  function focusInto(win) {
+    if (win.el.contains(document.activeElement)) return;
+    ($('#' + win.headingId, win.el) || win.el).focus({ preventScroll: true });
+  }
+
   function wireWindow(win) {
     const el = win.el;
     $('.os-min', el).addEventListener('click', () => minimise(win));
     $('.os-max', el).addEventListener('click', () => toggleMax(win));
-    $('.os-close', el).addEventListener('click', () => closeOrBack(win));
+    $('.os-close', el).addEventListener('click', () => close(win));
     // A click or Tab anywhere in a window brings it to the front.
     el.addEventListener('pointerdown', () => { if (front() !== win) focusWin(win, { focus: false, push: false }); }, true);
     el.addEventListener('focusin', () => { if (front() !== win && !win.minimised) focusWin(win, { focus: false, push: false }); });
@@ -672,7 +706,9 @@
     // window comes loose after 4px, back at its own size and held at the
     // same spot along its title bar.
     win.bar.addEventListener('pointerdown', (e) => {
-      if (isPhone() || e.button !== 0 || e.target.closest('button')) return;
+      if (e.button !== 0 || e.target.closest('button')) return;
+      focusInto(win);
+      if (isPhone()) return;
       e.preventDefault();
       finishAnim(win);
       const area = layer.getBoundingClientRect();
@@ -689,12 +725,14 @@
           if (!loose) {
             if (Math.hypot(p.x - sx, p.y - sy) < 4) return;
             loose = true;
-            const own = win.snap ? win.snap.was : win.rect;
+            const was = win.snap ? win.snap.was : win.rect;
+            // (Its own size, but never bigger than the desktop is now.)
+            const own = { w: Math.min(was.w, area.width - 16), h: Math.min(was.h, area.height - 16) };
             r0 = { x: sx - area.left - ((sx - box.left) / box.width) * own.w, y: box.top - area.top, w: own.w, h: own.h };
             glide(win, () => { setMax(win, false); setSnap(win, null); setRect(win, r0); }, resized);
           }
           setRect(win, {
-            x: clamp(r0.x + p.x - sx, 90 - r0.w, area.width - 90),
+            x: clamp(r0.x + p.x - sx, KEEP_LEFT - r0.w, area.width - 90),
             y: clamp(r0.y + p.y - sy, 0, area.height - 44),
             w: r0.w,
             h: r0.h,
@@ -731,6 +769,7 @@
   // that opened in the background is first shown).
   let resizeTimer;
   function refit() {
+    if (isPhone()) { layoutDesktop(); return; } // phone windows fill the screen: their own sizes wait
     const area = layer.getBoundingClientRect();
     if (area.width < 120 || area.height < 120) return; // still no room to work with
     wins.forEach((w) => {
@@ -742,7 +781,7 @@
         const r = w.rect;
         const nw = Math.min(r.w, area.width - 16);
         const nh = Math.min(r.h, area.height - 16);
-        setRect(w, { x: clamp(r.x, 8 - nw + 90, area.width - 90), y: clamp(r.y, 0, area.height - 44), w: nw, h: nh });
+        setRect(w, { x: clamp(r.x, KEEP_LEFT - nw, area.width - 90), y: clamp(r.y, 0, area.height - 44), w: nw, h: nh });
       }
       if (w.open && !w.minimised && w.spec.onResize) w.spec.onResize(w);
     });
@@ -795,11 +834,27 @@
     const a = document.activeElement;
     const had = a && a.matches && a.matches('.task-win') ? a.dataset.win : null;
     const shown = order.map((id) => wins.get(id)).filter(Boolean).sort((a, b) => a.openedAt - b.openedAt);
-    list.innerHTML = shown.map((w) => `<li><button class="task-win ${esc(w.spec.colour || 'lavender')}${w === f ? ' is-active' : ''}${w.minimised ? ' is-min' : ''}" type="button" data-win="${esc(w.id)}"${w === f ? ' aria-current="true"' : ''}>
-          ${w.spec.icon ? navIcon(w.spec.icon) : doodleIcon(w.spec.doodle || 'folder')}<span class="task-label">${esc(w.spec.label)}</span>
+    list.innerHTML = shown.map((w) => `<li><button class="task-win ${esc(w.spec.colour || 'lavender')}${w === f ? ' is-active' : ''}${w.minimised ? ' is-min' : ''}" type="button" data-win="${esc(w.id)}"${w === f ? ' aria-current="true"' : ''} title="${esc(w.spec.label)}">
+          ${w.spec.icon ? navIcon(w.spec.icon) : doodleIcon(w.spec.doodle || 'folder')}<span class="task-label">${esc(w.spec.label)}${w.minimised ? '<span class="vh">, minimised</span>' : ''}</span>
         </button></li>`).join('');
+    fitTaskbar(list);
     if (had && $(`.task-win[data-win="${had}"]`, list)) $(`.task-win[data-win="${had}"]`, list).focus({ preventScroll: true });
   }
+
+  // Too many buttons for the bar: icons only, then smaller icons.
+  function fitTaskbar(list) {
+    list = list || $('#task-windows');
+    if (!list) return;
+    list.classList.remove('is-crowded', 'is-packed', 'is-tight');
+    const over = () => list.scrollWidth > list.clientWidth + 1;
+    if (!list.children.length || !over()) return;
+    list.classList.add('is-crowded');
+    if (over()) list.classList.add('is-packed');
+    if (over()) list.classList.add('is-tight'); // (and past that it scrolls)
+  }
+  // (Again whenever the strip itself changes size: the tray and the browser.)
+  if (window.ResizeObserver && $('#task-windows')) new ResizeObserver(() => fitTaskbar()).observe($('#task-windows'));
+  else window.addEventListener('resize', () => fitTaskbar());
 
   taskbar.addEventListener('click', (e) => {
     const b = e.target.closest('.task-btn[data-app], .task-win');
@@ -807,7 +862,11 @@
     e.preventDefault();
     const id = b.dataset.app || b.dataset.win;
     const w = wins.get(id);
-    if (w && w.open && w === front()) { minimise(w); return; }
+    if (w && w.open && w === front()) {
+      if (performance.now() < tapsFrom) return; // the second tap of the double-tap that opened it
+      minimise(w);
+      return;
+    }
     open(w && !APPS[id] ? w.spec : id, { from: b });
   });
 
@@ -816,27 +875,68 @@
     const app = win && appOf(win);
     return app && APPS[app] ? APPS[app].path : null;
   };
+  /* ---------- Back and Forward ----------
+     One rule on computers and phones: every window you open is one step in
+     the browser's history, and Back closes the window in front (Forward
+     brings it back). A window owns its step (win.ownsStep) until it's
+     closed or minimised, which takes a step off quietly; the windows a
+     visit starts with own none. Back with nothing left to close keeps
+     going, so the last Back leaves the site and no press is wasted. The
+     address always follows the window in front. */
   let notFound = document.body.dataset.page === 'notfound';
   // How many steps into the site's history we are (so popstate can tell
   // Back from Forward). Kept in each entry, so it survives a reload.
   let depth = (history.state && history.state.n) || 0;
+  let dropping = 0;   // steps to take off, gathered into one history.go
+  const moves = [];   // our own history.go calls, still to arrive as popstate
+  let pushLater = 0;  // steps to add once they have
+  const undone = new Map(); // a step taken off -> the window to bring back on Forward
+  const closedSpecs = new Map(); // projects, documents and pictures, once closed
+  // Where the history really is: steps waiting to come off haven't yet.
+  const at = () => depth + dropping + moves.reduce((s, k) => s + k, 0);
+  const stateNow = (f, n) => ({ app: f ? appOf(f) : null, win: f ? f.id : null, n });
+
   function syncRoute(push) {
     const f = front();
     if (notFound && (!f || f.id === 'error')) return; // keep the unknown address until something opens
-    // A window with no address of its own (pet.exe) keeps the current one;
-    // on phones it still gets a step in the history, so Back closes it.
-    const path = routeOf(f) || (isPhone() ? (f ? window.location.pathname : '/') : null);
-    if (!path) return; // just the desktop: leave the address alone
     notFound = false;
-    const state = { app: f ? appOf(f) : null, win: f ? f.id : null, n: depth };
-    // Desktops add a step when the address changes. Phones add one for every
-    // window, so the phone's Back button always steps out of the one you see.
-    const was = history.state || {};
-    const changed = isPhone() ? state.win !== (was.win || null) : path !== window.location.pathname;
-    if (push && changed) {
-      state.n = ++depth;
-      history.pushState(state, '', path);
-    } else history.replaceState(state, '', path);
+    // A window with no address of its own (pet.exe) keeps the current one;
+    // just the desktop is the home address.
+    const path = routeOf(f) || (f ? window.location.pathname : '/');
+    if (push) {
+      if (dropping > 0) { dropping--; depth++; } // a step about to come off is used again instead
+      else if (moves.length) { pushLater++; return; } // after our own move lands
+      else { depth++; history.pushState(stateNow(f, depth), '', path); return; }
+    }
+    history.replaceState(stateNow(f, at()), '', path);
+  }
+
+  // Takes `k` steps off quietly (a window closed or minimised by its own
+  // button or Escape; Restart takes them all): one history.go for every
+  // step taken off in the same moment, as back-to-back calls aren't
+  // reliable. Never more steps than there are, so closing what a visit
+  // started with never leaves the site.
+  function dropSteps(k) {
+    k = Math.min(k, depth);
+    if (k <= 0) return;
+    depth -= k;
+    const first = !dropping;
+    dropping += k;
+    if (!first) return;
+    setTimeout(() => {
+      const n = dropping;
+      dropping = 0;
+      if (!n) return;
+      moves.push(n);
+      history.go(-n);
+    }, 0);
+  }
+  // A window going away hands its step back (and Forward can bring it back).
+  function giveBack(win) {
+    if (!win.ownsStep) return;
+    win.ownsStep = false;
+    if (depth > 0) undone.set(depth, win.id);
+    dropSteps(1);
   }
 
   const baseTitle = 'Andrew Worgan - Kasai OS';
@@ -854,40 +954,57 @@
     syncTitle();
   }
 
-  // Bring back a window by id: an app or the CV, or a project/document still open.
+  // Bring back a window by id: an app or the CV, or a project, document or
+  // picture (still open, or made again from what it was this visit).
   const reopen = (id) => {
     const w = id && wins.get(id);
     if (w && w.open) return open(APPS[id] ? id : w.spec, { push: false });
-    return named(id) ? open(id, { push: false }) : null;
+    if (named(id)) return open(id, { push: false });
+    return id && closedSpecs.has(id) ? open(closedSpecs.get(id), { push: false }) : null;
   };
+  // How many windows own a step; never more than there are steps.
+  const owners = () => order.map((id) => wins.get(id)).filter((w) => w && w.ownsStep);
 
-  // Back and Forward. Desktops move between windows; phones close the
-  // window you're looking at (Back) or bring it back again (Forward).
   window.addEventListener('popstate', (e) => {
     const st = e.state || {};
-    const back = typeof st.n !== 'number' || st.n < depth;
-    depth = typeof st.n === 'number' ? st.n : 0;
-    if (isPhone()) {
-      if (!back) { reopen(st.win); return; }
-      const f = front();
-      if (f && f.id !== st.win) close(f);
-      if (st.win) { const g = front(); if (!g || g.id !== st.win) reopen(st.win); return; }
-      // Back at the home screen: tuck away anything still showing.
-      for (let g = front(); g; g = front()) minimise(g);
+    const n = typeof st.n === 'number' ? st.n : 0;
+    // One of our own quiet moves: the address follows the window in front.
+    if (moves.length) {
+      moves.shift();
+      depth = n;
+      for (; pushLater > 0 && !moves.length; pushLater--) syncRoute(true);
+      syncRoute(false);
       return;
     }
-    if (st.win && reopen(st.win)) return;
-    const target = st.app || K.appFromPath(window.location.href);
-    if (named(target)) open(target, { push: false });
+    if (n < depth) {
+      // Back: the window in front closes (one for each step gone back).
+      let closed = 0;
+      const showing = order.map((id) => wins.get(id)).filter((w) => w && w.open && !w.minimised && !w.leaving).reverse();
+      for (let k = depth; k > n; k--) {
+        const f = showing.shift();
+        if (!f) break;
+        undone.set(k, f.id);
+        f.ownsStep = false;
+        close(f);
+        closed++;
+      }
+      depth = n;
+      const own = owners();
+      while (own.length > depth) own.shift().ownsStep = false;
+      // Nothing left to close: keep going, so no press is wasted.
+      if (!closed) { history.back(); return; }
+    } else if (n > depth) {
+      // Forward: the window Back closed comes back (after a reload, the step's own).
+      for (let k = depth + 1; k <= n; k++) {
+        const w = reopen(undone.get(k)) || reopen(st.win) || (named(st.app) ? open(st.app, { push: false }) : null)
+          || (k === n && named(K.appFromPath(window.location.href)) ? open(K.appFromPath(window.location.href), { push: false }) : null);
+        if (w) w.ownsStep = true;
+      }
+      depth = n;
+    }
+    sync(false);
   });
 
-  // The close button. On phones each window is a step in the history, so
-  // closing it is the same as pressing Back (and keeps the two in step).
-  function closeOrBack(win) {
-    const st = history.state || {};
-    if (isPhone() && st.win === win.id && st.n > 0) history.back();
-    else close(win);
-  }
 
   /* ══════════════════════════════════════════════════════════════════════
      START MENU  (a native popover: click-away, Escape and focus for free)
@@ -992,7 +1109,18 @@
      ══════════════════════════════════════════════════════════════════════
      Positions are kept per visitor as fractions of the desktop, so they
      survive a different window size. Phones use a tidy grid instead. */
-  const saved = () => (K.store.get('kasai:desktop', { items: {} }).items || {});
+  // (Checked: only spots that are two sensible fractions of the desktop
+  // are kept; the wizard keeps his here too.)
+  const saved = () => {
+    const raw = K.store.get('kasai:desktop', null);
+    const items = raw && typeof raw === 'object' && raw.items && typeof raw.items === 'object' ? raw.items : {};
+    const out = {};
+    Object.keys(items).forEach((k) => {
+      const s = items[k];
+      if (Array.isArray(s) && s.length === 2 && s.every((v) => Number.isFinite(v) && v > -1 && v < 2)) out[k] = s;
+    });
+    return out;
+  };
   const remember = (id, el) => {
     const items = saved();
     const d = desktop.getBoundingClientRect();
@@ -1006,21 +1134,35 @@
     desktop.classList.toggle('is-free', !phone);
     const d = desktop.getBoundingClientRect();
     const items = phone ? {} : saved();
-    const put = (el, id, x, y) => {
-      if (phone) { el.style.left = el.style.top = ''; return; }
-      const s = items[id];
-      const px = s ? s[0] * d.width : x;
-      const py = s ? s[1] * d.height : y;
-      el.style.left = clamp(px, 4, d.width - el.offsetWidth - 4) + 'px';
-      el.style.top = clamp(py, 4, d.height - el.offsetHeight - 4) + 'px';
-    };
     // The icons grow with the window (style.css), so their slots do too.
     const first = $('#desk-icons > li');
     const slot = first ? first.offsetHeight + 8 : 96;
     const col = first ? first.offsetWidth + 12 : 96;
     const perColumn = Math.max(1, Math.floor((d.height - 16) / slot));
-    $$('#desk-icons > li').forEach((li, i) => {
-      put(li, li.dataset.dragId, 12 + Math.floor(i / perColumn) * col, 12 + (i % perColumn) * slot);
+    const lis = $$('#desk-icons > li');
+    if (phone) { lis.forEach((li) => { li.style.left = li.style.top = ''; }); return; }
+    // Icons that were moved go where they were put (on the 8px grid), the
+    // rest into their columns; one that would land on another (spots kept
+    // on a bigger screen) takes the next free slot instead.
+    const placed = [];
+    const clash = (x, y, w, h) => placed.some((r) => x < r.x + r.w && r.x < x + w && y < r.y + r.h && r.y < y + h);
+    const spot = (el, x, y) => {
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      x = clamp(Math.round(x / 8) * 8, 4, d.width - w - 4);
+      y = clamp(Math.round(y / 8) * 8, 4, d.height - h - 4);
+      for (let k = 0; clash(x, y, w, h) && k < lis.length * 2; k++) {
+        x = clamp(12 + Math.floor(k / perColumn) * col, 4, d.width - w - 4);
+        y = clamp(12 + (k % perColumn) * slot, 4, d.height - h - 4);
+      }
+      placed.push({ x, y, w, h });
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+    };
+    const moved = lis.filter((li) => items[li.dataset.dragId]);
+    moved.forEach((li) => { const s = items[li.dataset.dragId]; spot(li, s[0] * d.width, s[1] * d.height); });
+    lis.forEach((li, i) => {
+      if (!items[li.dataset.dragId]) spot(li, 12 + Math.floor(i / perColumn) * col, 12 + (i % perColumn) * slot);
     });
   }
 
@@ -1354,6 +1496,9 @@
     // Any key (not Shift, Ctrl and friends on their own) or click skips it.
     const skip = (e) => {
       if (e.type === 'keydown' && /^(Shift|Control|Alt|AltGraph|Meta|CapsLock|Fn)$/.test(e.key)) return;
+      // The key that skips it does nothing else (Escape doesn't minimise
+      // the window it opened, letters don't count towards a secret word).
+      if (e.type === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); }
       end(true);
     };
     const run = () => {
@@ -1385,10 +1530,9 @@
     try {
       order.slice().reverse().forEach((id) => { const w = wins.get(id); if (w) close(w, true); });
       notFound = false;
-      if (isPhone()) {
-        history.replaceState({ app: null, win: null, n: depth }, '', '/');
-        sync(false);
-      } else open('about', { push: false, focus: false });
+      cascade = 0;
+      if (isPhone()) sync(false);
+      else open('about', { push: false, focus: false });
     } finally {
       hushed = false;
     }
@@ -1488,7 +1632,7 @@
             <fieldset class="wall-set">
               <legend>Colour</legend>
               <div class="wall-options">${WALL_COLOURS.map(([id, label]) =>
-                choice('colour', id, label, `<span class="wall-chip${id === 'navy' ? ' is-dark' : ''}" style="--chip: var(--wall-${id})">${doodleIcon('check')}</span>`)).join('')}</div>
+                choice('colour', id, label, `<span class="wall-chip${id === 'navy' ? ' is-dark' : ''}" data-chip="${id}" style="--chip: var(--wall-${id})">${doodleIcon('check')}</span>`)).join('')}</div>
             </fieldset>
             <fieldset class="wall-set">
               <legend>Pattern</legend>

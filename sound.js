@@ -488,19 +488,25 @@
 
   // On or off: kept in this browser, and the switches hear about it. On is
   // always a click (the speaker or the Start menu), which allows the sound.
-  function set(want) {
+  // `other`: another tab switched it, so this one follows without a chime.
+  function set(want, other) {
     want = !!want;
     if (want === on) return;
     on = want;
-    K.store.set(KEY, { on });
+    if (!other) K.store.set(KEY, { on });
     if (on) {
-      if (wake()) sound('on'); // plays as soon as the browser starts the sound
+      if (wake() && !other) sound('on'); // plays as soon as the browser starts the sound
     } else if (ctx) {
       hush();
       ctx.suspend().catch(() => {});
     }
     K.emit('sound', { on });
   }
+
+  // Switched in another tab: this one follows (off goes quiet at once).
+  window.addEventListener('storage', (e) => {
+    if (e.key === KEY) set(!!(K.store.get(KEY, null) || {}).on, true);
+  });
 
   K.sound = {
     get on() { return on; },

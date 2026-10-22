@@ -546,7 +546,7 @@
   const artCard = (it, i, n) => {
     const info = imgInfo(it.img) || {};
     const picked = info.colors || [];
-    const frame = HEX.test(it.frame) ? it.frame : picked[0];
+    const frame = K.readable(HEX.test(it.frame) ? it.frame : picked[0]); // (its set name and number sit on it)
     const chip = HEX.test(it.chip) ? it.chip : picked[1];
     let style = `--tilt:${[-2, 1.6, -0.8, 2.2, -1.4, 0.9][i % 6]}deg;`;
     if (frame) style += `--frame:${frame};--frame-ink:${textOn(frame)};`;

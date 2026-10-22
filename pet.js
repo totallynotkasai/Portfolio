@@ -128,13 +128,17 @@
 
     layer.innerHTML = `
       <div class="pet">
-        <p class="pet-bubble" hidden></p>
+        <p class="pet-bubble" aria-hidden="true" hidden></p>
+        <p class="vh" role="status" data-voice></p>
         <button class="pet-sprite" type="button" aria-label="Pet the wizard">
           <span class="pet-body"><span class="pet-pic"></span></span>
         </button>
       </div>`;
     const el = layer.firstElementChild;
     const bubble = el.querySelector('.pet-bubble');
+    // What he says is read out through a live region that's always there
+    // (one that appears with its words already in it can go unheard).
+    const voice = el.querySelector('[data-voice]');
     const btn = el.querySelector('.pet-sprite');
     const body = el.querySelector('.pet-body');
     // The animated him, or his picture if wizard-rig.js is missing. (The
@@ -259,12 +263,29 @@
        Nothing is saved until the first pet. After that: how many pets he's
        had, when you met, when you were last here and whether you've
        carried him (so he stops explaining how). */
-    const mem = K.store.get(PET_KEY, null) || {};
-    mem.pets = Math.max(0, Math.floor(Number(mem.pets) || 0));
+    // (Checked: a count that isn't a sensible number of pets, or a time that
+    // isn't a sensible time, counts as missing.)
+    const MOST_PETS = 999999;
+    const aTime = (t) => (typeof t === 'number' && t > Date.UTC(2020, 0, 1) && t < Date.now() + 864e5 ? t : 0);
+    const readMem = () => {
+      const m = K.store.get(PET_KEY, null) || {};
+      const n = Math.floor(Number(m.pets));
+      return { pets: Number.isFinite(n) ? Math.max(0, Math.min(MOST_PETS, n)) : 0, since: aTime(m.since), last: aTime(m.last), carried: !!m.carried };
+    };
+    const mem = readMem();
+    let unsaved = 0; // pets since the last save
     const friend = mem.pets > 0;
-    const welcome = friend && Date.now() - (Number(mem.last) || 0) > AWAY;
+    const welcome = friend && Date.now() - mem.last > AWAY;
+    // Another tab may have saved pets of its own: they're added to, never
+    // written over.
     const saveMem = () => {
-      if (mem.pets > 0) K.store.set(PET_KEY, { pets: mem.pets, since: mem.since || Date.now(), last: mem.last || Date.now(), carried: !!mem.carried });
+      const now = readMem();
+      mem.pets = Math.min(MOST_PETS, now.pets + unsaved);
+      unsaved = 0;
+      mem.since = [mem.since, now.since].filter(Boolean).sort((a, b) => a - b)[0] || 0;
+      mem.last = Math.max(mem.last, now.last);
+      mem.carried = mem.carried || now.carried;
+      if (mem.pets > 0) K.store.set(PET_KEY, { pets: mem.pets, since: mem.since || Date.now(), last: mem.last || Date.now(), carried: mem.carried });
     };
     const seen = () => { if (mem.pets > 0) { mem.last = Date.now(); saveMem(); } };
     seen();
@@ -274,10 +295,12 @@
     let bubbleTimer;
     let lastSaid = 0;
     let said = '';
+    let heard = false; // read out too, once he's been petted
     const say = (text, ms) => {
       if (!text) return;
       said = text;
       bubble.textContent = text;
+      if (heard) { voice.textContent = ''; setTimeout(() => { voice.textContent = text; }, 40); }
       bubble.hidden = false;
       lastSaid = Date.now();
       fitBubble();
@@ -621,13 +644,13 @@
     });
     function petHim() {
       if (state === 'held' || state === 'teleport') return;
-      bubble.setAttribute('role', 'status'); // from now on, what he says is read out too
+      heard = true; // from now on, what he says is read out too
       rest();
       nextWander = Date.now() + wanderIn();
       if (state === 'asleep') {
         // Poked awake: a snort and a start (his hat jumps off), unless he's
         // only nodding off.
-        const hello = () => say('...huh? oh. hello again.');
+        const hello = () => speakOut('...huh? oh. hello again.'); // (out from under a window first)
         sound('wake');
         if (dozing()) { wake(hello); return; }
         stopBlink();
@@ -640,6 +663,7 @@
       hearts = Math.min(5, hearts + 1);
       sound('pet', { step: hearts }); // a boop, higher the happier he is
       mem.pets++;
+      unsaved++;
       mem.since = mem.since || Date.now();
       mem.last = Date.now();
       saveMem();
@@ -674,9 +698,12 @@
       const pl = linesOf(W.petLines, []);
       if (pl.length) say(pl[(pets - 1) % pl.length], 1600);
     }
-    // Tabbing to him while a window hides him brings him out to say hello.
+    // Tabbing to him while a window hides him brings him out to say hello
+    // (asleep under there, it wakes him first).
     btn.addEventListener('focus', () => {
-      if (free() && btn.matches(':focus-visible') && coverNow().win > 0.3) popOut();
+      if (!btn.matches(':focus-visible') || coverNow().win <= 0.3) return;
+      if (state === 'asleep' && !playing) { rest(); wake(() => popOut()); return; }
+      if (free()) popOut();
     });
 
     /* ---------- picking him up ----------
@@ -764,7 +791,7 @@
       lastMove = 0;
       mem.carried = true;
       saveMem();
-      bubble.setAttribute('role', 'status');
+      heard = true;
       rest();
       say(wasAsleep ? '!!' : lineOf('heldLines'), 2200);
       if (press.touch) carry({ clientX: press.x, clientY: press.y });
@@ -955,7 +982,7 @@
         nextWander = Date.now() + wanderIn();
         stopBlink();
         el.classList.remove('is-landing', 'is-trick', 'is-party');
-        bubble.setAttribute('role', 'status');
+        heard = true;
         if (kind === 'party') {
           setState('party');
           look('idle'); // party-in starts from his idle pose
@@ -981,7 +1008,7 @@
     }
     const speak = (text, ms) => {
       if (!text) return false;
-      bubble.setAttribute('role', 'status');
+      heard = true;
       speakOut(text, ms || 3000);
       return true;
     };
@@ -1034,7 +1061,7 @@
       const spot = spotNear(c);
       rest();
       nextWander = Date.now() + wanderIn();
-      bubble.setAttribute('role', 'status'); // from now on, what he says is read out too
+      heard = true; // from now on, what he says is read out too
       keepSpot = true;
       const line = pick(linesOf((W.lines || {}).summon, SUMMON_LINES));
       const hello = () => { calledTo = { x: pos.x, y: pos.y }; say(line, 2400); };
@@ -1149,7 +1176,7 @@
           };
           q('[data-pet]').addEventListener('click', petHim);
           exe.img.addEventListener('click', petHim);
-          win.setStatus(K.hint('Click to pet, drag to carry', 'Tap to pet, hold to carry'));
+          win.setStatus(K.hint('Click to pet him', 'Tap to pet him'));
           syncExe();
         },
         onClose() { exe = null; },

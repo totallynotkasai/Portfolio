@@ -235,6 +235,18 @@ html[data-theme="dark"] :is(.skip-link, .os-min:hover, .os-max:hover, .os-close:
 }
 /* Focus rings go light, so they still show on the dark windows. */
 html[data-theme="dark"] :focus-visible { outline-color: var(--text); }
+/* Ink that would sit on a dark colour goes light, or gets a light
+   background of its own. */
+html[data-theme="dark"] .sd-hp { background: var(--grey-ink); }
+html[data-theme="dark"] .sd-drop.is-skip { background: var(--periwinkle); }
+html[data-theme="dark"] .nr-mark-arrow { color: var(--ink); }
+html[data-theme="dark"] .nr-cell.is-hop::after { border-color: var(--text); opacity: 0.75; }
+html[data-theme="dark"] .nr-board.is-armed .nr-cell.is-hop::after { border-color: var(--ink); opacity: 1; }
+html[data-theme="dark"] .nr-mark.is-lit::before { box-shadow: 0 0 0 3px var(--text); }
+html[data-theme="dark"] .ss-spell[aria-pressed="true"] b { background: var(--white); }
+html[data-theme="dark"] .pt-current { box-shadow: inset 0 0 0 3px var(--surface), 0 0 0 2px var(--grey-ink); }
+html[data-theme="dark"] .pt-swatch[data-colour="0"] { border-color: var(--grey-ink); }
+html[data-theme="dark"] :is(.wall-chip.is-dark, .wall-chip[data-chip="blush"]) { border-color: var(--grey-ink); }
 
 /* ============================================================
    THE PAGE ITSELF  (it never scrolls: windows scroll inside)
@@ -725,6 +737,18 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .task-win.is-min { background: transparent; border-style: dashed; }
 .task-win.is-min:hover { background: var(--acc-tint); }
 .task-win svg.doodle { width: 20px; height: 20px; }
+/* Crowded (kasai-os.js measures it): every button down to its icon, and
+   smaller again if they still don't fit, so none is ever cut off. */
+.task-windows.is-crowded { gap: 3px; }
+.task-windows.is-crowded > li { flex: 0 0 auto; min-width: 0; }
+.task-windows.is-crowded .task-win { justify-content: center; width: auto; padding: 0 7px; }
+.task-windows.is-crowded .task-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.task-windows.is-packed { gap: 2px; }
+.task-windows.is-packed .task-win { height: 34px; padding: 0 3px; border-radius: 8px; }
+.task-windows.is-packed .task-win svg { width: 16px; height: 16px; }
+.task-windows.is-tight { gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.task-windows.is-tight .task-win { padding: 0 1px; }
+.task-windows.is-tight .task-win svg { width: 14px; height: 14px; }
 
 .tray { flex: none; margin-left: auto; }
 .task-windows + .tray { margin-left: 6px; }
@@ -1669,6 +1693,19 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .sw-up-name, .gm-up-name { font-family: var(--font-display); font-size: 1.05rem; line-height: 1.2; }
 .sw-up-blurb, .gm-up-blurb { font-size: 0.78rem; line-height: 1.4; color: var(--ink-soft); }
 .sw-up-have, .gm-up-have { padding: 1px 8px; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; background: var(--acc-tint); border-radius: 6px; }
+/* Wizard Sweeper's pick card has to fit its window: tighter buttons, the
+   "You have" badge beside the name. */
+.sw-card.is-pick { padding-top: 12px; padding-bottom: 14px; }
+.sw-card.is-pick .sw-card-art :is(img, svg) { width: 48px; height: 48px; }
+.sw-card.is-pick .sw-card-h { font-size: 1.25rem; }
+.sw-card.is-pick .sw-ups { margin-top: 8px; }
+.sw-up { gap: 4px; padding: 10px 8px 12px; }
+.sw-up-name .sw-up-have { display: inline-block; margin-left: 4px; vertical-align: 2px; font-size: 0.64rem; }
+.sw-up-blurb { font-size: 0.72rem; line-height: 1.35; }
+/* The menu's labels get shorter on a phone, so Help still fits beside a Lucky star. */
+@media (max-width: 460px) {
+  .sw-menu .sw-wide { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 @container win (max-width: 540px) {
   .sw-ups, .gm-ups { grid-template-columns: minmax(0, 1fr); }
   .sw-up, .gm-up { grid-template-columns: auto minmax(0, 1fr); justify-items: start; column-gap: 12px; row-gap: 2px; text-align: left; }
@@ -1751,7 +1788,8 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .nr-board.is-armed .nr-cell.is-hop::after { inset: 18%; background: var(--yellow); border-style: solid; opacity: 1; }
 .nr-cell.is-junk { background: var(--junk, var(--ink)); }
 .nr-cell.is-exit { background: var(--yellow); }
-.nr-cell.is-lid { visibility: hidden; }
+/* Hidden under the dialog, but still there to take its clicks and taps. */
+.nr-cell.is-lid { opacity: 0; }
 
 /* The layer over the tiles: marks, things to grab, gremlins, him. */
 .nr-layer { position: absolute; inset: var(--pad); pointer-events: none; }
@@ -1900,7 +1938,7 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .nr-lid.is-angry { --acc: var(--pink); }
 .nr-lid-msg {
   display: grid;
-  flex: 1;
+  flex: 1 0 auto;
   place-items: center;
   min-height: 0;
   padding: 0 8px;
@@ -1912,7 +1950,8 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .nr-lid-hp { display: flex; justify-content: center; gap: 4px; }
 .nr-lid-hp i { width: 9px; height: 9px; background: var(--pink); border: 2px solid var(--ink); border-radius: 50%; }
 .nr-lid-hp i.is-gone { background: var(--white); }
-.nr-lid-btns { display: flex; justify-content: center; gap: 6px; padding: 4px 8px 6px; }
+/* (Its padding shrinks with the tiles, so the message always keeps a line of its own.) */
+.nr-lid-btns { display: flex; justify-content: center; gap: 6px; padding: min(4px, calc(var(--cell) * 0.075)) 8px min(6px, calc(var(--cell) * 0.11)); }
 .nr-lid-btns span { padding: 0 10px; font-family: var(--font-display); font-size: max(0.62rem, calc(var(--cell) * 0.16)); background: var(--surface); border: var(--border); border-radius: 7px; }
 .nr-lid.is-beaten .nr-lid-btns span { background: var(--yellow); }
 
@@ -2678,7 +2717,8 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 /* The dock: Draw (End deal, once nothing's left), then the spells. */
 .ss-dock { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; background: var(--surface); border-top: var(--border); }
 .ss-dock[hidden] { display: none; }
-.ss-spells { display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: 6px; min-width: 0; }
+/* (It stays beside Draw and wraps its own buttons, so Draw is never alone on a row.) */
+.ss-spells { display: flex; flex: 1 1 0; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .ss-act {
   display: inline-flex;
   align-items: center;
@@ -2713,6 +2753,10 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
   .ss-spell-name, .ss-act kbd, .ss-wide { display: none; }
   .ss-act { padding: 0 9px; }
   .ss-bar { width: 44px; }
+  /* A phone has room under the table, not over it: the bubble hangs below
+     him, clear of the peaks' bottom row. */
+  .ss-said { top: calc(100% + 6px); bottom: auto; }
+  .ss-said::after { top: -8px; bottom: auto; rotate: 225deg; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -3263,6 +3307,9 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
 @media (prefers-reduced-motion: no-preference) {
   /* Yellow highlights are drawn in like a marker pen, left to right: a
      flat yellow tile, stretched wider and wider. */
+  /* (In dark mode the words start light, on the window, and turn ink as
+     the yellow arrives.) */
+  html[data-theme="dark"] .hl { animation: hl-draw 0.55s 0.25s cubic-bezier(0.6, 0, 0.3, 1) forwards, hl-ink 0.55s 0.25s cubic-bezier(0.6, 0, 0.3, 1) both; }
   .hl {
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1' preserveAspectRatio='none'%3E%3Crect width='1' height='1' fill='%23FEDA74'/%3E%3C/svg%3E") no-repeat 0 0 / 0% 100%;
     animation: hl-draw 0.55s 0.25s cubic-bezier(0.6, 0, 0.3, 1) forwards;
@@ -3280,6 +3327,7 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
   .is-shaking { animation: stage-shake 250ms ease-out; }
 }
 @keyframes hl-draw { to { background-size: 100% 100%; } }
+@keyframes hl-ink { from { color: #EDEBF7; } to { color: var(--ink); } }
 @keyframes stage-shake { 15% { translate: -3px 0; } 35% { translate: 3px 0; } 55% { translate: -2px 0; } 75% { translate: 1px 0; } }
 .taskbar { view-transition-name: taskbar; }
 
@@ -3361,6 +3409,8 @@ html.pet-carrying, html.pet-carrying * { cursor: grabbing !important; }
 @media print {
   @page { size: A4; margin: 14mm 15mm 15mm; }
   html.is-printing-cv, html.is-printing-cv body { height: auto; overflow: visible; background: var(--white); }
+  /* (The page's own margins are painted by the colour scheme: never dark on paper.) */
+  html.is-printing-cv { color-scheme: light; }
   html.is-printing-cv body > :not(.cv-sheet), html.is-printing-cv body::after { display: none !important; }
   .cv-sheet {
     display: block;

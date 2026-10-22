@@ -196,6 +196,8 @@
     return d.slots.some((c, k) => c >= 0 && !d.up[k]) ? '' : 'nothing'; // moonlight
   }
   const usable = (id, i) => !why(id, i);
+  // A deal that reached its target keeps it, whatever the Toll takes after.
+  const madeIt = (d) => !!d.reached || d.score >= d.target;
   // Nothing left to try: no play, nothing to draw, and no spell that could
   // change that. The deal ends by itself then.
   const hopeless = () => stuck() && !usable('wild') && !usable('fireball') && !usable('rewind');
@@ -204,7 +206,7 @@
   // the same cards), or none for a fresh one. Anything still being drawn
   // from the old run is stopped first, so none of it lands in the new one.
   function newRun(seed) {
-    if (run && !run.recorded && run.score > 0) finishRun(false); // a run left halfway still counts
+    if (run && !run.recorded) quitRun(); // a run left halfway still counts
     hush();
     run = {
       mode: 'run',
@@ -378,14 +380,15 @@
 
   // A card from the stock onto the pile, which ends the streak (Echo's
   // draw keeps it). An empty stock is filled again from the pile once a
-  // deal with the Second Deck (some of the pile, shuffled); with nothing
-  // at all left to draw and no play, drawing ends the deal.
-  function draw(echo) {
+  // deal with the Second Deck (some of the pile, shuffled). With nothing
+  // at all left to draw and no play, `end` (End deal) ends the deal; the
+  // stock itself refuses while a spell could still play.
+  function draw(echo, end) {
     if (!playing()) return [];
     const d = run.deal;
     const ev = [];
     if (!d.stock.length) {
-      if (!(d.refills > 0 && d.pile.length > 1)) return stuck() ? endDeal(false) : [{ t: 'deny', why: 'empty' }];
+      if (!(d.refills > 0 && d.pile.length > 1)) return (end && stuck()) || hopeless() ? endDeal(false) : [{ t: 'deny', why: 'empty' }];
       d.refills--;
       const top = d.pile.pop();
       d.stock = shuffle(d.pile).splice(0, REFILL);
@@ -457,7 +460,7 @@
       }
     }
     run.score += d.score;
-    const made = d.score >= d.target;
+    const made = madeIt(d);
     const final = finalDeal(d.n);
     if (made) run.made++;
     ev.push({ t: 'end', n: d.n, made, swept: !!swept, score: d.score, target: d.target, final });
@@ -482,7 +485,7 @@
     run.next = planOf(d.n + 1);
     run.offer = offer();
     run.step = 'pick';
-    ev.push({ t: 'pick' });
+    ev.push({ t: 'pick', none: !run.offer.length });
     return ev;
   }
 
@@ -496,9 +499,12 @@
     return out;
   }
 
-  // A pick between deals, then the next deal.
+  // A pick between deals, then the next deal. With every pick taken
+  // already there's nothing on offer: choose() with no pick deals on.
   function choose(id) {
-    if (!run || run.step !== 'pick' || run.offer.indexOf(id) === -1) return [];
+    if (!run || run.step !== 'pick') return [];
+    if (!run.offer.length) { run.n = run.next.n; return startDeal(); }
+    if (run.offer.indexOf(id) === -1) return [];
     if (SPELLS[id]) run.spells[id] = Math.min(mostOf(id), run.spells[id] + 1);
     else {
       run.have[id]++;
@@ -518,7 +524,7 @@
     run.next = planOf(run.deal.n + 1);
     run.offer = offer();
     run.step = 'pick';
-    return [{ t: 'pick', onwards: true }];
+    return [{ t: 'pick', onwards: true, none: !run.offer.length }];
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -646,6 +652,13 @@
     return b && Number.isFinite(b.score) && b.score > 0 ? b : null;
   };
 
+  // A run left halfway (for a new one): its deal in progress counts, as
+  // the New run dialog says.
+  function quitRun() {
+    if (run.deal && !run.deal.over) run.score += run.deal.score;
+    finishRun(false);
+  }
+
   // A finished run (lost, won, or left for a new one): kept if it's the
   // best of its kind, along with the longest streak ever. (best.won only
   // says whether the best run was won; every win is kept for the trophy.)
@@ -684,7 +697,7 @@
   // Sounds (sound.js; silent while sound is off) only while the game is on
   // screen, and only for what's drawn, so the bots and anything skipped
   // stay quiet. A card's sound comes from its side of the table.
-  const sound = (name, o) => !!view && !!K.sound && K.sound.play(name, o);
+  const sound = (name, o) => !!view && !view.win.minimised && !!K.sound && K.sound.play(name, o);
   const panAt = (i) => (SLOTS[i] ? (SLOTS[i].x / 9 - 0.5) * 0.8 : 0);
 
   /* ---------- the window: setting up and tidying away ---------- */
@@ -768,6 +781,7 @@
       focus: -1,       // the place the arrow keys are on (the one card in the tab order)
       armed: '',       // Wild or Fireball, waiting to be cast on a card
       card: false,     // a card is over the table
+      cardClosedAt: -Infinity, // when the last one went (see wire)
       help: false,     // ...and it's the help card
       peek: false,     // the run's over and you're looking at the table
       moving: new Set(), // cards in flight, and anything else that can skip to its end
@@ -960,6 +974,12 @@
         el.tabIndex = i === view.focus ? 0 : -1;
         el.removeAttribute('aria-hidden');
         el.setAttribute('aria-label', `${caption(c)}${held ? ', sealed' : fitsNow.indexOf(i) !== -1 ? ', goes on the pile' : ''}`);
+      } else if (up && !d.idle) {
+        // Face up but covered (Moonlight): named, though it can't be played yet.
+        el.setAttribute('role', 'img');
+        el.removeAttribute('tabindex');
+        el.removeAttribute('aria-hidden');
+        el.setAttribute('aria-label', `${caption(c)}, covered`);
       } else {
         el.removeAttribute('role');
         el.removeAttribute('tabindex');
@@ -983,7 +1003,8 @@
   function syncPile() {
     const d = dealShown();
     const c = view.pileCard;
-    const want = c >= 0 ? String(c) : '';
+    const f = c >= 0 ? faceOf(c) : null;
+    const want = c >= 0 ? `${c}|${f ? f.img : ''}` : ''; // a new run can deal the same card in other art
     if (view.pile.dataset.show !== want) {
       view.pile.innerHTML = c >= 0 ? `<div class="ss-card is-pile">${faceHtml(c)}</div>` : '<span class="ss-empty"></span>';
       view.pile.dataset.show = want;
@@ -1029,7 +1050,6 @@
       else if (e.t === 'flip') flips.push(e.i);
       else if (e.t === 'moonlight') flips.push(...e.flipped);
       else if (e.t === 'rewind') { rewound = e.i; view.pileCard = topOf(d); }
-      else if (e.t === 'refill') view.pileCard = topOf(d);
     });
     syncCards();
     syncPile();
@@ -1051,6 +1071,7 @@
     drawHud(ev);
     drawDock();
     drawStatus();
+    syncWizard();
     hear(ev);
   }
 
@@ -1221,8 +1242,9 @@
     view.score.textContent = num(score);
     view.target.textContent = ` / ${num(d.target)}`;
     view.bar.style.width = `${Math.min(100, (100 * Math.max(0, score)) / d.target).toFixed(1)}%`;
-    view.goal.classList.toggle('is-made', score >= d.target && !d.idle);
-    view.goal.title = d.idle ? '' : `This deal: ${num(score)} of ${num(d.target)} points${score >= d.target ? ' (target reached)' : ''}. Score so far: ${num(run.score + (d.over ? 0 : score))}`;
+    const made = !d.idle && (score >= d.target || !!d.reached);
+    view.goal.classList.toggle('is-made', made);
+    view.goal.title = d.idle ? '' : `This deal: ${num(score)} of ${num(d.target)} points${made ? ' (target reached)' : ''}. Score so far: ${num(run.score + (d.over ? 0 : score))}`;
     // The streak: a bump as it grows, a drop when it breaks.
     const st = live(d) || (run && run.deal === d) ? d.streak : 0;
     view.streakN.textContent = st;
@@ -1302,6 +1324,7 @@
   function syncCard(focus) {
     if (!view) return;
     const up = view.help || !run || run.step === 'pick' || ((run.step === 'over' || run.step === 'won') && !view.peek);
+    if (view.card && !up) view.cardClosedAt = performance.now();
     view.card = up;
     view.stage.inert = up;
     view.dock.inert = up;
@@ -1309,7 +1332,7 @@
     if (up) { view.toast.hidden = true; view.armed = ''; }
     view.overlay.hidden = !up;
     view.overlay.innerHTML = up ? cardHtml() : '';
-    if (up && focus) {
+    if (up && focus && !view.win.minimised) { // (a card shown while minimised leaves focus alone)
       const go = view.overlay.querySelector('[data-first]') || view.overlay.querySelector('button');
       if (go) go.focus({ preventScroll: true });
     }
@@ -1357,11 +1380,11 @@
     const d = run.deal;
     if (run.step === 'pick') {
       const onwards = !!run.onwards;
-      const kicker = onwards ? 'Endless deals' : `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}${endless() ? '' : ` of ${DEALS}`}`}: ${d.swept ? 'clean sweep!' : d.score >= d.target ? 'target made' : 'under target'}`;
+      const kicker = onwards ? 'Endless deals' : `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}${endless() ? '' : ` of ${DEALS}`}`}: ${d.swept ? 'clean sweep!' : madeIt(d) ? 'target made' : 'under target'}`;
       const notes = [];
       if (!onwards) {
         if (d.healed) notes.push('a heart back for the clean sweep');
-        if (d.score < d.target) notes.push('a heart lost');
+        if (!madeIt(d)) notes.push('a heart lost');
       }
       const tally = onwards
         ? `A curse on every deal from here on. Score: ${num(run.score)}`
@@ -1502,7 +1525,7 @@
     }
     if (e.why === 'sealed') return 'Sealed until both outer peaks are clear.';
     if (e.why === 'covered') return 'That card is covered.';
-    if (e.why === 'empty') return 'The stock is empty.';
+    if (e.why === 'empty') return playing() && stuck() ? 'The stock is empty: cast a spell, or press End deal.' : 'The stock is empty.';
     return `The ${cardName(d.slots[e.i])} doesn't go on the ${cardName(topOf(d))}: play ${fitWords(d)}.`;
   }
 
@@ -1520,7 +1543,8 @@
     if (others.length) parts.push(`Also uncovered: ${others.map((i) => `${cardName(d.slots[i])}${sealed(d, i) ? ' (sealed)' : ''}`).join(', ')}.`);
     const down = d.slots.filter((c, i) => c >= 0 && !d.up[i]).length;
     const left = d.slots.filter((c) => c >= 0).length;
-    parts.push(`${plural(left, 'card')} left in the peaks, ${down} face down.`);
+    const shown = range(PLACES).filter((i) => d.slots[i] >= 0 && d.up[i] && !free(d, i)).sort(byPlace);
+    parts.push(`${plural(left, 'card')} left in the peaks, ${down} face down${shown.length ? `, ${shown.length} face up but covered: ${shown.map((i) => cardName(d.slots[i])).join(', ')}` : ''}.`);
     const peek = run.have.crystal ? d.stock.slice(-run.have.crystal).reverse() : [];
     parts.push(`Stock: ${plural(d.stock.length, 'card')}${peek.length ? `, next ${peek.map(cardName).join(', then ')}` : ''}.`);
     const spells = SPELL_IDS.filter((id) => d.charges[id] > 0).map((id) => `${words(id).name} ${d.charges[id]}`);
@@ -1564,7 +1588,7 @@
       run.line = lineOf('winLines');
       finishRun(true);
       tellDesktop(true);
-    } else run.last = lineOf(d.score >= d.target ? (d.swept ? 'sweepLines' : 'madeLines') : 'hurtLines');
+    } else run.last = lineOf(madeIt(d) ? (d.swept ? 'sweepLines' : 'madeLines') : 'hurtLines');
     const wait = RM ? 300 : end.swept ? 1700 : 1000;
     whenStill(() => {
       if (run.step === 'won') {
@@ -1573,9 +1597,26 @@
         return;
       }
       if (run.step === 'over') later(() => sound(run.newBest ? 'best' : 'lose'), 200);
+      if (run.step === 'pick' && !run.offer.length) { dealOn(); return; }
       syncCard(true);
       announce(run.step === 'pick' ? `Pick a spell or a charm. ${nextWords(run.next)}` : `The run is over. Score ${num(run.score)}.`);
     }, wait);
+  }
+  // Every spell charge and charm is taken: there's nothing to pick, so
+  // the next deal comes straight away.
+  function dealOn() {
+    const ev = choose(null);
+    if (!view || !ev.length) return;
+    run.onwards = false;
+    view.peek = false;
+    syncCard(false);
+    show(ev);
+    view.focus = -1;
+    syncCards();
+    focusCard();
+    const line = `Nothing left to learn. On to deal ${run.deal.n}!`;
+    wizardSays(line, 2600);
+    announce(`${line} ${dealText()}`);
   }
   function finishWin() {
     if (!view) return;
@@ -1618,6 +1659,13 @@
     say('Spell put away.', 1400);
   }
 
+  // With a deal on, the card the arrow keys are on; otherwise the table
+  // itself, so the keys (and L) still work.
+  function focusTable() {
+    if (playing()) { focusCard(); return; }
+    view.stage.tabIndex = -1;
+    view.stage.focus({ preventScroll: true });
+  }
   // The card the arrow keys are on (or Draw, with none uncovered).
   function focusCard() {
     const el = view.els[view.focus];
@@ -1651,6 +1699,11 @@
   }
 
   function wire(v) {
+    // The second click of a double-click lands on whatever is under it: never
+    // on a card's button, and never on the game just after a card goes.
+    v.win.body.addEventListener('click', (e) => {
+      if (e.detail > 1 && (v.overlay.contains(e.target) || performance.now() - v.cardClosedAt < 500)) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
     // Any press skips what's moving first (then does its own thing).
     v.root.addEventListener('pointerdown', () => { lastInput = 'pointer'; skip(); }, true);
     // Keys anywhere in the window (a click on a card leaves the window
@@ -1675,7 +1728,7 @@
     v.dock.addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (!b || !run) return;
-      if (b.dataset.act === 'draw') act(draw());
+      if (b.dataset.act === 'draw') act(draw(false, true)); // (End deal, once that's what it says)
       else if (b.dataset.spell) spell(b.dataset.spell);
     });
     v.onKey = onKey;
@@ -1716,7 +1769,7 @@
     if (k === 'd' || id || k === 'l') {
       e.preventDefault();
       if (e.repeat) return;
-      if (k === 'd') act(draw());
+      if (k === 'd') act(draw(false, true));
       else if (k === 'l') look();
       else spell(id);
     }
@@ -1727,6 +1780,7 @@
     if (!btn || !view) return;
     if (btn.dataset.act === 'new') askNewRun();
     else if (btn.dataset.act === 'help') {
+      if (view.bouncing) { stopBounce(); finishWin(); } // the finish ends here, so it can't eat the first click on Back
       view.help = true;
       syncCard(true);
     }
@@ -1767,11 +1821,14 @@
     dealWords();
   }
   // A new deal, in words (and his line about it).
-  function dealWords() {
+  function dealText() {
     const d = run.deal;
     const p = { n: d.n, target: d.target, curses: d.curses, hex: d.hex };
-    announce(`${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}`}, target ${num(d.target)}.${d.curses.length ? ` ${d.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(p)}.` : ''} The pile: ${caption(topOf(d))}. ${movesOf().length ? `${plural(movesOf().length, 'card')} can go on it.` : 'Nothing goes on it yet.'}`);
-    wizardSays(lineOf(finalDeal(d.n) ? 'finalLines' : 'dealLines'), 2400);
+    return `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}`}, target ${num(d.target)}.${d.curses.length ? ` ${d.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(p)}.` : ''} The pile: ${caption(topOf(d))}. ${movesOf().length ? `${plural(movesOf().length, 'card')} can go on it.` : 'Nothing goes on it yet.'}`;
+  }
+  function dealWords() {
+    announce(dealText());
+    wizardSays(lineOf(finalDeal(run.deal.n) ? 'finalLines' : 'dealLines'), 2400);
   }
 
   function onCard(e) {
@@ -1795,6 +1852,7 @@
     if (what === 'start' || what === 'again') begin();
     else if (what === 'onwards') {
       if (!keepDealing().length) return;
+      if (!run.offer.length) { dealOn(); return; }
       run.onwards = true;
       sound('pick');
       syncCard(true);
@@ -1802,10 +1860,11 @@
     } else if (what === 'back') {
       view.help = false;
       syncCard(true);
-      if (playing()) focusCard();
+      if (!view.card) focusTable();
     } else if (what === 'peek') {
       view.peek = true;
       syncCard(false);
+      focusTable();
       say('This is where it ended. Press New run to deal again.', 3200);
     }
   }
@@ -1871,8 +1930,8 @@
       x.fillText(RANKS[r], w * 0.12, h * 0.06);
       return s;
     });
-    const H = box.height;
-    const W = box.width;
+    let H = box.height;
+    let W = box.width;
     const fly = [];
     let launched = 0;
     let last = performance.now();
@@ -1885,6 +1944,15 @@
     };
     const tick = (now) => {
       if (view !== v || !v.bouncing) return;
+      // The window changed size (maximised, say): a fresh canvas to match.
+      const b = v.stage.getBoundingClientRect();
+      if (b.width && b.height && (Math.abs(b.width - W) > 1 || Math.abs(b.height - H) > 1)) {
+        W = b.width;
+        H = b.height;
+        cv.width = Math.round(W * dpr);
+        cv.height = Math.round(H * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const t = now - start;

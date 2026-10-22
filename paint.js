@@ -177,6 +177,7 @@
   }
   // A line of dabs from where the pointer was to (x1, y1), with no gaps.
   function lineTo(x1, y1) {
+    if (!Number.isFinite(x1) || !Number.isFinite(y1)) return; // a walk that could never arrive
     let x = stroke.x;
     let y = stroke.y;
     const dx = Math.abs(x1 - x);
@@ -425,9 +426,11 @@
     view.canvas.classList.toggle('is-smooth', scale * (window.devicePixelRatio || 1) < 1);
   }
 
-  // Where a pointer is on the picture, in its own pixels.
+  // Where a pointer is on the picture, in its own pixels (null while the
+  // picture has no size: its window is minimised).
   const at = (e) => {
     const r = view.canvas.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0)) return null;
     return { x: Math.floor(((e.clientX - r.left) * W) / r.width), y: Math.floor(((e.clientY - r.top) * H) / r.height) };
   };
 
@@ -435,8 +438,9 @@
     const canvas = v.canvas;
     canvas.addEventListener('pointerdown', (e) => {
       if (stroke || !e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
-      canvas.focus({ preventScroll: true }); // so the keys work straight away
       const p = at(e);
+      if (!p) return;
+      canvas.focus({ preventScroll: true }); // so the keys work straight away
       if (tool === 'fill') { fillAt(p.x, p.y); return; }
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* that pointer has already gone */ }
       stroke = { id: e.pointerId, x: p.x, y: p.y, before: pix.slice(), box: null };
@@ -444,10 +448,12 @@
     });
     canvas.addEventListener('pointermove', (e) => {
       const p = at(e);
+      // No size (minimised mid-stroke): the stroke ends there, as a lift would.
+      if (!p) { if (stroke && e.pointerId === stroke.id) endStroke(); return; }
       v.pos.textContent = p.x >= 0 && p.y >= 0 && p.x < W && p.y < H ? `${p.x}, ${p.y}px` : '';
       if (!stroke || e.pointerId !== stroke.id) return;
       const all = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
-      (all.length ? all : [e]).forEach((ev) => { const q = at(ev); lineTo(q.x, q.y); });
+      (all.length ? all : [e]).forEach((ev) => { const q = at(ev); if (q) lineTo(q.x, q.y); });
     });
     const up = (e) => { if (stroke && e.pointerId === stroke.id) endStroke(); };
     canvas.addEventListener('pointerup', up);
@@ -575,6 +581,9 @@
     clearTimeout(view.sayTimer);
     view.sayTimer = setTimeout(() => { if (view) view.said.textContent = toolName(); }, 2600);
   }
+
+  // Minimised (Esc mid-stroke too): the stroke ends where it got to.
+  K.on('minimise', (e) => { if (view && e.id === view.win.id && stroke) endStroke(); });
 
   K.paint = { mount, unmount };
 })();

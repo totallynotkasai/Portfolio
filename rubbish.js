@@ -463,7 +463,7 @@
   // Sounds (sound.js; silent while sound is off) only while the game is on
   // screen, hung on what's drawn. His come from his column: further left
   // on the floor, further left in your ears.
-  const sound = (name, o) => !!view && !!K.sound && K.sound.play(name, o);
+  const sound = (name, o) => !!view && !view.win.minimised && !!K.sound && K.sound.play(name, o);
   const panOf = (i) => (colOf(i) / (COLS - 1) - 0.5) * 0.8;
 
   const inPlay = () => !!(run && run.step === 'play' && run.floor);
@@ -475,7 +475,11 @@
     const f = run.floor;
     if (armed) { tryHop(d); return; }
     const to = next(f.pet, d);
-    if (to < 0 || f.tiles[to] === JUNK) { nudge(d); return; }
+    if (to < 0 || f.tiles[to] === JUNK) {
+      nudge(d);
+      announce(to < 0 ? `The edge of the floor: he can't go ${d}.` : `Junk in the way: he can't go ${d}.`);
+      return;
+    }
     begin();
     const ev = [];
     face(f, d);
@@ -533,8 +537,9 @@
     begin();
     armed = false;
     const healed = run.hearts < run.max && f.naps > 0;
+    const full = run.hearts >= run.max; // (decided now: a hit after it changes that)
     if (healed) { f.naps--; run.hearts++; }
-    endTurn(f, [{ t: 'nap', healed }]);
+    endTurn(f, [{ t: 'nap', healed, full }]);
   }
 
   const face = (f, d) => { if (d === 'left') f.facing = -1; else if (d === 'right') f.facing = 1; };
@@ -617,21 +622,34 @@
     });
     const b = f.lid;
     if (b && b.marks && b.marks.indexOf(f.pet) !== -1) hitHim(f, 'lid', ev);
-    live.forEach((g) => {
-      const marks = g.marks;
-      const copy = g.copy;
+    // Every gremlin's marks and roll are taken first, so the order of the
+    // list never decides who gets to act: two webcams beaming each other
+    // both go, and a spinner beamed this turn still rolls.
+    const acts = live.map((g) => {
+      const a = { g, marks: g.marks, copy: g.copy };
       g.marks = null;
       g.copy = -1;
-      if (copy >= 0 && alive(g) && vacant(f, copy) && f.gs.filter(alive).length < MOST_GREMLINS) {
+      return a;
+    });
+    acts.forEach(({ g, copy }) => {
+      if (copy >= 0 && vacant(f, copy) && f.gs.filter(alive).length < MOST_GREMLINS) {
         ev.push({ t: 'spawn', id: addGremlin(f, 'printer', copy, 1, true).id, type: 'printer' });
       }
-      if (!marks || !alive(g)) return;
+    });
+    const beamed = [];
+    acts.forEach(({ g, marks }) => {
+      if (!marks || g.kind === 'roll') return;
       ev.push({ t: 'strike', kind: g.kind, tiles: marks });
-      if (g.kind === 'beam') {
-        marks.forEach((j) => { const o = gremlinAt(f, j); if (o && o !== g) hurt(f, o, 1, ev); });
-        if (g.hitsLid) hurtLid(f, 1, ev);
-        g.reload = 1;
-      } else if (g.kind === 'roll') roll(f, g, marks, ev);
+      if (g.kind !== 'beam') return;
+      marks.forEach((j) => { const o = gremlinAt(f, j); if (o && o !== g) beamed.push(o); });
+      if (g.hitsLid) hurtLid(f, 1, ev);
+      g.reload = 1;
+    });
+    beamed.forEach((o) => hurt(f, o, 1, ev));
+    acts.forEach(({ g, marks }) => {
+      if (!marks || g.kind !== 'roll') return;
+      ev.push({ t: 'strike', kind: g.kind, tiles: marks });
+      roll(f, g, marks, ev);
     });
     // (The dialog only ever deletes him: its gremlins are on its side.)
     if (b && b.marks) {
@@ -826,7 +844,7 @@
       later(() => syncCard(true), RM ? 0 : 1100);
       later(() => sound(run.newBest ? 'best' : 'lose'), 1100);
     }
-    announce(`Knocked out on floor ${run.n}. The run is over.`);
+    announce(`Knocked out on ${run.n > FLOORS ? 'the lid' : `floor ${run.n}`}. The run is over. Score ${run.score}.${run.newBest ? ' A new best!' : ''}`);
     tellDesktop(false);
   }
 
@@ -845,7 +863,7 @@
       later(() => syncCard(true), RM ? 0 : 1300);
       later(() => sound('win'), 250); // (it says new best too)
     }
-    announce('The dialog gave up. He climbed out of the Trash!');
+    announce(`The dialog gave up. He climbed out of the Trash! Score ${run.score}.${run.newBest ? ' A new best!' : ''}`);
     tellDesktop(true);
   }
 
@@ -933,6 +951,7 @@
       gEls: new Map(),
       shown: null,   // the floor drawn
       card: false,   // a card is over the board
+      cardClosedAt: -Infinity, // when the last one went (see wire)
       help: false,   // ...and it's the help card
       peek: false,   // the run is over and you're looking at the board
       lit: 0,        // the gremlin whose marks are picked out
@@ -1361,13 +1380,14 @@
   function syncCard(focus) {
     if (!view) return;
     const show = view.help || !run || run.step === 'pick' || ((run.step === 'over' || run.step === 'won') && !view.peek);
+    if (view.card && !show) view.cardClosedAt = performance.now();
     view.card = show;
     view.board.inert = show;
     view.dock.inert = show;
     if (show) view.toast.hidden = true;
     view.overlay.hidden = !show;
     view.overlay.innerHTML = show ? cardHtml() : '';
-    if (show && focus) {
+    if (show && focus && !view.win.minimised) { // (a card shown while minimised leaves focus alone)
       const go = view.overlay.querySelector('[data-first]') || view.overlay.querySelector('button');
       if (go) go.focus({ preventScroll: true });
     }
@@ -1375,7 +1395,7 @@
 
   function cardHtml() {
     const best = bestRun();
-    const bestText = best ? `Best run: ${best.score} points, ${best.won ? 'out of the Trash' : `floor ${best.floor > FLOORS ? 'the lid' : best.floor}`}.` : '';
+    const bestText = best ? `Best run: ${best.score} points, ${best.won ? 'out of the Trash' : best.floor > FLOORS ? 'on the lid' : `floor ${best.floor}`}.` : '';
     if (view.help || !run) {
       return `
         <section class="gm-card" aria-labelledby="nr-card-h">
@@ -1481,7 +1501,8 @@
     const f = run.floor;
     const out = [];
     const name = (type) => (type === 'lid' ? 'The dialog' : `The ${TYPES[type] ? TYPES[type].name.toLowerCase() : 'gremlin'}`);
-    const waited = run.hearts >= run.max ? 'He waits a turn (full hearts, so no nap needed).' : 'He waits a turn (no naps left on this floor).';
+    const napped = ev.find((e) => e.t === 'nap');
+    const waited = napped && napped.full ? 'He waits a turn (full hearts, so no nap needed).' : 'He waits a turn (no naps left on this floor).';
     ev.forEach((e) => {
       if (e.t === 'step') out.push(`Stepped ${e.d}.`);
       else if (e.t === 'hop') out.push(`Hopped ${e.d}.`);
@@ -1534,6 +1555,10 @@
     });
     if (f.lid) parts.push(`The dialog has ${plural(f.lid.hp, 'bonk')} left in it; it's along the top.`);
     if (f.exit >= 0) parts.push(`The way up is ${where(f.exit)}.`);
+    const items = Object.keys(f.items).map(Number).map((i) => `${f.items[i] === 'heart' ? 'a heart' : 'a star'} ${where(i)}`);
+    if (items.length) parts.push(`To pick up: ${items.join(', ')}.`);
+    const junk = range(N).filter((i) => f.tiles[i] === JUNK).length;
+    if (junk) parts.push(`${plural(junk, 'junk tile')} in the way.`);
     parts.push(f.hopCd ? `Hop ready in ${plural(f.hopCd, 'turn')}.` : 'Hop ready.');
     parts.push(dangerText(f));
     announce(parts.join(' '));
@@ -1599,6 +1624,11 @@
 
   function wire(v) {
     const { board } = v;
+    // The second click of a double-click lands on whatever is under it: never
+    // on a card's button, and never on the game just after a card goes.
+    v.win.body.addEventListener('click', (e) => {
+      if (e.detail > 1 && (v.overlay.contains(e.target) || performance.now() - v.cardClosedAt < 500)) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
     board.addEventListener('click', (e) => {
       const el = cellOf(e.target);
       if (!el || !inPlay() || performance.now() < swallowUntil) return;
@@ -1661,7 +1691,7 @@
     if (e.altKey || e.metaKey) return;
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (e.ctrlKey) {
-      if (k === 'z') { e.preventDefault(); if (!e.repeat && inPlay()) rewind(false); }
+      if (k === 'z') { e.preventDefault(); if (!e.repeat && inPlay()) { rewind(false); focusBoard(); } }
       return;
     }
     const d = KEY_DIRS[k];

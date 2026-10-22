@@ -117,6 +117,19 @@
     const l = luminance(hex);
     return (l + 0.05) / (INK_L + 0.05) >= 1.05 / (l + 0.05) ? 'var(--ink)' : 'var(--white)';
   };
+  // A colour words can sit on at 4.5:1 or better: a middling one, where
+  // neither ink nor white quite reads, is darkened a touch until white does.
+  K.readable = (hex) => {
+    if (!K.HEX.test(hex)) return hex;
+    let [r, g, b] = [1, 3, 5].map((k) => parseInt(hex.slice(k, k + 2), 16));
+    const out = () => '#' + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+    for (let k = 0; k < 20; k++) {
+      const l = luminance(out());
+      if (Math.max((l + 0.05) / (INK_L + 0.05), 1.05 / (l + 0.05)) >= 4.5) break;
+      [r, g, b] = [r * 0.97, g * 0.97, b * 0.97];
+    }
+    return out();
+  };
 
   /* ---------- icons ----------
      Single-colour line doodles (they take the text colour), used across the

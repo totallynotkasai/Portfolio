@@ -551,7 +551,7 @@
   // Sounds (sound.js; silent while sound is off) only while the game is on
   // screen, and only for what's drawn: the pops of a shot you skip stay
   // silent. Across the sky, a sound moves from your left ear to your right.
-  const sound = (name, o) => !!view && !!K.sound && K.sound.play(name, o);
+  const sound = (name, o) => !!view && !view.win.minimised && !!K.sound && K.sound.play(name, o);
   const panOf = (x) => (x / W - 0.5) * 0.8;
 
   const playing = () => !!(run && run.night && run.step === 'aim');
@@ -749,7 +749,7 @@
       if (m.type === 'cloud' && !m.gone && --m.charge <= 0) {
         m.charge = CLOUD_EVERY;
         ev.push({ t: 'zap', id: m.id });
-        hurtHim(f, 1, 'cloud', ev, dry);
+        hurtHim(f, 1, 'cloud', ev, dry, m.id); // (its id: two clouds are two things to stop)
       }
       if (p.call) calls++;
     });
@@ -932,6 +932,8 @@
     const ev = [];
     creep(f, ev, false);
     if (run.hearts <= 0) { lose(ev, before); return; }
+    // The last of them reached the bed: nobody's left, so it's morning.
+    if (!f.ms.length && !f.queue.length) { dawn(before ? before.concat(ev) : ev); return; }
     if (roll(f)) ev.push({ t: 'moonrise' });
     f.stars.shift();
     deal(f);
@@ -969,6 +971,7 @@
   function ring() {
     if (!playing()) return;
     const f = run.night;
+    if (!run.have.alarm) { announce("You don't have an alarm clock."); return; } // (A does nothing without one)
     if (f.alarms < 1) { say('The alarm clock has rung tonight already.'); sound('deny'); return; }
     f.alarms--;
     const ev = [{ t: 'alarm' }];
@@ -1256,6 +1259,7 @@
       mEls: new Map(),
       shown: null,   // the night drawn
       card: false,   // a card is over the sky
+      cardClosedAt: -Infinity, // when the last one went (see wire)
       help: false,   // ...and it's the help card
       peek: false,   // the run is over and you're looking at the sky
       anim: null,    // the shot being drawn
@@ -1876,15 +1880,16 @@
   function syncCard(focus) {
     if (!view) return;
     const show = view.help || !run || run.step === 'pick' || ((run.step === 'over' || run.step === 'won') && !view.peek);
+    if (view.card && !show) view.cardClosedAt = performance.now();
     view.card = show;
     view.stage.inert = show;
     view.dock.inert = show;
     if (show) view.toast.hidden = true;
     view.overlay.hidden = !show;
     view.overlay.innerHTML = show ? cardHtml() : '';
-    if (show && focus) {
+    if (show && focus && !view.win.minimised) { // (a card shown while minimised leaves focus alone)
       const go = view.overlay.querySelector('[data-first]') || view.overlay.querySelector('button');
-      if (go) go.focus({ preventScroll: true });
+      if (go) { go.focus({ preventScroll: true }); go.scrollIntoView({ block: 'nearest' }); }
     }
     syncAim(nightShown());
   }
@@ -2119,7 +2124,7 @@
     list.forEach((m) => {
       parts.push(`${TYPES[m.type].name}${m.id === f.target ? ' (aimed at)' : ''}: ${away(m)} from the bed, ${plural(m.hp, 'hit point')}, ${nextOf(m, f, fc).text}.`);
     });
-    if (f.queue.length) parts.push(`${plural(f.queue.length, 'more')} to come tonight.`);
+    if (f.queue.length) parts.push(`${f.queue.length} more to come tonight.`);
     const lit = f.live.filter(Boolean).length;
     const c = colours(f, Object.keys(f.kinds).map(Number).filter((i) => f.live[i]));
     parts.push(`${plural(lit, 'peg')} lit${c ? `, among them ${c}` : ''}.`);
@@ -2157,6 +2162,11 @@
   }
 
   function wire(v) {
+    // The second click of a double-click lands on whatever is under it: never
+    // on a card's button, and never on the game just after a card goes.
+    v.win.body.addEventListener('click', (e) => {
+      if (e.detail > 1 && (v.overlay.contains(e.target) || performance.now() - v.cardClosedAt < 500)) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
     const { sky } = v;
     sky.addEventListener('pointerdown', (e) => {
       lastPointer = e.pointerType || 'mouse';
@@ -2232,6 +2242,9 @@
       }
       return;
     }
+    // Escape skips ahead all through the turn after a shot (and the moment
+    // before a card comes up), so it never tucks the window away then.
+    if (k === 'Escape' && run.step !== 'aim' && !view.peek) { e.preventDefault(); return; }
     if (k === 'ArrowLeft' || k === 'ArrowRight') {
       e.preventDefault();
       if (!playing()) return;
