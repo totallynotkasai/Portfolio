@@ -761,7 +761,7 @@
   };
 
   /* ══════════════════════════════════════════════════════════════════════
-     GAMES  (a folder: Wizard Sweeper, Not Rubbish and Star Drop)
+     GAMES  (a folder: Wizard Sweeper, Not Rubbish, Star Drop and Spell Solitaire)
      ══════════════════════════════════════════════════════════════════════
      Each game is its own script, fetched the first time it opens so the
      desktop never waits for it. The build stamps the addresses below with
@@ -780,6 +780,10 @@
     stardrop: {
       label: 'Star Drop', file: 'stardrop.exe', colour: 'blue', size: [560, 760], minSize: [340, 480],
       sub: 'Chase off his nightmares', pose: 'aim', script: '/stardrop.js', prefix: 'gm',
+    },
+    solitaire: {
+      label: 'Spell Solitaire', file: 'solitaire.exe', colour: 'lavender', size: [560, 760], minSize: [340, 480],
+      sub: 'Chain spells up the peaks', pose: 'cards', script: '/solitaire.js', prefix: 'gm',
     },
   };
   const wizardPose = (name) => {
@@ -868,7 +872,7 @@
     colour: 'coral',
     icon: 'games',
     path: '/games',
-    size: [620, 450],
+    size: [700, 460], // four 150px files in a row (even with a scrollbar), none of them cut off
     head: () => copy('games', { heading: 'Games', sub: 'Things to play when you should be working.' }),
     render(win) {
       const ids = Object.keys(GAMES);

@@ -16,6 +16,7 @@
      sweeper.js     Wizard Sweeper
      rubbish.js     Not Rubbish
      stardrop.js    Star Drop
+     solitaire.js   Spell Solitaire
    or paint.exe (from the Trash):
      paint.js       paint.exe
    ════════════════════════════════════════════════════════════════════════ */

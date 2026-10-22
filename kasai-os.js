@@ -1814,10 +1814,10 @@
      SECRET CODES
      ══════════════════════════════════════════════════════════════════════
      Typed anywhere but a text box: "wizard" (a party for the wizard),
-     "kasai" (doodle rain), "sweep", "rubbish" and "stardrop" (the
-     games), or the Konami code (up up down down left right left right
-     B A: the whole party). Phones have no keyboard, so the home screen
-     takes the Konami code as swipes. */
+     "kasai" (doodle rain), "sweep", "rubbish", "stardrop" and
+     "solitaire" (the games), or the Konami code (up up down down left
+     right left right B A: the whole party). Phones have no keyboard, so
+     the home screen takes the Konami code as swipes. */
   const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
   const petHere = () => !!(K.pet && $('#desk-pet .pet'));
   const SECRETS = {
@@ -1842,6 +1842,10 @@
     stardrop() {
       if (K.openGame) K.openGame('stardrop');
       return 'Star Drop';
+    },
+    solitaire() {
+      if (K.openGame) K.openGame('solitaire');
+      return 'Spell Solitaire';
     },
     konami() {
       K.doodleRain();
@@ -1872,7 +1876,7 @@
       if (endsWith(keys, KONAMI)) { keys = []; secret('konami'); return; }
       let typed = '';
       for (let i = keys.length - 1; i >= 0 && keys[i].length === 1; i--) typed = keys[i] + typed;
-      const word = ['wizard', 'kasai', 'sweep', 'rubbish', 'stardrop'].find((w) => typed.endsWith(w));
+      const word = ['wizard', 'kasai', 'sweep', 'rubbish', 'stardrop', 'solitaire'].find((w) => typed.endsWith(w));
       if (word) { keys = []; secret(word); }
     });
 

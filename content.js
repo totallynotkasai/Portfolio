@@ -22,6 +22,7 @@
     11. STAR DROP      a game in the Games window
     12. CV             your CV (the My CV button in the About window)
     13. PAINT          paint.exe, hidden in the Trash
+    14. SPELL SOLITAIRE a game in the Games window, with your art on the cards
 
    TO ADD ARTWORK: just drop the file into a category folder and push:
      assets/art/Poster/My Piece.png   →  a new spell card in the Art
@@ -429,6 +430,7 @@ window.CONTENT = {
       hurt: 'assets/Wizard Sprite/svg/hurt.svg',        // "ouch!" when a gremlin hits him (Not Rubbish)  (if emptied: startled)
       aim: 'assets/Wizard Sprite/svg/aim.svg',          // his star glowing, ready to flick it off his hat (Star Drop)  (if emptied: idle)
       hatless: 'assets/Wizard Sprite/svg/hatless.svg',  // his hat without its star, watching it fall (Star Drop)  (if emptied: idle)
+      cards: '',                                        // fanning out a hand of cards (Spell Solitaire's file and title card)  (until drawn: wave)
     },
     sleepAfter: 60,               // seconds of being ignored before he naps (half that from 10pm to 6am)
     waveAway: 10,                 // seconds on another tab before he waves when you come back (at most every 30 seconds)
@@ -854,6 +856,117 @@ window.CONTENT = {
       low: ['{score}/10. i can tell you tried.', '{score}/10. is it upside down?'],
       mid: ['{score}/10. that is going on my fridge.', '{score}/10. the wizard council approves.'],
       high: ['{score}/10! a masterpiece!', '{score}/10. somebody frame this.'],
+    },
+  },
+
+  /* ──────────────────────────────────────────────────────────────────────
+     14. SPELL SOLITAIRE  (a game in the Games window)
+     ──────────────────────────────────────────────────────────────────────
+     TriPeaks with spells, and your art on the cards. Three peaks of
+     cards: play any uncovered card one higher or lower than the pile
+     (Kings and Aces go round), and chain them into streaks, each card
+     worth more than the last. A run is seven deals, each with a target;
+     between deals you pick a spell or a charm, and from deal 4 curses
+     join in. A visitor's best run is remembered on their computer, and
+     beating the Final Deal puts a trophy on the game's file.
+     • Every rank wears one of your artworks for the whole run (all four
+       suits share it), captioned like "7 of Flames: Mountain". Each run
+       picks a fresh 13 from assets/art. To fix some, list them in
+       "faces", Ace first:  faces: ['assets/art/Digital Art/Mountain.png'],
+       Leave a rank '' (or the list empty) and it's picked at random.
+     • "drawings": your drawings for the card back, the four suits and
+       the spell and curse icons, an SVG or a transparent PNG each (e.g.
+       in assets/Games/). Until one is drawn, a stand-in shows: the back
+       is periwinkle with the flame logo, the rest are doodles.
+     • He wears his own drawings from section 8: "idle" beside the pile,
+       "happy" on a streak of 5 or more, "party" for a clean sweep and a
+       won run, "startled" when a heart is lost, and "cards" (until it's
+       drawn, "wave") on the title card and the game's file.
+     • Each list of lines is said one at random. Empty a list, e.g.
+       loseLines: [],  to keep him quiet.
+     • "spells", "charms" and "curses" are the names and blurbs on their
+       cards. Reword them freely, but keep them true: changing them here
+       doesn't change the game.                                          */
+  solitaire: {
+    faces: [],
+
+    drawings: {
+      back: '',      // the back of every card
+      backFinal: '', // ...and on a Final Deal (until drawn: the back above, or the ink stand-in)
+      flames: '',    // the four suits, in the cards' corners
+      stars: '',
+      moons: '',
+      leaves: '',
+      wild: '',      // the five spells, in the dock and on their cards
+      fireball: '',
+      echo: '',
+      rewind: '',
+      moonlight: '',
+      circle: '',    // the five curses, on the bar along the top (Broken Circle, Seal, Moths, Hex, Toll)
+      seal: '',
+      moth: '',
+      hex: '',
+      coin: '',
+      ember: '',     // the charms too, if you like (Ember, Twin Peaks, Kindred, Crystal Ball, Second Deck, Healing Potion, Spellbook)
+      peaks: '',
+      kindred: '',
+      crystal: '',
+      deck: '',
+      potion: '',
+      book: '',
+    },
+
+    // At the start of each deal, and of the Final Deal.
+    dealLines: ['shuffle up and deal!', 'i can feel a long streak coming.', 'cards on the table.'],
+    finalLines: ['the Final Deal. no pressure.', 'this is it. the Final Deal!'],
+
+    // In a speech bubble during a deal: a streak of 10 or more, the
+    // target reached, a clean sweep.
+    streakLines: ['on a roll!', 'keep it going!', 'look at that streak!'],
+    targetLines: ['target reached! keep going.', "that's the target. now show off."],
+    sweepLines: ['clean sweep!', 'not a card left!', 'peaks? what peaks?'],
+
+    // On the card between deals: a deal made, or under its target.
+    madeLines: ['deal done!', 'another one for the pile.'],
+    hurtLines: ['ouch. under target.', 'that one got away.'],
+
+    // When the run ends: lost, won, or a new best.
+    loseLines: ["that's the deck done.", 'the cards were against us.'],
+    winLines: ['every deal beaten!', 'we did it! all seven!'],
+    bestLines: ['a new best! frame those cards.'],
+
+    // What he tells the desktop after a run. {deal} becomes the deal it
+    // ended on; "endless" is for a run lost after beating the Final Deal.
+    deskLines: {
+      lose: ['i made it to deal {deal} in Spell Solitaire!', 'deal {deal}. the cards were against me.'],
+      win: ['i beat all seven deals of Spell Solitaire!'],
+      endless: ['i dealt my way to deal {deal} of Spell Solitaire!'],
+    },
+
+    spells: {
+      wild:      { name: 'Wild',      blurb: 'Play any uncovered card, whatever its rank. The streak carries on.' },
+      fireball:  { name: 'Fireball',  blurb: 'Burn an uncovered card away. The streak carries on, and a peak still pays.' },
+      echo:      { name: 'Echo',      blurb: 'Draw a card without breaking your streak.' },
+      rewind:    { name: 'Rewind',    blurb: 'Take back your last play.' },
+      moonlight: { name: 'Moonlight', blurb: 'Every face-down card turns face up for this deal.' },
+    },
+
+    charms: {
+      ember:     { name: 'Ember',          blurb: 'Streaks start a step higher: 20, 30, 40...' },
+      twin:      { name: 'Twin Peaks',     blurb: 'Peak bonuses are doubled.' },
+      kindred:   { name: 'Kindred',        blurb: 'A card played on its own suit scores double.' },
+      crystal:   { name: 'Crystal Ball',   blurb: 'See the top card of the stock (two with a second ball).' },
+      deck:      { name: 'Second Deck',    blurb: 'Once a deal, an empty stock gets 12 cards back from the pile.' },
+      potion:    { name: 'Healing Potion', blurb: 'One more heart, and all your hearts back.' },
+      spellbook: { name: 'Spellbook',      blurb: 'Each clean sweep gives a free spell charge for the next deal.' },
+    },
+
+    curses: {
+      circle: { name: 'Broken Circle', blurb: "Kings and Aces don't connect." },
+      seal:   { name: 'Seal',          blurb: "The middle peak's top three cards are sealed until both outer peaks are clear." },
+      moths:  { name: 'Moths',         blurb: '11 fewer cards in the stock.' },
+      hex:    { name: 'Hex',           blurb: 'One suit still scores, but starts the streak again.' },
+      toll:   { name: 'Toll',          blurb: 'Every draw costs 15 points.' },
     },
   },
 

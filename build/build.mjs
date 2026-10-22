@@ -35,7 +35,7 @@ const GEN_URL = '/generated/';
 // the browser fetches the big one only when a picture is drawn too wide for
 // the small one (a big window, the image viewer, a high-density screen).
 const IMAGE_SETS = [
-  { dir: 'assets/art', web: 800, large: 4000, thumb: 400 }, // every artwork whole (the biggest is 3200x4000); thumb: a card in the binder
+  { dir: 'assets/art', web: 800, large: 4000, thumb: 400, card: 200 }, // every artwork whole (the biggest is 3200x4000); thumb: a card in the binder; card: a playing card in Spell Solitaire
   { dir: 'assets/certs', web: 480, large: 2000 },
   { dir: 'assets/photos', web: 480 },                 // About's me.png (about 220px wide) and the Start menu's circle
   { dir: 'assets/projects', web: 640, large: 2560 },   // a maximised project window
@@ -243,6 +243,13 @@ export async function generate({ root = ROOT, outDir = join(DIST, 'generated'), 
         const thumb = await makeWebp(buf, `${base}-t${set.thumb}.webp`,
           { width: set.thumb, withoutEnlargement: true });
         Object.assign(info, { thumb: thumb.url, tw: thumb.width });
+      }
+      // And the smallest, for a playing card's face, so a whole deck of
+      // art stays light.
+      if (set.card && web.width > set.card) {
+        const card = await makeWebp(buf, `${base}-c${set.card}.webp`,
+          { width: set.card, withoutEnlargement: true });
+        Object.assign(info, { card: card.url, cw: card.width });
       }
       if (set.dir === 'assets/art') {
         // Worked out from the small copy, once per version of the file.
