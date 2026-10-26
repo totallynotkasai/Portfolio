@@ -12,9 +12,9 @@
    (Kings and Aces go round), or draw from the stock. Every card in an
    unbroken streak is worth more than the last, a draw ends the streak,
    and clearing a peak pays a bonus. A run is seven deals, each with a
-   target: a deal under its target costs a heart, and the Final Deal
+   target: a deal under its target costs a heart (half for a sweep), and the Final Deal
    must be beaten. Between deals you pick a spell (Wild, Fireball, Echo,
-   Rewind, Moonlight, Scry or Undraw) or a charm, and from the fourth
+   Rewind, Moonlight, Scry, Undraw, Nudge or Dispel) or a charm, and from the fourth
    deal on curses join in. Beat the Final Deal to complete the run, then
    keep dealing for as long as your hearts last. Nothing is ever timed.
    Each visitor's best is kept.
@@ -63,24 +63,29 @@
   const suitOf = (c) => Math.floor(c / 13);
   const rankOf = (c) => (c % 13) + 1;
 
-  /* ---------- the peaks ----------
-     28 places in four rows of 3, 6, 9 and 10, top first. x is in card
-     widths along the bottom row (0 to 9). Each card lies over the two
-     cards half a card either side of it in the row above, so a card is
-     uncovered once both cards lying over it are gone; the bottom row
-     starts uncovered and face up. The top card of each peak is its tip. */
-  const ROWS = [[1.5, 4.5, 7.5], [1, 2, 4, 5, 7, 8], [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]];
-  const SLOTS = [];
-  ROWS.forEach((xs, y) => xs.forEach((x) => SLOTS.push({ x, y, over: [], under: [] })));
-  // over: the places whose cards lie over this one; under: the ones it lies over.
-  SLOTS.forEach((s, i) => SLOTS.forEach((t, j) => {
-    if (t.y === s.y + 1 && Math.abs(t.x - s.x) === 0.5) { s.over.push(j); t.under.push(i); }
-  }));
-  const PLACES = SLOTS.length;
-  const LAST_ROW = ROWS.length - 1;
+  /* ---------- the layouts ----------
+     Every layout has 28 cards, four rows and three tips. Cards in the
+     next row cover any card they overlap horizontally. Keeping the same
+     card count preserves the stock size and scoring across layouts. */
+  function makeLayout(name, rows) {
+    const slots = [];
+    rows.forEach((xs, y) => xs.forEach((x) => slots.push({ x, y, over: [], under: [] })));
+    slots.forEach((s, i) => slots.forEach((t, j) => {
+      if (t.y === s.y + 1 && Math.abs(t.x - s.x) < 1) { s.over.push(j); t.under.push(i); }
+    }));
+    return { name, slots, width: Math.max(...slots.map((s) => s.x)) + 1, sealed: [1].concat(slots[1].over) };
+  }
+  const LAYOUTS = [
+    makeLayout('Three Peaks', [[1.5, 4.5, 7.5], [1, 2, 4, 5, 7, 8], [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]),
+    makeLayout('Starlit Gate', [[1.5, 5, 8.5], [1, 2, 4.5, 5.5, 8, 9], [0.5, 1.5, 2.5, 4.5, 5.5, 7.5, 8.5, 9.5], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]),
+    makeLayout('Terraces', [[1.5, 4.5, 7.5], [0.6, 2.4, 4, 5, 6.6, 8.4], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]]),
+  ];
+  const layoutOf = (d) => LAYOUTS[d.layout || 0];
+  const slotsOf = (d) => layoutOf(d).slots;
+  const PLACES = 28;
+  const LAST_ROW = 3;
   const TIPS = [0, 1, 2];
   const MIDDLE = 1;    // the middle peak's tip
-  const SEALED = [MIDDLE].concat(SLOTS[MIDDLE].over); // what the Seal holds: the middle tip and the two cards lying over it
 
   /* ---------- spells ----------
      Each pick of a spell is one more charge of it in every deal (up to
@@ -94,6 +99,8 @@
     moonlight: { key: 'm', icon: 'moonlight', colour: 'lavender', step: 8, name: 'Moonlight', blurb: 'Every face-down card turns face up for this deal.', most: 1 },
     scry: { key: 's', icon: 'scry', colour: 'yellow', step: 5, name: 'Scry', blurb: 'See the next three cards of the stock, and put them back in any order.' },
     undraw: { key: 'u', icon: 'undraw', colour: 'grey', step: 3, name: 'Undraw', blurb: 'Take back your last draw: the streak comes back, and the card goes under the stock.' },
+    nudge: { key: 'n', icon: 'nudge', colour: 'teal', step: 5, name: 'Nudge', blurb: 'Shift the pile’s top rank up or down by one. Its suit and your streak stay the same.' },
+    dispel: { key: 'x', icon: 'dispel', colour: 'lavender', step: 7, name: 'Dispel', blurb: 'Remove one chosen curse for this deal.' },
   };
   const SPELL_IDS = Object.keys(SPELLS);
 
@@ -101,11 +108,13 @@
   const CHARMS = {
     ember: { icon: 'ember', colour: 'coral', name: 'Ember', blurb: 'Streaks start a step higher: 20, 30, 40...', most: 1 },
     twin: { icon: 'peaks', colour: 'lavender', name: 'Twin Peaks', blurb: 'Peak bonuses are doubled.', most: 1 },
-    kindred: { icon: 'kindred', colour: 'pink', name: 'Kindred', blurb: 'A card played on its own suit scores double.', most: 1 },
+    kindred: { icon: 'kindred', colour: 'pink', name: 'Kindred', blurb: 'A card played on its own suit scores double. Changing suit keeps your streak; the Hex curse still applies.', most: 1 },
     crystal: { icon: 'crystal', colour: 'blue', name: 'Crystal Ball', blurb: 'See the top card of the stock (two with a second ball).', most: 2 },
     deck: { icon: 'deck', colour: 'teal', name: 'Second Deck', blurb: `Once a deal, an empty stock gets ${REFILL} cards back from the pile.`, most: 1 },
     potion: { icon: 'potion', colour: 'pink', name: 'Healing Potion', blurb: 'One more heart, and all your hearts back.' },
     spellbook: { icon: 'book', colour: 'yellow', name: 'Spellbook', blurb: 'Each clean sweep gives a free spell charge for the next deal.', most: 1 },
+    clover: { icon: 'clover', colour: 'teal', name: 'Lucky Clover', blurb: 'Every fifth consecutive play scores 50 extra points.', most: 1 },
+    hearth: { icon: 'hearth', colour: 'coral', name: 'Hearthstone', blurb: 'A clean sweep that reaches its target restores an extra half-heart.', most: 1 },
   };
   const CHARM_IDS = Object.keys(CHARMS);
 
@@ -159,14 +168,15 @@
   const playing = () => !!(run && run.step === 'play' && run.deal && !run.deal.over);
   const cursed = (d, id) => d.curses.indexOf(id) !== -1;
   const topOf = (d) => d.pile[d.pile.length - 1];
-  const free = (d, i) => d.slots[i] >= 0 && SLOTS[i].over.every((j) => d.slots[j] < 0);
-  const sealed = (d, i) => SEALED.indexOf(i) !== -1 && cursed(d, 'seal') && (d.slots[0] >= 0 || d.slots[2] >= 0);
+  const pileFace = (d) => d.nudge == null ? topOf(d) : suitOf(topOf(d)) * 13 + d.nudge - 1;
+  const free = (d, i) => d.slots[i] >= 0 && slotsOf(d)[i].over.every((j) => d.slots[j] < 0);
+  const sealed = (d, i) => layoutOf(d).sealed.indexOf(i) !== -1 && cursed(d, 'seal') && (d.slots[0] >= 0 || d.slots[2] >= 0);
   const open = (d, i) => free(d, i) && !sealed(d, i);
   const opens = (d) => range(PLACES).filter((i) => open(d, i));
   // One rank either side of the pile's top card. Kings and Aces go round,
   // unless the Broken Circle is on the deal.
   const fits = (d, c) => {
-    const gap = Math.abs(rankOf(c) - rankOf(topOf(d)));
+    const gap = Math.abs(rankOf(c) - rankOf(pileFace(d)));
     return gap === 1 || (gap === 12 && !cursed(d, 'circle'));
   };
   const canDraw = (d) => d.stock.length > 0 || (d.refills > 0 && d.pile.length > 1);
@@ -198,6 +208,8 @@
     if (id === 'scry') return d.stock.length ? '' : 'empty';
     if (id === 'undraw') return d.drawn ? '' : 'nothing';
     if (id === 'moonlight') return d.slots.some((c, k) => c >= 0 && !d.up[k]) ? '' : 'nothing';
+    if (id === 'nudge') return d.pile.length ? '' : 'nothing';
+    if (id === 'dispel') return d.curses.length ? '' : 'nothing';
     return 'later';
   }
   const usable = (id, i) => !why(id, i);
@@ -205,7 +217,7 @@
   const madeIt = (d) => !!d.reached || d.score >= d.target;
   // Nothing left to try: no play, nothing to draw, and no spell that could
   // change that. The deal ends by itself then.
-  const hopeless = () => stuck() && !usable('wild') && !usable('fireball') && !usable('rewind') && !usable('undraw');
+  const hopeless = () => stuck() && !usable('wild') && !usable('fireball') && !usable('rewind') && !usable('undraw') && !usable('nudge') && !usable('dispel');
 
   // A new run, from the first deal. seed: which run (the same one deals
   // the same cards), or none for a fresh one. Anything still being drawn
@@ -260,7 +272,9 @@
       const pool = CURSE_IDS.filter((id) => !(last.length === 1 && last[0] === id));
       curses = [pool[rand(pool.length)]];
     }
-    return { n, target: targetOf(n), curses, hex: curses.indexOf('hex') !== -1 ? rand(SUITS.length) : -1 };
+    const layouts = range(LAYOUTS.length).filter((id) => !run.deal || id !== run.deal.layout);
+    const layout = n === 1 ? 0 : layouts[rand(layouts.length)];
+    return { n, target: targetOf(n), curses, hex: curses.indexOf('hex') !== -1 ? rand(SUITS.length) : -1, layout };
   }
 
   // Deal the cards: 28 into the peaks (the bottom row face up), one onto
@@ -273,8 +287,9 @@
       target: p.target,
       curses: p.curses.slice(),
       hex: p.hex,
+      layout: p.layout,
       slots: cards.slice(0, PLACES),       // the card at each place (-1 once it's gone)
-      up: SLOTS.map((s) => s.y === LAST_ROW), // face up
+      up: LAYOUTS[p.layout].slots.map((s) => !s.over.length), // uncovered cards face up
       pile: [cards[PLACES]],               // its top card last
       stock: cards.slice(PLACES + 1),      // its top card last
       charges: {},   // spells left to cast this deal
@@ -282,6 +297,7 @@
       burnt: [],
       undo: [],      // what Rewind can take back (since the last draw)
       drawn: null,   // what Undraw can take back: the last draw, until the next play, burn or cast
+      nudge: null,   // enchanted pile rank; the actual deck remains unchanged
       seen: null,    // the cards Scry is showing, waiting to be put back in order
       score: 0,
       streak: 0,
@@ -316,10 +332,11 @@
   // Kindred when it's the same suit. A card of the Hex's suit scores, but
   // starts the streak again. Also the streak after it.
   function scored(d, card, under, streak) {
-    const hexed = d.hex >= 0 && suitOf(card) === d.hex;
+    const hexed = cursed(d, 'hex') && d.hex >= 0 && suitOf(card) === d.hex;
     const s = hexed ? 1 : streak + 1;
     const kin = !!run.have.kindred && suitOf(card) === suitOf(under);
-    return { pts: CARD * (s + run.have.ember) * (kin ? 2 : 1), streak: s, hexed, kin };
+    const clover = !!run.have.clover && s % 5 === 0;
+    return { pts: CARD * (s + run.have.ember) * (kin ? 2 : 1) + (clover ? 50 : 0), streak: s, hexed, kin, clover };
   }
 
   // A card onto the pile, by a play or by Wild.
@@ -330,11 +347,12 @@
     const sc = scored(d, card, topOf(d), d.streak);
     d.slots[i] = -1;
     d.pile.push(card);
+    d.nudge = null;
     d.streak = sc.streak;
     d.best = Math.max(d.best, d.streak);
     run.longest = Math.max(run.longest, d.streak);
     d.score += sc.pts;
-    const ev = [{ t: 'play', i, card, pts: sc.pts, streak: d.streak, kin: sc.kin, hexed: sc.hexed, wild: !!wild }];
+    const ev = [{ t: 'play', i, card, pts: sc.pts, streak: d.streak, kin: sc.kin, hexed: sc.hexed, clover: sc.clover, wild: !!wild }];
     gone(i, ev);
     return settle(ev);
   }
@@ -357,14 +375,14 @@
   function keep(d, i) {
     d.drawn = null;
     d.seen = null;
-    d.undo.push({ i, card: d.slots[i], slots: d.slots.slice(), pile: d.pile.slice(), burnt: d.burnt.slice(), score: d.score, streak: d.streak, peaks: d.peaks, reached: d.reached });
+    d.undo.push({ i, card: d.slots[i], slots: d.slots.slice(), pile: d.pile.slice(), nudge: d.nudge, burnt: d.burnt.slice(), score: d.score, streak: d.streak, peaks: d.peaks, reached: d.reached });
   }
 
   // A card has left place i: the cards it lay over may be uncovered (they
   // turn face up), a tip pays its peak's bonus, and the Seal may break.
   function gone(i, ev) {
     const d = run.deal;
-    SLOTS[i].under.forEach((j) => {
+    slotsOf(d)[i].under.forEach((j) => {
       if (d.slots[j] >= 0 && !d.up[j] && free(d, j)) {
         d.up[j] = true;
         ev.push({ t: 'flip', i: j, card: d.slots[j] });
@@ -375,7 +393,7 @@
     d.peaks++;
     d.score += pts;
     ev.push({ t: 'peak', i, n: d.peaks, pts });
-    if (i !== MIDDLE && cursed(d, 'seal') && (d.slots[0] < 0 && d.slots[2] < 0) && SEALED.some((k) => d.slots[k] >= 0)) ev.push({ t: 'unseal' });
+    if (i !== MIDDLE && cursed(d, 'seal') && (d.slots[0] < 0 && d.slots[2] < 0) && layoutOf(d).sealed.some((k) => d.slots[k] >= 0)) ev.push({ t: 'unseal' });
   }
 
   // After every move: the target, a clean sweep, or a deal with nothing
@@ -409,7 +427,8 @@
     d.pile.push(card);
     const broke = echo ? 0 : d.streak;
     const toll = cursed(d, 'toll') ? Math.min(TOLL, d.score) : 0;
-    d.drawn = { card, streak: d.streak, toll, undo: d.undo }; // (for Undraw)
+    d.drawn = { card, streak: d.streak, toll, undo: d.undo, nudge: d.nudge }; // (for Undraw)
+    d.nudge = null;
     d.seen = null;
     d.undo = [];
     if (!echo) d.streak = 0;
@@ -429,6 +448,7 @@
     d.pile.pop();
     d.stock.unshift(s.card); // (on top again instead: d.stock.push(s.card))
     d.streak = s.streak;
+    d.nudge = s.nudge;
     d.score += s.toll;
     d.undo = s.undo;
     return settle([{ t: 'undraw', card: s.card, streak: d.streak, toll: s.toll, left: d.stock.length }]);
@@ -459,12 +479,25 @@
     const no = why(id, i);
     if (no) return [{ t: 'deny', spell: id, i, why: no }];
     const d = run.deal;
+    if (id === 'nudge' && i !== -1 && i !== 1) return [];
+    if (id === 'dispel' && !d.curses.includes(i)) return [];
     d.charges[id]--;
     const ev = [{ t: 'cast', spell: id, i }];
     if (id === 'undraw') return ev.concat(undraw());
     // Any other spell: the last draw can't be taken back from here on.
     d.drawn = null;
     d.seen = null;
+    if (id === 'nudge') {
+      d.nudge = ((rankOf(pileFace(d)) - 1 + i + 13) % 13) + 1;
+      return ev.concat(settle([{ t: 'nudge', card: pileFace(d) }]));
+    }
+    if (id === 'dispel') {
+      d.curses = d.curses.filter((curse) => curse !== i);
+      if (i === 'hex') d.hex = -1;
+      const restored = i === 'moths' ? d.eaten.length : 0;
+      if (restored) { d.stock.unshift(...d.eaten); d.eaten = []; }
+      return ev.concat(settle([{ t: 'dispel', curse: i, restored }]));
+    }
     if (id === 'wild') return ev.concat(put(i, true));
     if (id === 'fireball') return ev.concat(burn(i));
     if (id === 'echo') return ev.concat(draw(true));
@@ -483,14 +516,15 @@
   function rewind() {
     const d = run.deal;
     const s = d.undo.pop();
-    Object.assign(d, { slots: s.slots, pile: s.pile, burnt: s.burnt, score: s.score, streak: s.streak, peaks: s.peaks, reached: s.reached });
+    Object.assign(d, { slots: s.slots, pile: s.pile, nudge: s.nudge, burnt: s.burnt, score: s.score, streak: s.streak, peaks: s.peaks, reached: s.reached });
     return settle([{ t: 'rewind', i: s.i, card: s.card }]);
   }
 
   // The deal's over: a clean sweep (every card gone from the peaks), or
   // nothing left to try. A clean sweep pays for each card left in the
-  // stock and wins a heart back (and a free spell, with the Spellbook). A
-  // deal under its target costs a heart; with none left, or on a Final
+  // stock and, if it reaches the target, heals (plus a Spellbook charge).
+  // A missed target costs half a heart for a sweep, otherwise a heart.
+  // With none left, or on a Final
   // Deal, the run is over. A Final Deal beaten completes the run.
   function endDeal(swept) {
     const d = run.deal;
@@ -504,7 +538,12 @@
       ev.push({ t: 'sweep', left: d.stock.length, pts });
       if (!d.reached && d.score >= d.target) { d.reached = true; ev.push({ t: 'target' }); }
       run.sweeps++;
-      if (run.hearts < run.max) { run.hearts++; d.healed = true; ev.push({ t: 'heal', hearts: run.hearts }); }
+      if (madeIt(d) && run.hearts < run.max) {
+        const before = run.hearts;
+        run.hearts = Math.min(run.max, run.hearts + 1 + (run.have.hearth ? 0.5 : 0));
+        d.healed = run.hearts - before;
+        ev.push({ t: 'heal', hearts: run.hearts, amount: d.healed });
+      }
       if (run.have.spellbook) {
         const id = SPELL_IDS[rand(SPELL_IDS.length)];
         run.extra[id] = (run.extra[id] || 0) + 1;
@@ -517,8 +556,9 @@
     if (made) run.made++;
     ev.push({ t: 'end', n: d.n, made, swept: !!swept, score: d.score, target: d.target, final });
     if (!made) {
-      run.hearts = Math.max(0, run.hearts - 1);
-      ev.push({ t: 'hurt', hearts: run.hearts });
+      d.lost = swept ? 0.5 : 1;
+      run.hearts = Math.max(0, run.hearts - d.lost);
+      ev.push({ t: 'hurt', hearts: run.hearts, amount: d.lost });
       if (final || !run.hearts) {
         run.step = 'over';
         ev.push({ t: 'over', final });
@@ -579,6 +619,20 @@
     return [{ t: 'pick', onwards: true, none: !run.offer.length }];
   }
 
+  // Bank the current score exactly once, including a partially played deal.
+  function endRun() {
+    if (!endless() || run.step === 'over') return [];
+    hush();
+    if (!run.deal.over) run.score += run.deal.score;
+    run.deal.over = true;
+    run.ended = true;
+    run.step = 'over';
+    run.next = null;
+    run.offer = [];
+    finishRun(false);
+    return [{ t: 'banked', score: run.score }];
+  }
+
   /* ══════════════════════════════════════════════════════════════════════
      THE WINDOW
      ══════════════════════════════════════════════════════════════════════
@@ -600,6 +654,10 @@
     moonlight: '<path d="M15.5 5a6.8 6.8 0 1 0 4.5 11.4A5.6 5.6 0 0 1 15.5 5z"/><path d="M4 3.5l1.5 1.5M3 8.5h2M8.5 2.5v2"/>',
     scry: '<path d="M2.5 14S6 8 12 8s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="14" r="2.8"/><path d="M12 2.5v2.5M5.5 4.2l1.3 2M18.5 4.2l-1.3 2"/>',
     undraw: '<rect x="10" y="2.5" width="10.5" height="14.5" rx="2"/><path d="M7 6.5c-3.6 2.6-3.6 9.6 1 13h7.5"/><path d="M12.5 16.5l3 3-3 3"/>',
+    nudge: '<path d="M5 8h14M8 5 5 8l3 3M16 13l3 3-3 3M5 16h14"/>',
+    dispel: '<path d="m4 20 12-12M13 5l6 6M17 2v3M20 6h3M5 3l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>',
+    clover: '<path d="M12 12C3 13 2 5 7 4c3-1 5 3 5 8C11 3 19 2 20 7c1 3-3 5-8 5 9-1 10 7 5 8-3 1-5-3-5-8 1 9-7 10-8 5-1-3 3-5 8-5zM12 12l8 9"/>',
+    hearth: '<path d="M3 11 12 3l9 8v10H3z"/><path d="M12 18c-6-3-3-8 0-5 3-3 6 2 0 5z"/>',
     ember: '<path d="M12 20.5c-3 0-5-2-5-4.8 0-2.4 1.7-3.9 2.7-5.8.5 1.1 1.2 1.8 2 2.2-.1-2.3 1-4.5 2.8-6.1 0 2.4 1 3.7 2 5.1.9 1.2 1.5 2.4 1.5 4.3 0 3-2.3 5.1-6 5.1z"/><path d="M5 5.5h.01M19 4h.01M18.5 9.5h.01"/>',
     peaks: '<path d="M2.5 19.5 8.5 8.5l3.6 6.3 3-4.8 6.4 9.5z"/>',
     kindred: '<rect x="3.5" y="5" width="10" height="14" rx="2"/><rect x="10.5" y="5" width="10" height="14" rx="2"/>',
@@ -619,6 +677,10 @@
   /* ---------- the wizard, the artwork and the drawings ---------- */
   const frame = (name) => (K.pet && K.pet.frame ? K.pet.frame(name) : '');
   const wizardPic = (name, cls) => {
+    if (cls === 'ss-wiz-pic' && K.WIZARD_RIG) {
+      const rig = K.WIZARD_RIG.svg.replace(/\bid="([^"]+)"/g, 'id="ss-$1"').replace(/#(wz-[\w-]+)/g, '#ss-$1');
+      return `<span class="ss-wiz-pic">${rig.replace('<svg ', `<svg data-frame="${name}" `)}</span>`;
+    }
     const src = frame(name);
     return src
       ? `<img${cls ? ` class="${cls}"` : ''} src="${esc(src)}" alt="" draggable="false" decoding="async" />`
@@ -758,7 +820,11 @@
   // screen, and only for what's drawn, so the bots and anything skipped
   // stay quiet. A card's sound comes from its side of the table.
   const sound = (name, o) => !!view && !view.win.minimised && !!K.sound && K.sound.play(name, o);
-  const panAt = (i) => (SLOTS[i] ? (SLOTS[i].x / 9 - 0.5) * 0.8 : 0);
+  const panAt = (i) => {
+    const d = dealShown();
+    const slot = slotsOf(d)[i];
+    return slot ? (slot.x / (layoutOf(d).width - 1) - 0.5) * 0.8 : 0;
+  };
 
   /* ---------- the window: setting up and tidying away ---------- */
   function mount(win) {
@@ -800,6 +866,7 @@
     win.menu.innerHTML = `
       <div class="gm-menu" role="group" aria-label="Game">
         <button type="button" data-act="new">${doodleIcon('controller')}New run</button>
+        <button type="button" data-act="end-run" hidden>${doodleIcon('end')}End Run</button>
         <button type="button" data-act="help">Help</button>
       </div>`;
     win.menu.hidden = false;
@@ -937,7 +1004,7 @@
   // The deal drawn: the run's, or before the first run a face-down one
   // behind the title card.
   const dealShown = () => (run && run.deal ? run.deal : view.idle || (view.idle = {
-    n: 1, target: TARGETS[0], curses: [], hex: -1, slots: range(PLACES), up: SLOTS.map(() => false), pile: [], stock: range(23),
+    n: 1, target: TARGETS[0], curses: [], hex: -1, layout: 0, slots: range(PLACES), up: range(PLACES).map(() => false), pile: [], stock: range(23),
     charges: {}, undo: [], score: 0, streak: 0, peaks: 0, refills: 0, idle: true,
   }));
   const live = (d) => !!(run && run.deal === d && playing());
@@ -990,7 +1057,8 @@
   function drawTable(cascade) {
     const d = dealShown();
     view.shown = d;
-    view.peaks.innerHTML = SLOTS.map((s, i) => `<div class="ss-card" data-slot="${i}" style="--x:${s.x};--y:${s.y}"></div>`).join('');
+    view.table.style.setProperty('--columns', layoutOf(d).width);
+    view.peaks.innerHTML = slotsOf(d).map((s, i) => `<div class="ss-card" data-slot="${i}" style="--x:${s.x};--y:${s.y}"></div>`).join('');
     view.els = Array.prototype.slice.call(view.peaks.children);
     view.pileCard = d.pile.length ? topOf(d) : -1;
     view.focus = -1;
@@ -1052,13 +1120,15 @@
       el.classList.toggle('is-down', !up);
       el.classList.toggle('is-free', isFree);
       el.classList.toggle('is-sealed', held);
+      const hexed = !d.idle && cursed(d, 'hex') && suitOf(c) === d.hex;
+      el.classList.toggle('is-hexed', up && hexed);
       el.classList.toggle('is-ringed', ringed.indexOf(i) !== -1);
-      el.title = up ? caption(c) : '';
+      el.title = up ? `${caption(c)}${hexed ? '. Hex: playing this suit restarts the streak.' : ''}` : '';
       if (isFree) {
         el.setAttribute('role', 'button');
         el.tabIndex = i === view.focus ? 0 : -1;
         el.removeAttribute('aria-hidden');
-        el.setAttribute('aria-label', `${caption(c)}${held ? ', sealed' : fitsNow.indexOf(i) !== -1 ? ', goes on the pile' : ''}`);
+        el.setAttribute('aria-label', `${caption(c)}${held ? ', sealed' : fitsNow.indexOf(i) !== -1 ? ', goes on the pile' : ''}${hexed ? ', Hex: restarts the streak' : ''}`);
       } else if (up && !d.idle) {
         // Face up but covered (Moonlight): named, though it can't be played yet.
         el.setAttribute('role', 'img');
@@ -1078,23 +1148,27 @@
   // Of the cards in `list`, the one nearest place `from` (left to right).
   function nearest(list, from) {
     if (!list.length) return -1;
+    const SLOTS = slotsOf(dealShown());
     if (from < 0 || !SLOTS[from]) return list.slice().sort(byPlace)[0];
     const s = SLOTS[from];
     return list.slice().sort((a, b) => Math.abs(SLOTS[a].x - s.x) + Math.abs(SLOTS[a].y - s.y) * 0.6 - (Math.abs(SLOTS[b].x - s.x) + Math.abs(SLOTS[b].y - s.y) * 0.6))[0];
   }
-  const byPlace = (a, b) => SLOTS[a].x - SLOTS[b].x || SLOTS[a].y - SLOTS[b].y;
+  const byPlace = (a, b) => {
+    const slots = slotsOf(dealShown());
+    return slots[a].x - slots[b].x || slots[a].y - slots[b].y;
+  };
 
   // The pile: its top card, big enough to show off the art.
   function syncPile() {
     const d = dealShown();
-    const c = view.pileCard;
+    const c = d.nudge == null ? view.pileCard : pileFace(d);
     const f = c >= 0 ? faceOf(c) : null;
     const want = c >= 0 ? `${c}|${f ? f.img : ''}` : ''; // a new run can deal the same card in other art
     if (view.pile.dataset.show !== want) {
       view.pile.innerHTML = c >= 0 ? `<div class="ss-card is-pile">${faceHtml(c, cardPx(PILE))}</div>` : '<span class="ss-empty"></span>';
       view.pile.dataset.show = want;
     }
-    view.pile.title = c >= 0 ? `The pile: ${caption(c)}` : 'The pile';
+    view.pile.title = c >= 0 ? `The pile: ${caption(c)}${d.nudge == null ? '' : ' (Nudge)'}` : 'The pile';
     view.pile.classList.toggle('is-kin', !!(run && run.have.kindred && c >= 0 && !d.idle));
   }
 
@@ -1312,9 +1386,13 @@
     syncWizard();
   }
   function syncWizard() {
-    if (!view || !view.wiz || view.wiz.tagName !== 'IMG') return;
+    if (!view || !view.wiz) return;
     const d = dealShown();
     const name = view.posed || (run && run.step === 'over' ? 'startled' : run && run.step === 'won' ? 'party' : live(d) && d.streak >= 5 ? 'happy' : 'idle');
+    const tier = live(d) ? Math.min(3, Math.floor(d.streak / 5)) : 0;
+    view.wiz.parentElement.dataset.glow = tier;
+    const rig = view.wiz.querySelector('.wz');
+    if (rig) { rig.setAttribute('data-frame', name); return; }
     const s = frame(name);
     if (s && view.wiz.getAttribute('src') !== s) view.wiz.setAttribute('src', s);
   }
@@ -1342,8 +1420,9 @@
     view.dealOf.textContent = endless() ? (final ? ' · Final' : '') : final ? '' : ` of ${DEALS}`;
     const hearts = run ? run.hearts : HEARTS;
     const max = run ? run.max : HEARTS;
-    view.hearts.innerHTML = range(max).map((k) => `<span${k < hearts ? ' class="is-full"' : ''}>${doodleIcon('heart')}</span>`).join('') +
+    view.hearts.innerHTML = range(max).map((k) => `<span class="${k + 1 <= hearts ? 'is-full' : k < hearts ? 'is-half' : 'is-empty'}" aria-hidden="true">${doodleIcon('heart')}${k < hearts && k + 1 > hearts ? `<i>${doodleIcon('heart')}</i>` : ''}</span>`).join('') +
       `<span class="vh">${plural(hearts, 'heart')} out of ${max}</span>`;
+    view.menu.querySelector('[data-act="end-run"]').hidden = !endless() || run.step === 'over';
     const score = view.heldScore != null ? view.heldScore : d.score;
     view.score.textContent = num(score);
     view.target.textContent = ` / ${num(d.target)}`;
@@ -1367,14 +1446,14 @@
     const w = words(id);
     const d = dealShown();
     const label = `Curse: ${w.name}. ${id === 'hex' && d.hex >= 0 ? `${SUITS[d.hex].name} still score, but start the streak again.` : w.blurb}`;
-    return `<li class="gm-chip ink ss-curse" title="${esc(label)}">${iconOf(CURSES[id].icon)}${id === 'hex' && d.hex >= 0 ? `<span class="ss-hex ${SUITS[d.hex].colour}">${suitPic(SUITS[d.hex].id)}</span>` : ''}<span class="vh">${esc(label)}</span></li>`;
+    return `<li class="ss-owned-item"><button type="button" class="gm-chip ink ss-curse" aria-label="${esc(label)}" aria-describedby="ss-tip-${id}">${iconOf(CURSES[id].icon)}${id === 'hex' && d.hex >= 0 ? `<span class="ss-hex ${SUITS[d.hex].colour}">${suitPic(SUITS[d.hex].id)}</span>` : ''}</button><span class="ss-tooltip" role="tooltip" id="ss-tip-${id}">${esc(label)}</span></li>`;
   };
   const charmChip = (id) => {
     const n = run.have[id];
     const w = words(id);
     const left = id === 'deck' ? dealShown().refills : null;
     const label = `${w.name}${n > 1 ? ` x${n}` : ''}${left != null ? `: ${left ? 'ready' : 'used'} this deal` : ''}. ${w.blurb}`;
-    return `<li class="gm-chip ${CHARMS[id].colour}${left === 0 ? ' is-spent' : ''}" title="${esc(label)}">${iconOf(CHARMS[id].icon)}${n > 1 ? `<b aria-hidden="true">${n}</b>` : ''}<span class="vh">${esc(label)}</span></li>`;
+    return `<li class="ss-owned-item"><button type="button" class="gm-chip ${CHARMS[id].colour}${left === 0 ? ' is-spent' : ''}" aria-label="${esc(label)}" aria-describedby="ss-tip-${id}">${iconOf(CHARMS[id].icon)}${n > 1 ? `<b aria-hidden="true">${n}</b>` : ''}</button><span class="ss-tooltip" role="tooltip" id="ss-tip-${id}">${esc(label)}</span></li>`;
   };
 
   function drawDock() {
@@ -1463,7 +1542,7 @@
   };
   // A deal's curses, in words: "Moths (11 fewer cards in the stock)".
   const cursesWords = (p) => p.curses.map((id) => `${words(id).name} (${id === 'hex' && p.hex >= 0 ? `${SUITS[p.hex].name} still score, but start the streak again` : words(id).blurb.replace(/\.$/, '').replace(/^./, (ch) => ch.toLowerCase())})`).join(' and ');
-  const nextWords = (p) => `Next: ${finalDeal(p.n) ? `deal ${p.n}, ${endless() ? 'a Final Deal' : 'the Final Deal'}` : `deal ${p.n}${endless() ? '' : ` of ${DEALS}`}`}, target ${num(p.target)}.${p.curses.length ? ` ${p.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(p)}.` : ''}`;
+  const nextWords = (p) => `Next: ${finalDeal(p.n) ? `deal ${p.n}, ${endless() ? 'a Final Deal' : 'the Final Deal'}` : `deal ${p.n}${endless() ? '' : ` of ${DEALS}`}`}, ${layoutOf(p).name}, target ${num(p.target)}.${p.curses.length ? ` ${p.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(p)}.` : ''}`;
 
   function cardHtml() {
     if (view.help || !run) {
@@ -1475,7 +1554,9 @@
           <ul class="gm-rules">
             <li>Play an uncovered card one higher or lower than the pile. Kings and Aces go round.</li>
             <li>A streak scores more with every card: 10, 20, 30... A draw ends it.</li>
-            <li>Seven deals, each with a target: miss one and lose a heart. Spells and charms come between deals, curses from deal 4.</li>
+            <li>Seven deals with changing layouts. Miss a target and lose a heart, or only half a heart if you clear the table. A clean sweep that reaches its target heals a heart.</li>
+            <li>Pick spells and charms between deals; curses join from deal 4. Hex restarts streaks for its marked suit, even with Kindred. Hover, focus or tap a charm or curse to read it.</li>
+            <li>The wizard’s star glows at streaks of 5, 10 and 15. After the Final Deal, keep dealing or bank your score with End Run.</li>
           </ul>
           <p class="gm-keys"><span class="hint-mouse">Keys: arrows, Enter to play, D to draw, ${SPELL_IDS.map((id) => SPELLS[id].key.toUpperCase()).join(' ')} to cast, L to look.</span><span class="hint-touch">Tap a card to play it, or the stock to draw.</span></p>
           ${bests.map((t) => `<p class="gm-best">${esc(t)}</p>`).join('')}
@@ -1503,8 +1584,8 @@
       const kicker = onwards ? 'Endless deals' : `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}${endless() ? '' : ` of ${DEALS}`}`}: ${d.swept ? 'clean sweep!' : madeIt(d) ? 'target made' : 'under target'}`;
       const notes = [];
       if (!onwards) {
-        if (d.healed) notes.push('a heart back for the clean sweep');
-        if (!madeIt(d)) notes.push('a heart lost');
+        if (d.healed) notes.push(`${plural(d.healed, 'heart')} back for the clean sweep`);
+        if (!madeIt(d)) notes.push(d.lost === 0.5 ? 'half a heart lost' : 'a heart lost');
       }
       const tally = onwards
         ? `A curse on every deal from here on. Score: ${num(run.score)}`
@@ -1526,7 +1607,7 @@
         ${run.line ? `<p class="gm-said">${esc(run.line)}</p>` : ''}
         <span class="gm-card-art">${wizardPic(won ? 'party' : 'startled')}</span>
         ${won ? '<p class="gm-kicker">The Final Deal is beaten</p>' : ''}
-        <h3 class="gm-card-h" id="ss-card-h">${won ? 'Run complete!' : run.hearts ? 'The Final Deal won' : 'Out of hearts'}</h3>
+        <h3 class="gm-card-h" id="ss-card-h">${won ? 'Run complete!' : run.ended ? 'Run ended — score saved' : run.hearts ? 'Under the Final Deal’s target' : 'Out of hearts'}</h3>
         <p class="gm-tally">${won
           ? `${plural(run.hearts, 'heart')} to spare: +${WIN}, and +${PER_HEART} a heart.<br />Score: ${num(run.score)}`
           : `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}`}${endless() || finalDeal(d.n) ? '' : ` of ${DEALS}`}: ${num(d.score)} of ${num(d.target)} points.<br />Score: ${num(run.score)}`}</p>
@@ -1650,7 +1731,7 @@
   // The ranks that go on a card, in words: "a 6 or an 8", "a King or a 2".
   const anA = (r) => (/^(8|Ace)$/.test(RANK_NAMES[r - 1]) ? 'an ' : 'a ') + RANK_NAMES[r - 1];
   function fitWords(d) {
-    const r = rankOf(topOf(d));
+    const r = rankOf(pileFace(d));
     const wrap = !cursed(d, 'circle');
     const out = [];
     if (r > 1) out.push(r - 1); else if (wrap) out.push(13);
@@ -1667,6 +1748,11 @@
       if (e.t === 'cast' && e.spell === 'moonlight') out.push('Moonlight!');
       else if (e.t === 'play') {
         out.push(`${e.wild ? 'Wild: ' : ''}${caption(e.card)} on the pile. ${e.hexed ? `Hexed: the streak starts again, plus ${e.pts}.` : `Streak ${e.streak}, plus ${e.pts}${e.kin ? ' (Kindred: double)' : ''}.`}`);
+        if (e.clover) out.push('Lucky Clover: 50 bonus points included.');
+        if (e.hexed) {
+          note = `Hex: ${SUITS[suitOf(e.card)].name} restart the streak${e.kin ? ' (Kindred still doubles the score)' : ''}.`;
+          wizardSays(note, 3200);
+        }
         if (e.streak >= 5 && e.streak % 5 === 0 && !e.hexed) {
           note = `Streak ${e.streak}!`;
           if (e.streak >= 10) wizardSays(lineOf('streakLines'), 2200);
@@ -1680,15 +1766,17 @@
       else if (e.t === 'scry') out.push(`Scry: the next ${e.cards.length > 1 ? `${e.cards.length} cards are` : 'card is'} ${e.cards.map(cardName).join(', then ')}.${e.cards.length > 1 ? ' Swap them round, then Done.' : ''}`);
       else if (e.t === 'reorder') out.push(e.moved ? `Back on the stock: ${e.cards.map(cardName).join(', then ')}.` : 'Back on the stock as they were.');
       else if (e.t === 'moonlight') out.push(e.flipped.length ? `${plural(e.flipped.length, 'card')} turn face up.` : 'Every card was face up already.');
+      else if (e.t === 'nudge') out.push(`Nudge: the pile is now ${cardName(e.card)}. Streak ${d.streak} kept.`);
+      else if (e.t === 'dispel') out.push(`Dispel: ${words(e.curse).name} removed for this deal.${e.restored ? ` ${plural(e.restored, 'card')} returned under the stock.` : ''}`);
       else if (e.t === 'flip') out.push(`Turned over: ${caption(e.card)}.`);
       else if (e.t === 'peak') out.push(`Peak! Plus ${e.pts}.`);
       else if (e.t === 'unseal') out.push('Both outer peaks are clear: the Seal breaks.');
       else if (e.t === 'target') { out.push('Target reached!'); note = note || 'Target reached!'; wizardSays(lineOf('targetLines'), 2400); }
       else if (e.t === 'sweep') out.push(`Clean sweep!${e.left ? ` Plus ${e.pts} for the ${plural(e.left, 'card')} left in the stock.` : ''}`);
-      else if (e.t === 'heal') out.push('A heart back.');
+      else if (e.t === 'heal') out.push(`${plural(e.amount, 'heart')} back.`);
       else if (e.t === 'book') out.push(`The Spellbook gives a free ${words(e.spell).name} for the next deal.`);
       else if (e.t === 'end') out.push(`${e.final ? 'Final Deal' : `Deal ${e.n}`} over: ${num(e.score)} of ${num(e.target)} points${e.made ? ', target made' : ', under target'}.`);
-      else if (e.t === 'hurt') out.push(`A heart lost: ${plural(e.hearts, 'heart')} left.`);
+      else if (e.t === 'hurt') out.push(`${e.amount === 0.5 ? 'Half a heart' : 'A heart'} lost: ${plural(e.hearts, 'heart')} left.`);
       else if (e.t === 'finale') out.push(`Another Final Deal beaten: plus ${e.bonus}.`);
       else if (e.t === 'deny') out.push(denyWords(e));
     });
@@ -1708,6 +1796,7 @@
           rewind: 'Nothing to take back since the last draw.',
           moonlight: 'Every card is face up already.',
           undraw: 'No draw to take back: a play or a spell since the last one keeps it.',
+          dispel: 'There are no curses left to remove this deal.',
         }[e.spell] || 'No uncovered card to cast it on.',
         sealed: 'That card is sealed until both outer peaks are clear.',
         covered: 'That card is covered.',
@@ -1716,16 +1805,16 @@
     if (e.why === 'sealed') return 'Sealed until both outer peaks are clear.';
     if (e.why === 'covered') return 'That card is covered.';
     if (e.why === 'empty') return playing() && stuck() ? 'The stock is empty: cast a spell, or press End deal.' : 'The stock is empty.';
-    return `The ${cardName(d.slots[e.i])} doesn't go on the ${cardName(topOf(d))}: play ${fitWords(d)}.`;
+    return `The ${cardName(d.slots[e.i])} doesn't go on the ${cardName(pileFace(d))}: play ${fitWords(d)}.`;
   }
 
   // L: the whole table, said aloud.
   function look() {
     if (!run || !run.deal) return;
     const d = run.deal;
-    const parts = [`${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}${endless() ? '' : ` of ${DEALS}`}`}: ${num(d.score)} of ${num(d.target)} points, streak ${d.streak}, ${plural(run.hearts, 'heart')}.`];
+    const parts = [`${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}${endless() ? '' : ` of ${DEALS}`}`}, ${layoutOf(d).name}: ${num(d.score)} of ${num(d.target)} points, streak ${d.streak}, ${plural(run.hearts, 'heart')}.`];
     if (d.curses.length) parts.push(`${d.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(d)}.`);
-    parts.push(`The pile: ${caption(topOf(d))}. ${playing() ? `It takes ${fitWords(d)}.` : ''}`);
+    parts.push(`The pile: ${caption(pileFace(d))}. ${playing() ? `It takes ${fitWords(d)}.` : ''}`);
     const fits = movesOf();
     const frees = range(PLACES).filter((i) => free(d, i)).sort(byPlace);
     parts.push(fits.length ? `You can play: ${fits.sort(byPlace).map((i) => caption(d.slots[i])).join(', ')}.` : 'Nothing uncovered goes on the pile.');
@@ -1830,6 +1919,23 @@
     if (view.armed === id) { disarm(); return; }
     const no = why(id);
     if (no) { act([{ t: 'deny', spell: id, why: no }]); return; }
+    if (id === 'nudge' || id === 'dispel') {
+      const current = run.deal;
+      const choices = id === 'nudge' ? [-1, 1] : current.curses.slice();
+      const labels = id === 'nudge'
+        ? choices.map((delta) => `${delta < 0 ? 'Down' : 'Up'} to ${RANK_NAMES[(rankOf(pileFace(current)) - 1 + delta + 13) % 13]}`)
+        : choices.map((curse) => words(curse).name);
+      K.dialog({
+        title: words(id).name,
+        icon: SPELLS[id].icon,
+        message: id === 'nudge' ? 'Choose the pile’s new rank. Its suit and your streak stay the same.' : 'Choose one curse to remove for this deal.',
+        buttons: ['Cancel'].concat(labels),
+      }).then((answer) => {
+        const choice = Number(answer) - 1;
+        if (view && playing() && run.deal === current && choices[choice] != null) act(cast(id, choices[choice]));
+      });
+      return;
+    }
     if (SPELLS[id].aim) {
       // Wild and Fireball ring the cards they could go on first.
       view.armed = id;
@@ -1869,6 +1975,7 @@
   // to the nearest one a row up or down; Home and End to either end).
   function moveFocus(key) {
     const d = run.deal;
+    const SLOTS = slotsOf(d);
     const frees = range(PLACES).filter((i) => free(d, i)).sort(byPlace);
     if (!frees.length) return;
     const at = frees.indexOf(view.focus);
@@ -1892,6 +1999,10 @@
   }
 
   function wire(v) {
+    v.owned.addEventListener('click', (e) => {
+      const chip = e.target.closest('button');
+      if (chip) chip.focus({ preventScroll: true });
+    });
     // The second click of a double-click lands on whatever is under it: never
     // on a card's button, and never on the game just after a card goes.
     v.win.body.addEventListener('click', (e) => {
@@ -1916,7 +2027,7 @@
     v.pile.addEventListener('click', () => {
       if (!playing()) return;
       const d = run.deal;
-      say(`The pile: ${caption(topOf(d))}. It takes ${fitWords(d)}.`, 2600);
+      say(`The pile: ${caption(pileFace(d))}. It takes ${fitWords(d)}.`, 2600);
     });
     v.dock.addEventListener('click', (e) => {
       const b = e.target.closest('button');
@@ -1937,7 +2048,7 @@
 
   function onKey(e) {
     if (e.altKey || e.metaKey || e.ctrlKey || e.defaultPrevented || !view || !run) return;
-    if (e.target.closest && e.target.closest('.win-bar, .gm-menu, input, textarea')) return;
+    if (e.target.closest && e.target.closest('.win-bar, .gm-menu, .gm-owned, input, textarea')) return;
     if (view.card) { cardKey(e); return; }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     const onCardEl = e.target.closest && e.target.closest('.ss-card.is-free');
@@ -1991,6 +2102,15 @@
     const btn = e.target.closest('button[data-act]');
     if (!btn || !view) return;
     if (btn.dataset.act === 'new') askNewRun();
+    else if (btn.dataset.act === 'end-run') {
+      if (!endRun().length) return;
+      view.help = false;
+      view.scry = null;
+      view.peek = false;
+      show([]);
+      syncCard(true);
+      announce(`Run ended. Score ${num(run.score)} saved.`);
+    }
     else if (btn.dataset.act === 'help') {
       if (view.bouncing) { stopBounce(); finishWin(); } // the finish ends here, so it can't eat the first click on Back
       view.help = true;
@@ -2037,7 +2157,7 @@
   function dealText() {
     const d = run.deal;
     const p = { n: d.n, target: d.target, curses: d.curses, hex: d.hex };
-    return `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}`}, target ${num(d.target)}.${d.curses.length ? ` ${d.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(p)}.` : ''} The pile: ${caption(topOf(d))}. ${movesOf().length ? `${plural(movesOf().length, 'card')} can go on it.` : 'Nothing goes on it yet.'}`;
+    return `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}`}, ${layoutOf(d).name}, target ${num(d.target)}.${d.curses.length ? ` ${d.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(p)}.` : ''} The pile: ${caption(pileFace(d))}. ${movesOf().length ? `${plural(movesOf().length, 'card')} can go on it.` : 'Nothing goes on it yet.'}`;
   }
   function dealWords() {
     announce(dealText());

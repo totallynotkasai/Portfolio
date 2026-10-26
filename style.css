@@ -2508,7 +2508,8 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
   background: var(--ink) var(--tx-stars);
 }
 .ss-table {
-  --cw: clamp(26px, min((100cqw - 20px) / 10.65, (100cqh - 28px) / 5.7), 150px);
+  --columns: 10;
+  --cw: clamp(22px, min((100cqw - 20px) / (var(--columns) * 1.065), (100cqh - 28px) / 5.7), 150px);
   --ch: calc(var(--cw) * 1.4);
   --gap: calc(var(--cw) * 0.065);
   --step: calc(var(--cw) + var(--gap));
@@ -2525,7 +2526,7 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
   -webkit-touch-callout: none;
   touch-action: manipulation;
 }
-.ss-peaks { position: relative; width: calc(var(--cw) * 10 + var(--gap) * 9); height: calc(var(--row) * 3 + var(--ch)); }
+.ss-peaks { position: relative; width: calc(var(--cw) * var(--columns) + var(--gap) * (var(--columns) - 1)); height: calc(var(--row) * 3 + var(--ch)); }
 
 /* A card: a mini spell card in its suit's colour. */
 .ss-card {
@@ -2646,6 +2647,15 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .ss-pile .ss-empty { inset: 0; width: auto; }
 .ss-wiz { position: relative; width: calc(var(--cw) * 1.8); }
 .ss-wiz img, .ss-wiz svg.doodle { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; color: var(--white); pointer-events: none; -webkit-user-drag: none; }
+.ss-wiz-pic, .ss-wiz .wz { display: block; width: 100%; aspect-ratio: 1; pointer-events: none; }
+.ss-wiz { --ss-glow: 0px; --ss-glow-colour: #ffe48c; }
+.ss-wiz[data-glow="1"] { --ss-glow: 26px; }
+.ss-wiz[data-glow="2"] { --ss-glow: 50px; }
+.ss-wiz[data-glow="3"] { --ss-glow: 80px; --ss-glow-colour: #fff6cd; }
+.ss-wiz .wz-hat-star { filter: drop-shadow(0 0 var(--ss-glow) var(--ss-glow-colour)) drop-shadow(0 0 var(--ss-glow) var(--ss-glow-colour)); }
+.ss-wiz[data-glow="1"] .wz-star-glow { opacity: 0.35; }
+.ss-wiz[data-glow="2"] .wz-star-glow { opacity: 0.65; }
+.ss-wiz[data-glow="3"] .wz-star-glow { opacity: 1; }
 /* What he says: a bubble over him, its tail his way. */
 .ss-said {
   position: absolute;
@@ -2726,6 +2736,10 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .ss-goal.is-made .ss-bar i { background: var(--teal); }
 .ss-hearts { gap: 1px; }
 .ss-hearts .is-full svg { fill: var(--pink); }
+.ss-hearts > span { position: relative; display: inline-flex; }
+.ss-hearts .is-half i { position: absolute; inset: 0; overflow: hidden; clip-path: inset(0 50% 0 0); }
+.ss-hearts .is-half i svg { fill: var(--pink); }
+.ss-card.is-hexed .ss-face { outline: 2px dashed var(--periwinkle); outline-offset: -5px; }
 .ss-streak.is-hot { background: var(--yellow); }
 .ss-curse svg.doodle { color: var(--white); }
 .ss-curse .ss-pic { width: 18px; height: 18px; }
@@ -2741,6 +2755,28 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .ss .gm-owned { gap: 3px; }
 .ss .gm-chip { height: 28px; padding: 0 5px; }
 .ss .gm-chip svg.doodle, .ss .gm-chip .ss-pic { width: 16px; height: 16px; }
+.ss .gm-hud { position: relative; z-index: 10; }
+.ss-owned-item { display: flex; }
+.ss-owned-item .gm-chip { cursor: help; }
+.ss-owned-item .gm-chip:focus-visible { outline: 3px solid var(--periwinkle); outline-offset: 2px; }
+.ss-tooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% - 2px);
+  right: 8px;
+  width: max-content;
+  max-width: min(300px, calc(100% - 16px));
+  padding: 9px 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: 9px;
+  box-shadow: 3px 3px 0 var(--ink);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  white-space: normal;
+}
+.ss-owned-item:hover .ss-tooltip, .ss-owned-item:focus-within .ss-tooltip { display: block; }
 
 /* The dock: Draw (End deal, once nothing's left), then the spells. When
    there are too many for one row, they lose their names (still in each

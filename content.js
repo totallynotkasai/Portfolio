@@ -910,6 +910,8 @@ window.CONTENT = {
       moonlight: '',
       scry: '',
       undraw: '',
+      nudge: '',
+      dispel: '',
       circle: '',    // the five curses, on the bar along the top (Broken Circle, Seal, Moths, Hex, Toll)
       seal: '',
       moth: '',
@@ -922,6 +924,8 @@ window.CONTENT = {
       deck: '',
       potion: '',
       book: '',
+      clover: '',
+      hearth: '',
     },
 
     // At the start of each deal, and of the Final Deal.
@@ -959,16 +963,20 @@ window.CONTENT = {
       moonlight: { name: 'Moonlight', blurb: 'Every face-down card turns face up for this deal.' },
       scry:      { name: 'Scry',      blurb: 'See the next three cards of the stock, and put them back in any order.' },
       undraw:    { name: 'Undraw',    blurb: 'Take back your last draw: the streak comes back, and the card goes under the stock.' },
+      nudge:     { name: 'Nudge',     blurb: 'Shift the pile’s top rank up or down by one. Its suit and your streak stay the same.' },
+      dispel:    { name: 'Dispel',    blurb: 'Remove one chosen curse for this deal.' },
     },
 
     charms: {
       ember:     { name: 'Ember',          blurb: 'Streaks start a step higher: 20, 30, 40...' },
       twin:      { name: 'Twin Peaks',     blurb: 'Peak bonuses are doubled.' },
-      kindred:   { name: 'Kindred',        blurb: 'A card played on its own suit scores double.' },
+      kindred:   { name: 'Kindred',        blurb: 'A card played on its own suit scores double. Changing suit keeps your streak; the Hex curse still applies.' },
       crystal:   { name: 'Crystal Ball',   blurb: 'See the top card of the stock (two with a second ball).' },
       deck:      { name: 'Second Deck',    blurb: 'Once a deal, an empty stock gets 12 cards back from the pile.' },
       potion:    { name: 'Healing Potion', blurb: 'One more heart, and all your hearts back.' },
       spellbook: { name: 'Spellbook',      blurb: 'Each clean sweep gives a free spell charge for the next deal.' },
+      clover:    { name: 'Lucky Clover',   blurb: 'Every fifth consecutive play scores 50 extra points.' },
+      hearth:    { name: 'Hearthstone',    blurb: 'A clean sweep that reaches its target restores an extra half-heart.' },
     },
 
     curses: {
