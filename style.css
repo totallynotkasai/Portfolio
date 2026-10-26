@@ -947,7 +947,16 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .wall-click-choice input { width: 20px; height: 20px; flex: none; accent-color: var(--blue-ink); }
 .wall-click-hint { margin-top: 8px; color: var(--ink-soft); font-size: var(--fs-small); line-height: 1.5; }
 .about-ticker { position: relative; }
-.about-ticker.is-collapsed { height: 18px; background: var(--ink); }
+.about-ticker.is-collapsed { height: 0; }
+/* Keep a transparent hover target over the top padding without reserving
+   any space or painting a strip when the ticker is hidden. */
+.about-ticker.is-collapsed::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 28px;
+  z-index: 1;
+}
 .ticker[hidden] { display: none; }
 .ticker-toggle {
   position: absolute;
@@ -962,15 +971,16 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
   border: 1.5px solid var(--yellow);
   border-radius: 5px;
   font: 700 1.1rem var(--font-mono);
+  z-index: 2;
   opacity: 0;
+  pointer-events: none;
 }
-.about-ticker:hover .ticker-toggle, .about-ticker:focus-within .ticker-toggle,
-.about-ticker.is-collapsed .ticker-toggle { opacity: 1; }
+.about-ticker:hover .ticker-toggle, .ticker-toggle:focus-visible { opacity: 1; pointer-events: auto; }
 .ticker-toggle:focus-visible { outline-color: var(--yellow); }
-.about-ticker.is-collapsed .ticker-toggle { top: 0; height: 18px; }
+.about-ticker.is-collapsed .ticker-toggle { top: 0; }
 .about-ticker.is-collapsed .ticker-toggle span { rotate: 180deg; }
 @media (hover: none) {
-  .ticker-toggle { opacity: 1; }
+  .about-ticker:not(.is-collapsed) .ticker-toggle { opacity: 1; pointer-events: auto; }
 }
 .ticker {
   display: flex;
