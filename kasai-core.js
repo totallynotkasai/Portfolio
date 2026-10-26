@@ -282,6 +282,14 @@
      Desktop icons and the files inside windows behave like a real desktop:
      one click selects, a double-click opens. A tap (touch screens) or
      Enter/Space (keyboard) opens straight away. */
+  K.singleClick = !!(K.store.get('kasai:interaction', null) || {}).singleClick;
+  K.setSingleClick = (enabled) => {
+    K.singleClick = !!enabled;
+    document.documentElement.setAttribute('data-open-mode', K.singleClick ? 'single' : 'double');
+    K.store.set('kasai:interaction', { singleClick: K.singleClick });
+  };
+  document.documentElement.setAttribute('data-open-mode', K.singleClick ? 'single' : 'double');
+
   K.openable = (box, selector, onOpen) => {
     let lastPointer = 'mouse';
     box.addEventListener('pointerdown', (e) => { lastPointer = e.pointerType || 'mouse'; }, true);
@@ -296,11 +304,11 @@
       // A touch tap opens at once (nothing stays highlighted, like a phone).
       if (lastPointer === 'touch' && e.detail !== 0) { select(null); onOpen(el); return; }
       select(el);
-      if (e.detail === 0) onOpen(el); // Enter or Space
+      if (e.detail === 0 || (K.singleClick && e.detail === 1)) onOpen(el); // keyboard, or the saved mouse preference
     });
     box.addEventListener('dblclick', (e) => {
       const el = e.target.closest(selector);
-      if (!el || !box.contains(el) || lastPointer === 'touch') return;
+      if (!el || !box.contains(el) || lastPointer === 'touch' || K.singleClick) return;
       e.preventDefault();
       onOpen(el);
     });
@@ -310,7 +318,7 @@
   // The status-bar hint for things you open, worded for a mouse
   // ("Double-click to open") or a touch screen ("Tap to open").
   K.hint = (mouse, touch) =>
-    `<span class="status-hint"><span class="hint-mouse">${K.esc(mouse)}</span><span class="hint-touch">${K.esc(touch)}</span></span>`;
+    `<span class="status-hint"><span class="hint-mouse"><span class="hint-double">${K.esc(mouse)}</span><span class="hint-single">${K.esc(mouse.replace('Double-click', 'Click'))}</span></span><span class="hint-touch">${K.esc(touch)}</span></span>`;
 
   /* ---------- the art list ----------
      The content.js `art` list merged with every file the build found in
@@ -470,7 +478,7 @@
     if (!content || !firstGroup) return;
     const groupHTML = container.dataset.group || firstGroup.outerHTML; // the phrases you authored
     container.dataset.group = groupHTML;
-    const SPEED = 70; // pixels per second - lower is slower
+    const SPEED = 38; // pixels per second - lower is slower
     content.innerHTML = groupHTML; // one copy, to measure
     const groupW = content.firstElementChild.getBoundingClientRect().width;
     if (!groupW) return; // not on screen yet

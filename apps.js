@@ -254,25 +254,29 @@
     colour: 'yellow',
     icon: 'about',
     path: '/',
-    size: [860, 690],
+    size: [1120, 690],
     render(win) {
       const a = C.about || {};
       const ticker = Array.isArray(a.ticker) ? a.ticker : DEFAULT_TICKER;
       const photo = a.photo
         ? `<img src="${esc(webSrc(a.photo))}"${dims(a.photo)} alt="${esc(a.photoAlt || 'Photo')}" />`
         : `<span class="about-photo-empty">${doodleIcon('camera')}</span>`;
-      const paras = (a.paragraphs || []).map((p) => `<p>${esc(p)}</p>`).join('');
+      const linked = (text) => (a.workLinks || []).reduce((html, link) =>
+        html.split(esc(link.text)).join(`<a class="about-work-link" href="${esc(link.href)}" data-app="${esc(link.app)}">${esc(link.text)}</a>`), esc(text));
+      const paras = (a.paragraphs || []).map((p) => `<p>${linked(p)}</p>`).join('');
+      const tickerHidden = !!(K.store.get('kasai:ticker', null) || {}).hidden;
       // My CV opens the CV's window (a real link to /cv, so it can be opened in a new tab too).
       const cv = C.cv ? `<a class="os-button" href="${CV.path}" data-app="cv">${doodleIcon('doc')}My CV</a>` : '';
       win.body.innerHTML = `
-        ${ticker.length ? `<div class="ticker" role="marquee" aria-label="What I do">
+        ${ticker.length ? `<div class="about-ticker${tickerHidden ? ' is-collapsed' : ''}"><div class="ticker" id="about-ticker-strip" role="marquee" aria-label="What I do"${tickerHidden ? ' hidden' : ''}>
           <div class="marquee-content"><ul class="marquee-group">${ticker.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>
-        </div>` : ''}
+        </div><button class="ticker-toggle" type="button" aria-controls="about-ticker-strip" aria-expanded="${!tickerHidden}" aria-label="${tickerHidden ? 'Show' : 'Hide'} skills ticker" title="${tickerHidden ? 'Show' : 'Hide'} skills ticker"><span aria-hidden="true">^</span></button></div>` : ''}
         <div class="about">
           <div class="about-main">
             <h2 class="about-greeting" id="${win.headingId}" tabindex="-1">${highlight(a.heading || 'Hello')}</h2>
             ${a.subheading ? `<p class="about-subheading">${highlight(a.subheading)}</p>` : ''}
             <div class="about-text">${paras}</div>
+            ${a.contactLine ? `<p class="about-contact-line">${esc(a.contactLine)}</p>` : ''}
             ${a.email || cv ? `<p class="about-contact">
               ${a.email ? `<a class="os-button" href="mailto:${esc(a.email)}">${doodleIcon('mail')}Email me</a>` : ''}
               ${cv}
@@ -281,6 +285,18 @@
           </div>
           <figure class="about-photo">${photo}</figure>
         </div>`;
+      const toggle = win.body.querySelector('.ticker-toggle');
+      if (toggle) toggle.addEventListener('click', () => {
+        const strip = win.body.querySelector('.ticker');
+        strip.hidden = !strip.hidden;
+        toggle.parentElement.classList.toggle('is-collapsed', strip.hidden);
+        toggle.setAttribute('aria-expanded', String(!strip.hidden));
+        const label = `${strip.hidden ? 'Show' : 'Hide'} skills ticker`;
+        toggle.setAttribute('aria-label', label);
+        toggle.title = label;
+        K.store.set('kasai:ticker', { hidden: strip.hidden });
+        if (!strip.hidden) K.setupMarquee(strip);
+      });
       win.setStatus(a.signoff ? esc(a.signoff) : '');
     },
     // The ticker measures itself once the window is actually on screen.
@@ -429,8 +445,8 @@
       busy: tags.some((t) => STATUS_TAG.test(t)),
     };
   };
-  const statusLed = (busy) =>
-    `<span class="os-led${busy ? ' is-busy' : ''}" aria-hidden="true"></span>${busy ? 'In progress' : 'Ready'}`;
+  const statusLed = (busy, status) =>
+    `<span class="os-led${busy ? ' is-busy' : ''}" aria-hidden="true"></span>${esc(status || (busy ? 'In progress' : 'Publicly released'))}`;
 
   // A project's screenshot fills its window's width, cropped to 16:10, so the
   // copy it needs changes with the window. `sizes` is the width the picture
@@ -479,11 +495,14 @@
             <h2 class="os-name" id="${win.headingId}" tabindex="-1">${esc(name)}</h2>
             <p class="os-path">C:\\Kasai\\Projects\\${esc(name)}${sub ? ` &middot; ${esc(sub)}` : ''}</p>
             ${fork}
+            ${p.benefit ? `<p class="project-benefit">${esc(p.benefit)}</p>` : ''}
             <p class="os-desc">${esc(p.desc || '')}</p>
+            ${p.aiAssisted ? '<p class="project-assistance">Created with AI assistance.</p>' : ''}
+            ${(p.caseStudy || []).map((section) => `<section class="project-story"><h3>${esc(section.heading)}</h3><p>${esc(section.text)}</p></section>`).join('')}
           </div>`;
         const links = (p.links || []).filter((l) => l && l.label)
           .map((l) => `<a href="${esc(l.url || '#')}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('');
-        win.setStatus(`<span class="os-state">${statusLed(busy)}</span>${links ? `<span class="os-links">${links}</span>` : ''}`);
+        win.setStatus(`<span class="os-state">${statusLed(busy, p.status)}</span>${links ? `<span class="os-links">${links}</span>` : ''}`);
         const open = win.body.querySelector('.os-shot-open');
         if (open) open.addEventListener('click', () => K.openViewer(open));
       },
@@ -515,7 +534,8 @@
             <span class="tile-thumb">${thumb}</span>
             <span class="tile-name">${esc(name)}</span>
             ${sub ? `<span class="tile-sub">${esc(sub)}</span>` : ''}
-            <span class="tile-meta"><span class="tile-file">${esc(file)}</span><span class="tile-state">${statusLed(busy)}</span></span>
+            ${p.benefit ? `<span class="tile-benefit">${esc(p.benefit)}</span>` : ''}
+            <span class="tile-meta"><span class="tile-file">${esc(file)}</span><span class="tile-state">${statusLed(busy, p.status)}</span></span>
           </button></li>`;
       }).join('')}</ul>`;
       K.openable(win.body, '.file-tile', (el) => openProject(items[Number(el.dataset.i)], el));
@@ -670,9 +690,22 @@
       file: slug(title) + '.txt',
       colour: accent(w.accent || 'teal'),
       doodle: 'quill',
-      size: [600, 400],
+      size: w.chapters && w.chapters.length ? [740, 760] : [600, 360],
       render(win) {
         win.body.classList.add('paper-body');
+        if (w.chapters && w.chapters.length) win.body.classList.add('story-body');
+        if (w.chapters && w.chapters.length) {
+          win.menu.innerHTML = `<nav class="story-nav win-toolbar" aria-label="Chapters">${w.chapters.map((chapter, i) => `<button class="os-button" type="button" data-chapter="${i}">${esc(chapter.title)}</button>`).join('')}</nav>`;
+          win.menu.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-chapter]');
+            if (!button) return;
+            const heading = win.body.querySelectorAll('.story-chapter h3')[Number(button.dataset.chapter)];
+            if (heading) {
+              heading.scrollIntoView({ block: 'start' });
+              heading.focus({ preventScroll: true });
+            }
+          });
+        }
         win.body.innerHTML = `
           <article class="paper">
             <span class="paper-hole" aria-hidden="true"></span>
@@ -680,6 +713,7 @@
             ${w.date ? `<p class="paper-date">${esc(w.date)}</p>` : ''}
             <h2 class="paper-title" id="${win.headingId}" tabindex="-1">${esc(title)}</h2>
             ${w.excerpt ? `<p class="paper-excerpt">${esc(w.excerpt)}</p>` : ''}
+            ${(w.chapters || []).map((chapter) => `<section class="story-chapter"><h3 tabindex="-1">${esc(chapter.title)}</h3>${chapter.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}</section>`).join('')}
           </article>`;
         win.setStatus(hasLink
           ? `<span>${esc(w.status || '')}</span><span class="os-links"><a href="${esc(w.url)}"${/^https?:/i.test(w.url) ? ' target="_blank" rel="noopener"' : ''}>Read it</a></span>`
@@ -693,7 +727,7 @@
     colour: 'teal',
     icon: 'writing',
     path: '/writing',
-    size: [780, 520],
+    size: [780, Math.min(600, 290 + (C.writing || []).length * 72)],
     head: () => copy('writing', { address: 'C:\\Kasai\\Documents', heading: 'Drafts & Complete Works', sub: 'Web novels, stories & creative writing.' }),
     render(win) {
       const items = C.writing || [];
@@ -750,7 +784,7 @@
                <span class="tile-name">${esc(title)}</span>${meta ? `<span class="tile-sub">${meta}</span>` : ''}
              </div>`;
         return `<li class="cert-file">${tile}${c.link
-          ? `<a class="cert-credential" href="${esc(c.link)}" target="_blank" rel="noopener">View credential ${K.ARROW}</a>` : ''}</li>`;
+          ? `<a class="cert-credential" href="${esc(c.link)}" target="_blank" rel="noopener">${esc(c.linkLabel || 'View credential')} ${K.ARROW}</a>` : ''}</li>`;
       }).join('')}</ul>`;
       K.openable(win.body, 'button.cert-tile', (el) => K.openViewer(el));
       win.setStatus(`${plural(items.length, 'item')}${K.hint('Double-click to view', 'Tap to view')}`);
@@ -768,19 +802,19 @@
   const GAMES = {
     sweeper: {
       label: 'Wizard Sweeper', file: 'sweeper.exe', colour: 'ink', size: [600, 680], minSize: [340, 420],
-      sub: "Don't wake the wizards", pose: 'asleep', script: '/sweeper.js', prefix: 'sw',
+      sub: "Don't wake the wizards", genre: 'Minesweeper roguelike', pose: 'asleep', script: '/sweeper.js', prefix: 'sw',
     },
     rubbish: {
       label: 'Not Rubbish', file: 'rubbish.exe', colour: 'grey', size: [560, 760], minSize: [340, 480],
-      sub: 'Climb out of the Trash', pose: 'hurt', script: '/rubbish.js', prefix: 'gm',
+      sub: 'Climb out of the Trash', genre: 'Turn-based dungeon escape', pose: 'hurt', script: '/rubbish.js', prefix: 'gm',
     },
     stardrop: {
       label: 'Star Drop', file: 'stardrop.exe', colour: 'blue', size: [560, 760], minSize: [340, 480],
-      sub: 'Chase off his nightmares', pose: 'aim', script: '/stardrop.js', prefix: 'gm',
+      sub: 'Chase off his nightmares', genre: 'Pegboard battler', pose: 'aim', script: '/stardrop.js', prefix: 'gm',
     },
     solitaire: {
       label: 'Spell Solitaire', file: 'solitaire.exe', colour: 'lavender', size: [900, 680], minSize: [520, 500],
-      sub: 'Chain spells up the peaks', pose: 'cards', script: '/solitaire.js', prefix: 'gm',
+      sub: 'Chain spells up the peaks', genre: 'TriPeaks solitaire', pose: 'cards', script: '/solitaire.js', prefix: 'gm',
     },
   };
   const wizardPose = (name) => {
@@ -869,7 +903,7 @@
     colour: 'coral',
     icon: 'games',
     path: '/games',
-    size: [700, 460], // four 150px files in a row (even with a scrollbar), none of them cut off
+    size: [700, 510], // room for the genre descriptions below the four games
     head: () => copy('games', { heading: 'Games', sub: 'Things to play when you should be working.' }),
     render(win) {
       const ids = Object.keys(GAMES);
@@ -880,7 +914,7 @@
           <li><button class="file-tile game-tile" type="button" data-game="${id}">
             <span class="tile-thumb tile-thumb--sprite ${g.colour}">${pic ? `<img src="${esc(pic)}" alt="" loading="lazy" decoding="async" draggable="false" />` : doodleIcon('controller')}${trophyHtml(id)}</span>
             <span class="tile-name">${esc(g.label)}</span>
-            <span class="tile-sub">${esc(g.sub)}</span>${trophyWords(id)}
+            <span class="tile-sub">${esc(g.sub)}</span><span class="tile-genre">${esc(g.genre)}</span>${trophyWords(id)}
           </button></li>`;
       }).join('')}</ul>`;
       K.openable(win.body, '.file-tile', (el) => openGame(el.dataset.game, el));

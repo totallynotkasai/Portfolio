@@ -492,7 +492,7 @@
   }
 
   // `quick` skips the little animation (Restart closes everything at once).
-  function close(win, quick) {
+  function close(win, quick, fromTaskbar) {
     if (win.leaving) finishAnim(win);
     if (!win.open) return;
     const done = () => {
@@ -509,7 +509,8 @@
       sync(false);
       giveBack(win);
       if (win.spec.onClose) win.spec.onClose(win);
-      returnFocus(win);
+      if (fromTaskbar && front()) focusInto(front());
+      else returnFocus(win);
       // Projects, documents and pictures are made fresh next time (Forward
       // makes them again from what they were).
       if (!APPS[win.id]) { closedSpecs.set(win.id, win.spec); win.el.remove(); wins.delete(win.id); }
@@ -905,7 +906,7 @@
 
   K.wm = {
     open,
-    close: (id) => { const w = wins.get(id); if (w) close(w); },
+    close: (id, opts) => { const w = wins.get(id); if (w) close(w, false, opts && opts.fromTaskbar); },
     minimise: (id) => { const w = wins.get(id); if (w) minimise(w); },
     focus: (id) => { const w = wins.get(id); if (w) focusWin(w); },
     get: (id) => wins.get(id),
@@ -940,13 +941,15 @@
     if (!list) return;
     // A taskbar button with focus keeps it after the buttons are redrawn.
     const a = document.activeElement;
-    const had = a && a.matches && a.matches('.task-win') ? a.dataset.win : null;
+    const had = a && a.matches && a.matches('.task-win, .task-win-close') ? a.dataset.win : null;
+    const hadClose = had && a.classList.contains('task-win-close');
     const shown = order.map((id) => wins.get(id)).filter(Boolean).sort((a, b) => a.openedAt - b.openedAt);
-    list.innerHTML = shown.map((w) => `<li><button class="task-win ${esc(w.spec.colour || 'lavender')}${w === f ? ' is-active' : ''}${w.minimised ? ' is-min' : ''}" type="button" data-win="${esc(w.id)}"${w === f ? ' aria-current="true"' : ''} title="${esc(w.spec.label)}">
+    list.innerHTML = shown.map((w) => `<li class="task-entry"><button class="task-win ${esc(w.spec.colour || 'lavender')}${w === f ? ' is-active' : ''}${w.minimised ? ' is-min' : ''}" type="button" data-win="${esc(w.id)}"${w === f ? ' aria-current="true"' : ''} title="${esc(w.spec.label)}">
           ${w.spec.icon ? navIcon(w.spec.icon) : doodleIcon(w.spec.doodle || 'folder')}<span class="task-label">${esc(w.spec.label)}${w.minimised ? '<span class="vh">, minimised</span>' : ''}</span>
-        </button></li>`).join('');
+        </button><button class="task-win-close" type="button" data-win="${esc(w.id)}" aria-label="Close ${esc(w.spec.label)} from taskbar" title="Close ${esc(w.spec.label)}">${doodleIcon('close')}</button></li>`).join('');
     fitTaskbar(list);
-    if (had && $(`.task-win[data-win="${had}"]`, list)) $(`.task-win[data-win="${had}"]`, list).focus({ preventScroll: true });
+    const restore = had && $(`.${hadClose ? 'task-win-close' : 'task-win'}[data-win="${had}"]`, list);
+    if (restore) restore.focus({ preventScroll: true });
   }
 
   // Too many buttons for the bar: icons only, then smaller icons.
@@ -965,6 +968,12 @@
   else window.addEventListener('resize', () => fitTaskbar());
 
   taskbar.addEventListener('click', (e) => {
+    const closer = e.target.closest('.task-win-close');
+    if (closer) {
+      e.preventDefault();
+      K.wm.close(closer.dataset.win, { fromTaskbar: true });
+      return;
+    }
     const b = e.target.closest('.task-btn[data-app], .task-win');
     if (!b) return;
     e.preventDefault();
@@ -1781,12 +1790,22 @@
               <div class="wall-options">${MODES.map(([id, label]) =>
                 choice('mode', id, label, `<span class="wall-chip wall-mode is-${id}">${doodleIcon('check')}</span>`)).join('')}</div>
             </fieldset>
+            <fieldset class="wall-set">
+              <legend>Opening icons and files</legend>
+              <label class="wall-click-choice"><input type="checkbox" name="singleClick"${K.singleClick ? ' checked' : ''} />Open with a single click</label>
+              <p class="wall-click-hint">Double-click is the default. Touch and keyboard controls stay the same.</p>
+            </fieldset>
             <p class="wall-actions"><button class="os-button" type="button" data-reset>${doodleIcon('refresh')}Back to lavender grid</button></p>
           </form>`;
         const form = $('form', win.body);
         const status = () => win.setStatus(`<span>${esc(wallName(wallNow()))}</span><span class="status-hint">Remembered in this browser</span>`);
         form.addEventListener('submit', (e) => e.preventDefault());
         form.addEventListener('change', (e) => {
+          if (e.target.name === 'singleClick') {
+            K.setSingleClick(e.target.checked);
+            announce(K.singleClick ? 'Icons and files open with a single click' : 'Icons and files open with a double-click');
+            return;
+          }
           if (e.target.name === 'mode') {
             const mode = e.target.value;
             if (window.KasaiTheme) wipeTo(mode, e.target.nextElementSibling);

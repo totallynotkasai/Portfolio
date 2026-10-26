@@ -725,9 +725,30 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
   transition: background var(--transition);
 }
 /* Open windows share the bar, shrinking towards just their icon. */
-.task-windows > li { flex: 0 1 190px; min-width: 46px; }
-.task-win { width: 100%; max-width: 190px; }
+.task-windows > li { flex: 0 1 190px; min-width: 60px; }
+.task-entry { position: relative; }
+.task-win { width: 100%; max-width: 190px; padding-right: 34px; }
 .task-win .task-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.task-win-close {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 25px;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+}
+.task-win-close svg.doodle { width: 14px; height: 14px; }
+.task-entry:hover .task-win-close, .task-entry:focus-within .task-win-close { opacity: 1; pointer-events: auto; }
+.task-win-close:hover, .task-win-close:focus-visible { color: var(--ink); background: var(--coral); border-color: var(--ink); }
+@media (hover: none) {
+  .task-win-close { opacity: 1; pointer-events: auto; }
+}
 /* The dock's icons keep their names for screen readers only. */
 .task-btn .task-label {
   position: absolute;
@@ -761,14 +782,15 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 /* Crowded (kasai-os.js measures it): every button down to its icon, and
    smaller again if they still don't fit, so none is ever cut off. */
 .task-windows.is-crowded { gap: 3px; }
-.task-windows.is-crowded > li { flex: 0 0 auto; min-width: 0; }
-.task-windows.is-crowded .task-win { justify-content: center; width: auto; padding: 0 7px; }
+.task-windows.is-crowded > li { flex: 0 0 60px; min-width: 60px; }
+.task-windows.is-crowded .task-win { justify-content: flex-start; width: 100%; padding: 0 30px 0 6px; }
 .task-windows.is-crowded .task-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .task-windows.is-packed { gap: 2px; }
-.task-windows.is-packed .task-win { height: 34px; padding: 0 3px; border-radius: 8px; }
+.task-windows.is-packed > li { flex-basis: 54px; min-width: 54px; }
+.task-windows.is-packed .task-win { height: 34px; padding: 0 28px 0 4px; border-radius: 8px; }
 .task-windows.is-packed .task-win svg { width: 16px; height: 16px; }
 .task-windows.is-tight { gap: 2px; overflow-x: auto; scrollbar-width: none; }
-.task-windows.is-tight .task-win { padding: 0 1px; }
+.task-windows.is-tight .task-win { padding-left: 3px; }
 .task-windows.is-tight .task-win svg { width: 14px; height: 14px; }
 
 .tray { flex: none; margin-left: auto; }
@@ -921,6 +943,35 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
    APP: ABOUT
    ============================================================ */
 /* The ticker: a rolling strip of what I do. */
+.wall-click-choice { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); line-height: 1.5; }
+.wall-click-choice input { width: 20px; height: 20px; flex: none; accent-color: var(--blue-ink); }
+.wall-click-hint { margin-top: 8px; color: var(--ink-soft); font-size: var(--fs-small); line-height: 1.5; }
+.about-ticker { position: relative; }
+.about-ticker.is-collapsed { height: 18px; background: var(--ink); }
+.ticker[hidden] { display: none; }
+.ticker-toggle {
+  position: absolute;
+  right: 7px;
+  top: 4px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--yellow);
+  background: var(--ink);
+  border: 1.5px solid var(--yellow);
+  border-radius: 5px;
+  font: 700 1.1rem var(--font-mono);
+  opacity: 0;
+}
+.about-ticker:hover .ticker-toggle, .about-ticker:focus-within .ticker-toggle,
+.about-ticker.is-collapsed .ticker-toggle { opacity: 1; }
+.ticker-toggle:focus-visible { outline-color: var(--yellow); }
+.about-ticker.is-collapsed .ticker-toggle { top: 0; height: 18px; }
+.about-ticker.is-collapsed .ticker-toggle span { rotate: 180deg; }
+@media (hover: none) {
+  .ticker-toggle { opacity: 1; }
+}
 .ticker {
   display: flex;
   align-items: center;
@@ -984,6 +1035,9 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 }
 .about-subheading { margin-top: 10px; font-family: var(--font-display); font-size: clamp(1.1rem, 3.2cqi, 1.45rem); line-height: 1.3; color: var(--ink-soft); }
 .about-text { margin-top: 18px; display: grid; gap: 12px; color: var(--ink-soft); max-width: 62ch; }
+.about-work-link { color: var(--text); text-decoration: underline; text-decoration-color: var(--yellow-ink); text-underline-offset: 3px; }
+.about-work-link:hover { text-decoration-thickness: 2px; }
+.about-contact-line { margin-top: 16px; max-width: 62ch; color: var(--ink-soft); font-size: var(--fs-small); line-height: 1.6; }
 .about-contact { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 22px; }
 .about-email { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-soft); }
 /* The photo, in a plain black border, level with the middle of the text.
@@ -1379,6 +1433,25 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .paper-date { padding-right: 6rem; font-family: var(--font-display); font-size: var(--fs-tiny); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); }
 .paper-title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 400; }
 .paper-excerpt { font-size: var(--fs-small); color: var(--ink-soft); }
+.story-body .paper { background-image: none; line-height: 1.8; }
+.story-nav { flex-wrap: wrap; }
+.story-nav .os-button { font-size: 0.8rem; }
+.story-body .paper-stamp { position: static; display: inline-block; margin-bottom: 16px; rotate: 0deg; }
+.story-body .paper-title { font-size: 1.7rem; line-height: 1.3; }
+.story-body .paper-excerpt { margin-top: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--acc-ink); }
+.story-chapter { margin-top: 32px; }
+.story-chapter h3 { margin-bottom: 18px; font-family: var(--font-display); font-size: 1.25rem; }
+.story-chapter p + p { margin-top: 1em; }
+.project-benefit { margin-top: 16px; font-family: var(--font-display); line-height: 1.5; }
+.project-assistance { margin-top: 14px; color: var(--ink-muted); font-size: var(--fs-small); }
+.project-story { margin-top: 22px; }
+.project-story h3 { margin-bottom: 8px; font-family: var(--font-display); font-size: 1.05rem; }
+.project-story p { color: var(--ink-soft); line-height: 1.7; }
+.tile-benefit { display: block; margin-top: 8px; color: var(--ink-soft); font-size: 0.82rem; line-height: 1.5; }
+.tile-genre { display: block; margin-top: 8px; color: var(--ink-soft); font-size: 0.75rem; line-height: 1.45; font-weight: 600; }
+.hint-single { display: none; }
+html[data-open-mode="single"] .hint-double { display: none; }
+html[data-open-mode="single"] .hint-single { display: inline; }
 
 /* ============================================================
    APP: THE CV  (About's My CV button, or the /cv address)
@@ -3486,6 +3559,10 @@ html.vt-theme .taskbar { view-transition-name: none; }
   .win-bar { min-height: 50px; cursor: default; }
   .win-head { padding: 12px 16px 10px; }
   .about { padding: 18px; }
+  .story-body { padding: 12px; }
+  .story-body .paper { padding: 22px 16px 24px 40px; }
+  .story-body .paper::before { left: 26px; }
+  .story-body .paper-hole { display: none; }
 
   /* The dock: Start, one icon per app, the clock. (Sound is in the Start menu.) */
   .task-windows, .tray, .tray-sound { display: none; }

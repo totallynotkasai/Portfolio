@@ -99,9 +99,14 @@ window.CONTENT = {
 
     paragraphs: [
       "I currently work in the IT sector, doing a bit of everything from user support to QA testing.",
-      "I'm a massive creative at heart and spend most of my time writing, creating character designs or building small tools and web apps to help me with my creative work. My main creative project at the moment is re-writing my web novel \"Dilettantes in the Interim\".",
-      "My current goals are to finish my main side project, my PKM \"Filo\", and to keep progressing my career in IT.",
+      "I'm a massive creative at heart and spend most of my time writing, creating character designs or building small tools and web apps to help me with my creative work. My main creative project at the moment is re-writing my web novel \"Dilettante's in the Interim\".",
+      "I've now completed and released my PKM \"Filo\", and I'm continuing to progress my career in IT.",
     ],
+    workLinks: [
+      { text: 'Filo', app: 'coding', href: '/coding_projects' },
+      { text: "Dilettante's in the Interim", app: 'writing', href: '/writing' },
+    ],
+    contactLine: 'Happy to chat about IT opportunities, creative projects and collaboration.',
 
     // The Email me button under your text and the one in the Start menu.
     email: 'andrew.worgan.enquiry@gmail.com',
@@ -163,7 +168,10 @@ window.CONTENT = {
      • "desc" is the paragraph in the project's window.
      • "tags" is a list of technologies (they become the window's menu bar).
        A tag of 'In Progress' becomes a blinking "In progress" light in the
-       folder and the status bar instead; without one it says "Ready".
+       folder and the status bar instead. "status" sets a release label.
+     • "benefit" is a short plain-English reason to use the project.
+       "aiAssisted: true" adds an AI-assistance credit. "caseStudy" is an
+       optional list of { heading, text } sections in the project window.
      • "links" are the buttons in the window's status bar. Give each a
        label and a url.
      • Each project is named like a file: the title up to any " - ", plus
@@ -178,8 +186,16 @@ window.CONTENT = {
     {
       img: 'assets/projects/Filo Updated.png',
       title: 'Filo - Personal Knowledge Manager',
-      desc: 'My main side project: a local-first desktop app for notes, ideas and worldbuilding. Mind maps, kanban boards, task lists and documents, all saved as plain Markdown files on your own disk.',
-      tags: ['TypeScript', 'Svelte', 'Electron', 'In Progress'],
+      benefit: 'Keep your notes, ideas and worldbuilding together on a flexible canvas.',
+      desc: 'A completed and publicly released local-first desktop app for notes, ideas and worldbuilding. Mind maps, kanban boards, task lists and documents, all saved as plain Markdown files on your own disk.',
+      tags: ['TypeScript', 'Svelte', 'Electron'],
+      status: 'Released for Windows',
+      aiAssisted: true,
+      caseStudy: [
+        { heading: 'Why I built Filo', text: 'I could not find a personal knowledge manager that met all my needs. I wanted something open source, with Markdown support and a canvas flexible enough for the way I work. Obsidian came close, but its controls did not suit what I wanted to do.' },
+        { heading: 'Why Markdown', text: 'I already had an established collection of Obsidian files, so choosing Markdown meant I could bring my existing notes into Filo rather than start again.' },
+        { heading: 'A technical challenge', text: 'Filo and Obsidian handle frontmatter differently. Working through those differences was one of the technical challenges involved in making the move between them seamless.' },
+      ],
       links: [
         { label: 'GitHub', url: 'https://github.com/totallynotkasai/filo' },
         { label: 'Download for Windows', url: 'https://github.com/totallynotkasai/filo/releases/latest' },
@@ -188,6 +204,9 @@ window.CONTENT = {
     {
       img: 'assets/projects/Mi Back Screen.png',
       title: 'Mi Back Screen - Rear Display App',
+      benefit: 'Make the rear screen your own with useful shortcuts and personal touches.',
+      status: 'Released for Android',
+      aiAssisted: true,
       accent: 'lavender',
       desc: 'An Android app for the Xiaomi 17 Pro Max that puts your own images, GIFs, a clock, notifications and a charging animation on the phone\'s rear display, and can move any app or the camera there with a tap.',
       tags: ['Kotlin', 'Android', 'Shizuku'],
@@ -200,6 +219,9 @@ window.CONTENT = {
     {
       img: 'assets/projects/Toolbox.png',
       title: 'Toolbox - Tools & Mini-Games',
+      benefit: 'Find everyday tools, fidget toys and quick games in one Android app.',
+      status: 'Released for Android',
+      aiAssisted: true,
       accent: 'yellow',
       desc: 'An Android app of 40-odd everyday tools, fidget toys and mini-games, from a tuner and compass to Connect Four against the computer. The physics, audio and game AIs are all built in, with no third-party libraries.',
       tags: ['Kotlin', 'Jetpack Compose', 'Material 3'],
@@ -212,6 +234,9 @@ window.CONTENT = {
     {
       img: 'assets/projects/Paperized.png',
       title: 'Paperized - Paperize Fork',
+      benefit: 'Give your wallpaper routine more control with schedules and favourite images.',
+      status: 'Publicly released',
+      aiAssisted: true,
       accent: 'pink',
       forkOf: { label: 'Anthonyy232/Paperize', url: 'https://github.com/Anthonyy232/Paperize' },
       desc: 'My own build of Anthony La\'s open-source Android wallpaper changer. I fixed bugs in scheduling, live wallpapers and settings, and added set times of day, night albums, favourites, home-screen widgets and live auto-pan.',
@@ -224,6 +249,9 @@ window.CONTENT = {
     {
       img: 'assets/projects/Portfolio.png',
       title: 'This Portfolio',
+      benefit: 'Explore my projects, artwork, writing and games in a playful desktop.',
+      status: 'Live website',
+      aiAssisted: true,
       window: 'portfolio.html',             // title bar name (optional)
       accent: 'teal',
       desc: 'The site you\'re looking at: a little operating system I built by hand in plain HTML, CSS and JavaScript. Windows drag, snap and tidy themselves, a pet wizard roams the desktop, there are four games, every sound is made in the browser, and paint.exe hides in the Trash. Everything on it comes from one content file.',
@@ -249,8 +277,93 @@ window.CONTENT = {
      • "accent" colours the card's window and its margin line (default teal). */
   writing: [
     {
+      "title": "Prospector's Attempt at Sourdough Spellcasting",
+      "excerpt": "The first two chapters of an old writing project. This project has been stopped and is being reworked into Dilettante's in the Interim. These chapters are preserved as an archived draft, rather than a sample of the current rewrite.",
+      "status": "Archived draft",
+      "date": "",
+      "stamp": "Old writing",
+      "accent": "teal",
+      "chapters": [
+        {
+          "title": "Chapter 1 - Close",
+          "paragraphs": [
+            "The lights outside the store are humming again, a maddening, incessant buzz that has recently become the soundtrack to my evenings.",
+            "They're a sensory nightmare on my closing shifts, the low-frequency tone vibrates straight through my skull to settle behind my eyes.",
+            "The shelves gleam with new worlds, new stories, new possibilities; each back cover promising a grander purpose.",
+            "\"Chronicles of Kona: Destiny's Blade\" the hero on the cover posturing with a certainty of will. Their role is clear, their destiny definite; my certainty lies solely in the need to restock them.",
+            "On the slow walk back to the other side of the store, I catch a reflection drifting across the glass countertops; a tired ghost stares blankly back at me. There are dark circles under her eyes, knots in her hair and creases in her blue polo shirt.",
+            "The cheap polyester blend chafes at the memory of bespoke costumes.",
+            "The thread tries to strip bare the shroud burying my former self. I wipe the glass, exorcising my dishevelled image from existence. The motion is mechanical, a practiced ritual to avoid meeting my own gaze for too long.",
+            "Most of my closing shift is spent monotonously tidying, cleaning and waiting. Becoming another part of the store’s fixtures. Habitually dulled by repetitive tasks or dust motes in the air.",
+            "The occasional old person is the exception to the monotony as they stumble their way through the aisles searching for DVDs.",
+            "My co-workers have always treated them poorly. Snickering every time one of them accidentally knocks something over, or intentionally interrupting them when they begin to ask a question.",
+            "Personally, I find a brief solace in their tangential style of conversation.",
+            "\"Oh thank you so much for helping me. I’ll tell you who else has been getting some help lately, my friend Hinako. Though her husband probably wouldn’t see it that way.\"",
+            "It’s a special kind of craving, feeding off the emotional whiplash of their lives. Where each memory of colour and lustre they share only further illuminates how bare my own existence has become.",
+            "The daze in my limbs is shaken away by tinny fanfare from a nearby demo cabinet. I press and hold the power button in retaliation, the screen’s vibrant world collapsing into a single point of light before vanishing.",
+            "Count the tills, sweep the floors, check for any stowaways.",
+            "My boss always reiterates the closing rituals to me every shift, even though I have been here for 3 years now.",
+            "I put the alarm on and pull the metal shutter at the front of the store down, a grating screech reverberates through the arcade. With a weary lament, the lights extinguish, plunging my small corner into darkness, finally easing the burden on my ears.",
+            "The store keys rattle in my hand, a small weight of responsibility I despise. There is a small pleasure in relinquishing them to the void of the drop box.",
+            "The pavement is dull with recent rain. Neon \"We’re Closed\" signs shimmer on distorted puddles, bleeding reds and greens into the asphalt. The city’s scent is aerated with damp concrete, fried food, and the faint sweetness of refuse.",
+            "A low rumble vibrates through the soles of my shoes. My feet begin to carry me as the city dissolves around me into a blur of headlights and muted laughter of strangers; a world that feels a universe away.",
+            "The frigid night air caressing my skin fails to pierce the fog that has settled in my mind.",
+            "Each movement forward feels heavier and more disconnected. That feeling doesn’t bring alarm, only a dry sense of inevitability.",
+            "A long stretch of pale concrete gawks at me, stained with the grime of a thousand hurried journeys. The platform is deserted; a disembodied voice announces the next express service, its cheerful tone a stark contrast to the hollow ache in my chest.",
+            "I find myself standing close to the edge of the platform, the textured yellow line pressing against the worn-down tread of my shoes.",
+            "It goes against my nature, as the stage direction",
+            "\"Find your mark. Don’t stand too close to the edge.\"",
+            "has been etched into my soul.",
+            "Down the tracks, a trio of brilliant lights cut through the inky darkness, growing larger, brighter, more insistent with every passing second.",
+            "The air begins to tremble, a powerful wind pulling at my clothes.",
+            "It feels almost like an embrace, a promise of an end to the quiet desperation that has become my constant companion.",
+            "A symphony of squealing metal and blinding light consumes everything. I close my eyes, not in fear, but in resignation."
+          ]
+        },
+        {
+          "title": "Chapter 2 - Pusillanimity",
+          "paragraphs": [
+            "My hair blusters wildly in my face, strands whipping against my cheeks in retaliation for my cowardice.",
+            "Tears, hot and unexpected, begin to swirl around on my cheeks in a celebration of despair.",
+            "With a shuddering gasp torn from the depths of my lungs, I take control of my body for a brief moment and step back.",
+            "A thundering silence befalls the station.",
+            "My heart hammers against my ribs, a frantic, wretched rhythm that cruelly reminds me, I am alive.",
+            "The despair doesn't recede. It crashes over me, now mingling with the bitter taste of failure.",
+            "I sink to my knees on the cold concrete, the rough texture digging into my skin. The sharp, sudden pain is a distant sensation, barely registering. The compulsion that carried me here, departed on the express service.",
+            "A different set of lights appear in the distance, softer, slower. It’s my train.",
+            "There is no grand decision, no moment of clarity. My limbs feel weighted with lead, but the thought of remaining here, a pathetic heap on the platform, is somehow worse.",
+            "The judgement of late evening commuters on their way home is too much for my brittle ego to bear.",
+            "As the train doors hiss open with a sigh of pneumatics, I force myself to stand and step inside, the sudden warmth and artificial light, alien to my chilled skin.",
+            "I slump into the nearest empty seat. The carriage is mostly empty, populated by the dregs of the city’s late-night workforce.",
+            "No one looks at me, no one notices the parade of tears drying on my face or the jittering nature of my hands in my lap. I am just another tired face on the last train home.",
+            "The rhythmic clatter of the wheels on the track becomes a metronome for the single word ricocheting around my brain.",
+            "\"Stupid. Stupid. Stupid.\"",
+            "My station approaches and I find myself propelled by a desperate, ugly urgency.",
+            "The wind feels thin as it journeys past my hair, drying out my lungs. The stairwell reeks of stale dust and grease.",
+            "Every quick step I take echoes into the oppressive abyss as an intense ache slumbers behind my temples.",
+            "My key scrapes in the lock, and my door swings open. The silence that greets me isn't peaceful. It's a vacuum, sucking in the vicious chorus in my head.",
+            "My work bag loosens its clutch on my shoulder before falling to the ground with a dull thud. In one motion my jacket and shoes tumble to the wayside.",
+            "A grim conviction throws my legs to the bathroom.",
+            "Still trembling, my fingers go to a small unassuming tin box tucked behind the spare toilet rolls. It’s a hidden sanctuary nestled in cotton wool, a secret I guard with a ferocity born of shame and desperation.",
+            "Inside, a single razor blade, its size so pitiful, so unassuming, belies the immense power it holds over me, the elusive promise it whispers.",
+            "\"Stupid. Stupid. Stupid.\"",
+            "I press the cold edge against the soft skin of my wrist. The sharp, clean line of pain is a relief, a focal point for the swirling chaos in my head. It’s a language I can understand, a punishment I can control.",
+            "The overwhelming cacophony of my meltdown is gagged, replaced by the terrible clarity of a thin crimson line that wells on my skin.",
+            "It appears slowly at first, a delicate thread that blossoms into a tapestry on my arm. The grip of the scarlet tide is so alluring and alleviating.",
+            "Except, it doesn’t appear to be swimming amongst the scars of previous repose; it’s pulsating, releasing pheromones of my failure into the air. The strands no longer neatly aligned, weave their way across my bathroom and body.",
+            "My razor feels heavy as a sudden gush of warmth paints my skin in a grotesque swirl. Already accustomed to the gloom my vision narrows, the edges of the bathroom smearing into shades of ruby and sapphire.",
+            "A deep chill starting from my toes crawls upwards; an assault has been launched against the warmth blooming from my wrist. My knees buckle, and I slump against the cold tile, the porcelain clasps to my face.",
+            "A metallic tang fills my nostrils, thick and cloying. Each beat of my heart feels weaker, a slowing drum marking a steady retreat.",
+            "The cold is consuming me, seeping into my bones, suckling on the last vestiges of my body's will to live. My spine is pounded by a tremor, forcing my eyelids to twitch and dance across my eye line.",
+            "Soft twilight nuzzles against my vision, however its embrace is impeded by the appearance of a velvet curtain.",
+            "I exhale hoping my breath would push past the increasing weight I feel on top of my body, but it does little to shift the curtain. Distant applause rains upon me as I feel compelled to bow one last time."
+          ]
+        }
+      ]
+    },
+    {
       date: '2026',
-      title: 'Dilettantes in the Interim',
+      title: "Dilettante's in the Interim",
       excerpt: 'My web novel, currently being re-written. A character-driven story I keep coming back to.',
       url: '',                              // no url = no dead link; shows the status text instead
       status: 'Re-write in progress',    // shown in the list and on the card
@@ -280,9 +393,24 @@ window.CONTENT = {
        'sprout', 'pencil', 'quill', 'palette' or 'hammer'. Any doodle name
        in kasai-core.js works; one it doesn't know shows the pencil.     */
   certificates: [
-    // Empty on purpose: the folder shows a tidy "This folder is empty",
-    // which looks better to a recruiter than placeholder data ever would.
-    // Add your first real one by copying the template from the comment above.
+    {
+      img: 'assets/certs/emergency-first-aid-at-work.png',
+      title: 'Emergency First Aid at Work',
+      issuer: 'British Red Cross',
+      date: '20 April 2026 (valid until 19 April 2029)',
+      link: '/assets/certs/emergency-first-aid-at-work.pdf',
+      linkLabel: 'Open certificate PDF',
+      accent: 'pink',
+    },
+    {
+      img: 'assets/certs/microsoft-365-fundamentals.png',
+      title: 'Microsoft 365 Certified: Fundamentals',
+      issuer: 'Microsoft',
+      date: '20 February 2025',
+      link: '/assets/certs/microsoft-365-fundamentals.pdf',
+      linkLabel: 'Open certificate PDF',
+      accent: 'blue',
+    },
   ],
 
   /* ──────────────────────────────────────────────────────────────────────
