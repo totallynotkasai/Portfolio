@@ -254,7 +254,7 @@
     colour: 'yellow',
     icon: 'about',
     path: '/',
-    size: [1120, 690],
+    size: [1000, 625],
     render(win) {
       const a = C.about || {};
       const ticker = Array.isArray(a.ticker) ? a.ticker : DEFAULT_TICKER;
