@@ -1,6 +1,6 @@
 # Revised Phase 1: the little wizard’s workshop
 
-Andrew’s review replaced the grid-editor and air-hockey direction. These are the second concepts, with spellcraft and the actual virtual pet at their centre. They remain local review previews, not production apps or final design approval.
+Andrew’s review replaced the grid-editor and air-hockey direction. Starweave’s current concept has since been accepted by Andrew. The duel now uses launched curved wards and slowly moving powerups. Both keep spellcraft and the actual virtual pet at their centre. They remain local review previews, not production apps or final design approval.
 
 Run npm run dev from the repository root:
 
@@ -18,21 +18,25 @@ The actual animated wizard conducts the audio-clock star and reacts to rune fami
 
 ## Hat to Hat
 
-Begin duel, move your coloured hat and choose when to Cast. Each side has one live originating cast, so at most two orbs exist. Plain hat hits cost one heart; portal hits cost two. Fire adds one damage and speed. Electric changes two side banks to a predictable 45 degrees. Powers are collected by shooting through the visible field runes; their recharge prevents stacking/replacement. Symbols, remaining orb life and bank charges are shown.
+Begin duel, move your coloured hat and choose when to Cast. Each side has one live originating cast, so at most two orbs exist. Plain hat hits cost one heart; portal hits cost two. Fire adds one damage and speed. Electric changes two side banks to a predictable 45 degrees. Power runes drift slowly and rebound within the central field, even while recharging. Powers are collected by shooting through the moving runes; their recharge prevents stacking/replacement. Symbols, remaining orb life and bank charges are shown.
 
-Spell Shield is a 0.35-second reaction window with a 1.8-second cooldown. A successful parry spends it and returns the spell along the defender’s aim. Holding the key cannot sustain protection. The threatening owner changes but the original caster slot remains occupied. Unshielded hats take damage, rather than passively bouncing a puck. Projectiles expire after eight active seconds or bounded banks.
+Spell Shield launches a 108-unit-wide crescent at 280 units/s along the aim captured at launch. It travels independently of the hat for at most 0.65s, fading at expiry. Its first enemy spell contact returns that spell along the captured direction, spends the ward and leaves a brief fading arc. Recharge is 1.8s. It is not a hat bubble: flanks and the space behind it remain exposed. Friendly spells pass through. Holding the key cannot sustain protection. The threatening owner changes but the original caster slot remains occupied. Unshielded hats take damage, rather than passively bouncing a puck. Projectiles expire after eight active seconds or bounded banks.
 
-Pointer/touch uses explicit Move/Aim modes; the separate relative pad always moves the hat. Aim with the slider or Q/E, cast with J, shield with Space/K, move with WASD/arrows and pause with P. Large phone Cast/Shield/Pause controls remain near the arena. Enemy casts have a visible wind-up; the animated pet is the opponent and reacts to combat. Choose a hat colour. Practice controls can disable AI and send an incoming shot. Pause freezes all combat clocks; Resume has a countdown.
+Pointer/touch uses explicit Move/Aim modes; the separate relative pad always moves the hat. Aim with the slider or Q/E, cast with J, shield with Space/K, move with WASD/arrows and pause with P. Large phone Cast/Shield/Pause controls remain near the arena. Enemy casts have a visible wind-up; the animated pet is the opponent and reacts to combat. Choose a hat colour. Practice controls can disable AI and send an incoming shot. Pause freezes all combat clocks, ward travel and rune drift; Resume has a countdown.
 
 Initial AI, balance and art tuning; circular hat hit areas; no orb-to-orb collisions, production sound, records, progression or OS integration. There is no equivalent nonvisual real-time mode. Real phone controls and live shield comfort remain for review.
 
 ## Verification · 27 October 2026
 
-- npm test: 53/53 pass (23 baseline, 15 retained initial kernels, 15 revised-concept tests).
+- npm test: 61/61 pass (23 baseline, 15 retained initial kernels, 23 revised-concept/ward tests).
 - npm run build: success without warnings. All revised source pages/dependencies return 200; production output excludes this entire directory and its references. Temporary production HTTP checks: root 200, revised pages/companion module 404.
 - Browser checks: audio activation/playhead/Stop/Mute; actual ingredient drag, numbered/phone placement, Undo, pet response; chosen duel cast/hat damage, Fire collection and three-damage portal hit, shield activation, pause/resume, aim and relative-pad drag. Desktop/390px layouts show no horizontal page overflow. No console warnings/errors observed.
 - A disabled-button focus bug found in browser playtesting was fixed so casting/shielding do not pause the duel.
 - Actual listening/voice balance, real-phone touch, native OS/tab interruption and subjective feel are not established by browser automation and await review. Pure tests establish parry mechanics; they do not approve human reaction timing.
+
+### Latest ward review checks
+
+Eight additional tests verify the shared visible/collision curve, independent movement, remote powered returns, one-contact spending/fade, no body immunity, friendly shots, exact expiry, pause/countdown, bounded rune drift and relative swept collection. Browser play returned a real practice shot with the travelling ward and recorded a parry; the visible curve remained separate from the hat. Rune drift was exercised through active play and pause. Updated 390px controls/layout show no page overflow; console checks are clear. The production build passes without warnings and output/reference scans confirm exclusion. Motion/timing values remain review knobs. Starweave sources were left unchanged after Andrew accepted that concept.
 
 ## Sources and boundaries
 
