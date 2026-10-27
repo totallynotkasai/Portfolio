@@ -135,7 +135,19 @@ window.CONTENT = {
      • Wide pieces get a sideways card, two cards wide, automatically.
      • With two or more categories, the binder's menu bar gets a button
        for each one (plus Shuffle) to filter the cards.
-     • A click on a card opens the piece full size in the image viewer.
+     • View artwork follows the single/double-click preference; touch and
+       keyboard open straight away. About this piece always flips in one tap.
+     • Optional reverse side: edit this same entry (match img exactly), e.g.
+         details: { year: '', medium: '', paragraphs: [], process: [] }
+       Put your own text in paragraphs, one string per paragraph. Omit
+       unknown fields; empty details show no About button. Text is not HTML.
+       Process images belong OUTSIDE the gallery in assets/art-process/<piece>/:
+         process: [{ img: 'assets/art-process/pet-wizard/01-sketch.png',
+                     alt: 'Your description of the sketch', caption: '' }]
+       Use PNG/JPG/WebP, forward slashes and exact filename case. An image
+       needs useful alt text; caption is optional. The build checks this.
+       See the tracked root CONTENT_AUTHORING.md for the full template,
+       asset instructions and preview checks. No author notes are supplied here.
      • Deleting a line never removes the piece; delete the file for that. */
   art: [
     { img: 'assets/art/Digital Art/assisted existence.png', title: 'Assisted Existence' },

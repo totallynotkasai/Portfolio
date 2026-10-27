@@ -2,7 +2,7 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Starweave concept accepted. Hat to Hat has moved to its own branch and plan. Phase 2 (art reverse sides and content authoring) is the next authorised work in a new chat.**
+**Status: Phase 0 complete; Starweave concept accepted; Phase 2 (art reverse sides and content authoring) complete. Hat to Hat remains on its own branch and plan. This continuation stops after Phase 2; later phases remain unimplemented.**
 
 **Active implementation branch: `codex/content-expansion`.** Keep the remaining expansion phases on this branch. By Andrew’s later request, Hat to Hat is separately parked on `codex/hat-to-hat`; its complete brief and deferred tasks are in `HAT_TO_HAT_PLAN.md`. No push, merge or deployment is authorised.
 
@@ -234,7 +234,7 @@ The flip can rotate gently on desktop; reduced motion swaps the face immediately
 
 ### Proposed authoring format
 
-Add an optional `details` object to the artwork's existing entry in **`content.js`, section 2, `art`**. The `img` value must exactly match the existing artwork path. This is a future format, not a feature that works today.
+Add an optional `details` object to the artwork's existing entry in **`content.js`, section 2, `art`**. The `img` value must exactly match the existing artwork path. This format is implemented in Phase 2; see the tracked root **`CONTENT_AUTHORING.md`** for the editing guide.
 
 ```js
 {
@@ -270,7 +270,7 @@ Use normal JavaScript strings: double quotes are convenient for apostrophes, one
 - Pass the new metadata through the generated-art/content merge without losing it.
 - Add process-image optimisation to the build, with lazy thumbnails and larger viewer versions; do not add those images to the art catalogue.
 - Add targeted shape/path validation with clear messages naming the piece and field.
-- Deliver **`docs/CONTENT_AUTHORING.md`** with a copy-and-paste template and screenshots/location instructions. Put a concise version in the `content.js` author comments and README too, since `docs/` is currently local-only.
+- Deliver the tracked root **`CONTENT_AUTHORING.md`** with a copy-and-paste template and location/review instructions. Put a concise version in the `content.js` author comments and README too, since `docs/` is currently local-only.
 - Make the feature fully functional with empty optional fields. Use clearly labelled temporary fixtures only during development; publish Andrew's real descriptions once supplied.
 
 ## 7. Idea 35: a current introduction to Dilettante's in the Interim
@@ -408,12 +408,24 @@ The separately deferred game’s design and historical preview records live excl
 
 ### Phase 2: art reverse sides and content authoring
 
-- [ ] Implement the optional details schema, metadata passthrough and process-image build support from section 6.
-- [ ] Restructure interactive art cards into valid sibling controls, then add reversible front/back presentation.
-- [ ] Preserve viewer arrows/swipes, categories, Shuffle, colour selection and single/double-click preferences.
-- [ ] Provide keyboard/mobile Inspect/flip behaviour and reduced-motion treatment.
-- [ ] Add the exact editing path, safe example and asset-folder instructions to the authoring guide, content comments and README.
-- [ ] Verify real existing art entries still work without any new fields.
+**Complete on 27 October 2026.** Implementation and verification stay on `codex/content-expansion`; no push, merge or deployment.
+
+- [x] Implement the optional details schema, metadata passthrough and process-image build support from section 6.
+- [x] Restructure interactive art cards into valid sibling controls, then add reversible front/back presentation.
+- [x] Preserve viewer arrows/swipes, categories, Shuffle, colour selection and single/double-click preferences.
+- [x] Provide keyboard/mobile Inspect/flip behaviour and reduced-motion treatment.
+- [x] Add the exact editing path, safe example and asset-folder instructions to the tracked root `CONTENT_AUTHORING.md`, content comments and README.
+- [x] Verify real existing art entries still work without any new fields.
+
+**Actual outcomes:** optional medium/year, escaped paragraphs and lazy process thumbnails render independently. Empty fields create no About button or placeholder copy. Generated title/category defaults survive an `img` + `details` metadata entry. Final art and process images use separate viewer sets, so process pictures neither duplicate gallery navigation nor become Solitaire art. Process PNG/JPG/WebP files receive 400px thumbnails, 800px page copies and up-to-4000px viewer copies. Validation names the piece and field for invalid shapes, unsupported fields, missing paths, wrong filename case and missing process alt text.
+
+The front View artwork button uses the shared single/double-click preference, with direct native keyboard/touch activation. Flip, back View and process buttons activate once. Hidden faces are `hidden` and `inert`, focus moves to the equivalent flip button, and category filtering resets hidden cards to the front. Notes scroll inside the card. Authored cards reserve at least 320px of height; phones at 380px and below use one column. Palette frames and wide-card treatment remain.
+
+**Verification:** the starting 33/33 suite and production build passed. After Phase 2, **41/41 tests pass** and `npm run build` succeeds without content warnings. Eight art regressions exercise optional/partial fields and literal text, metadata merging, focus/hidden faces, reduced-motion tilt suppression, nested/filter/shuffled viewer sets, keyboard/touch-swipe event handling, schema/path errors and actual process-image generation in temporary directories. Packaging checks inspect the built files for QA fixture references as well as preview-directory exclusion.
+
+Actual browser review used the portfolio app and temporary clearly labelled QA content at desktop 1280×720, phone 390×844 and narrow phone 320×740. It covered Enter/Space flips, equivalent focus, long-note scrolling, final/back/process viewers and focus return, process-only/date-only/medium-only fields, blank details, light/dark contrast, single/double-click mode, filters and Shuffle, filtered viewer counts, arrows/Left/Right/Home/End and palette metadata. No browser warning/error entries were observed. The temporary generator/pages were removed; the subsequent production build contains no `qa/`, design-lab directory or review fixture text. A separate server of the actual `dist/` output showed all **19 real artworks**, no flip buttons without authored material, and working final-art viewing.
+
+**Limits and author input:** no artwork notes or process assets have been invented or added to live content. Andrew can now populate them using the guide. Phone review used browser viewport sizes, not a physical handset; touch taps/swipes have automated event-level coverage rather than physical-device confirmation. Reduced-motion JavaScript behaviour is tested and the CSS rotation is restricted to `no-preference`, with immediate face swapping under `reduce`; an actual OS preference toggle and screen-reader/device session were not exercised. These verification limits do not require another content/scope approval or begin Phase 3.
 
 **Exit:** Andrew can populate a real artwork using only the documented content entry and optional image folder. No fabricated published art notes. Use development fixtures for visual checks, then remove them.
 
@@ -572,4 +584,4 @@ Functional art/writing features can be completed before this material arrives, u
 
 The canonical plan is **`CONTENT_EXPANSION_PLAN.md` in the repository root**, where Git can include it normally; it is tracked with the Phase 0 baseline commit. The original `docs/content-expansion-plan.md` is a local pointer to it, because docs is currently excluded by local Git rules. This avoids leaving the implementation instructions solely in an ignored folder.
 
-The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan, and a new chat to complete **Phase 2** here. Preserve that separation; no push, merge or deployment is authorised.
+The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phase 2 is complete here**; stop this continuation at that boundary. Preserve the branch separation; no push, merge or deployment is authorised.
