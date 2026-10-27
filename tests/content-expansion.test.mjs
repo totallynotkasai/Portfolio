@@ -48,6 +48,6 @@ test('production packaging excludes review directories and production pages do n
     assert.equal(existsSync(new URL('../dist/design-lab/content-expansion',import.meta.url)),false);
     assert.equal(existsSync(new URL('../dist/qa',import.meta.url)),false);
     for(const file of readdirSync(new URL('../dist/',import.meta.url)).filter(f=>/\.(html|js|css)$/.test(f)))
-      assert.doesNotMatch(readFileSync(new URL('../dist/'+file,import.meta.url),'utf8'),/REVIEW FIXTURE|art-setup\.js|art-end\.js|\/dist\/qa\//);
+      assert.doesNotMatch(readFileSync(new URL('../dist/'+file,import.meta.url),'utf8'),/REVIEW FIXTURE|(?:art|writing)-(?:setup|end)\.js|\/(?:dist\/)?qa\//);
   }
 });

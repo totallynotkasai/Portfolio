@@ -2,7 +2,7 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Starweave concept accepted; Phase 2 (art reverse sides and content authoring) complete. Hat to Hat remains on its own branch and plan. This continuation stops after Phase 2; later phases remain unimplemented.**
+**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art reverse sides) and 3 (novel overview and writing authoring) complete. Hat to Hat remains on its own branch and plan. This continuation stops after Phase 3; later phases remain unimplemented.**
 
 **Active implementation branch: `codex/content-expansion`.** Keep the remaining expansion phases on this branch. By Andrew’s later request, Hat to Hat is separately parked on `codex/hat-to-hat`; its complete brief and deferred tasks are in `HAT_TO_HAT_PLAN.md`. No push, merge or deployment is authorised.
 
@@ -369,7 +369,7 @@ Hat to Hat is outside this active plan. Its design, remaining work and verificat
 - Commit each completed phase, or a coherent substep within a large phase, on that branch. Suggested commit subjects below are descriptions, not instructions to push or merge.
 - Keep previews, reusable rule code and final implementation together. Keep review-only preview pages out of the production build unless Andrew explicitly wants them published.
 - Update this document's progress boxes as work actually completes. Acceptance of scope does not mean a phase is finished.
-- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew has now authorised a new chat to complete Phase 2. Keep later numbered phases for their own continuations.
+- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew authorised Phase 2, then this continuation through Phase 3 only. Keep later numbered phases for their own continuations.
 - Starweave’s later integration follows the accepted concept and Phase 7 requirements. The separately deferred game supplies no approval gate or dependency for this plan.
 - Avoid new blanket approval stops for accepted art, writing and contract details. Ask for missing authored material when needed; render optional sections safely without inventing it.
 
@@ -404,7 +404,7 @@ After separation, the active suite passes **33/33 tests** and the production bui
 
 The pre-separation combined suite passed 61/61 tests. The active suite is reduced by moving game-only regressions with their preserved implementation; this does not mean those tests failed or that coverage was removed from the deferred branch. Retain the baseline interaction/Solitaire, musical model/audio and build-exclusion tests here. Device listening/touch and native interruption remain technical checks for Phase 7. Music currently has four pitches/sixteen moments/three voices and no saves/export/full activity.
 
-The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Proceed to Phase 2 in the new chat; do not implement later phases in this handoff.
+The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phase 2 followed in its own continuation; Phase 3 is recorded below. Later phases remain deferred.
 
 ### Phase 2: art reverse sides and content authoring
 
@@ -433,11 +433,25 @@ Suggested commit: `feat: add authored art card reverse sides`.
 
 ### Phase 3: novel overview and writing authoring
 
-- [ ] Implement the optional overview schema and reusable section navigation from section 7.
-- [ ] Support premise, cover, characters, setting and an explicitly current sample, hiding absent sections.
-- [ ] Preserve existing writing entries, archived chapter reading and external links.
-- [ ] Add new image processing/validation and copy-and-paste authoring guidance.
-- [ ] Populate only Andrew's provided current material; until then the current summary/status remain.
+**Complete on 27 October 2026.** This continuation ends here on `codex/content-expansion`; no push, merge or deployment.
+
+- [x] Implement the optional overview schema and reusable section navigation from section 7.
+- [x] Support premise, cover, characters, setting and an explicitly current sample, hiding absent sections.
+- [x] Preserve existing writing entries, archived chapter reading and external links.
+- [x] Add new image processing/validation and copy-and-paste authoring guidance.
+- [x] Populate only Andrew's provided current material; until then the current summary/status remain.
+
+**Actual outcomes:** `overview: {}` opts any writing entry into the reusable introduction. Dilettante's uses its unchanged real summary, rewrite status and date; it has no invented premise, cover, character, setting or sample. Optional sections appear independently. Blank paragraphs/character slots and title-only chapters produce no empty headings or navigation. Populated top-level `chapters` on an overview appear under a fixed **Current sample** heading, with optional `sampleLabel` as additional text. A label alone cannot produce a sample. The Prospector stopped-draft explanation and both chapters remain in their own Archived draft/Old writing document with chapter navigation. Plain documents and real external links retain their existing behavior.
+
+Section buttons outside the reading scroll area jump immediately and move focus to the matching heading. Overview returns to the title. Long sample text wraps, including long unbroken strings; narrow window containers stack cover/premise and character image/text. Images reserve dimensions, load lazily and use responsive optimized sources. New writing assets receive 400px thumbnail, 800px page and up-to-2400px large copies without enlargement; existing art paths reuse their variants. Writing assets never enter gallery or Solitaire discovery. Targeted validation names the entry and nested field for shape/type errors, unsupported overview fields, missing/unsafe/wrong-case paths, missing alt text and unnamed populated character slots.
+
+The tracked root **`CONTENT_AUTHORING.md`** now includes exact current/archived entry locations, safe empty templates retaining the real description/status, current-sample rules, image instructions and verification steps. README and `content.js` author comments match it. No sole instructions were added to locally ignored `docs/`.
+
+**Verification:** the clean starting baseline passed **41/41 tests** and `npm run build` without content warnings. After Phase 3, **48/48 tests pass**, including seven writing regressions for summary-only/premise-only/partial fields, images without a sample, literal and already-escaped text, long current samples, section focus with reduced motion on/off, plain documents/external links, the real archive/rewrite distinction, nested schema/path errors and actual writing-image generation in temporary directories. Existing art, viewer, single/double-click, Solitaire and accepted Starweave regressions all remain passing. Production build succeeds without content warnings. Packaging checks exclude `qa/`, review previews and fixture references; temporary browser fixtures were removed before the final production build.
+
+Actual browser review exercised the real portfolio and clearly labelled temporary synthetic fixtures at **1280×800**, **390×844** and **320×740**. It covered existing-summary-only, premise-only, partial blanks, cover/character images without sample, literal text, an 80-paragraph sample plus a long unbroken final string, Enter/Space opening and section activation, click navigation, heading focus, scrolling to the last sample paragraph, Overview return, close/focus return, both archived chapter buttons and the plain external link's destination/new-tab attributes. Images loaded and narrow layouts had no horizontal reading overflow. Light and dark themes were visually reviewed. A fixture forced the JavaScript reduced-motion preference; section jumps remained immediate with computed scroll behavior `auto`. No browser warning/error entries were observed. The final built-output browser check confirmed the real summary-only overview, separate archive and unchanged art viewer.
+
+**Limits and author input:** no current authored novel material has been supplied beyond the existing summary/status; optional material remains hidden. Phone sizes were browser viewport overrides, not physical handsets, and clicks do not establish physical touch/swipe behavior. Reduced motion was exercised with a labelled development preference fixture and regression tests, not an OS preference toggle; the overview adds no motion effects. No screen-reader session was performed. These limits are recorded verification limits, not a new scope approval or the start of Phase 4.
 
 **Exit:** a partial or complete novel overview renders cleanly on desktop/mobile, and the archive cannot be confused with the rewrite.
 
@@ -584,4 +598,4 @@ Functional art/writing features can be completed before this material arrives, u
 
 The canonical plan is **`CONTENT_EXPANSION_PLAN.md` in the repository root**, where Git can include it normally; it is tracked with the Phase 0 baseline commit. The original `docs/content-expansion-plan.md` is a local pointer to it, because docs is currently excluded by local Git rules. This avoids leaving the implementation instructions solely in an ignored folder.
 
-The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phase 2 is complete here**; stop this continuation at that boundary. Preserve the branch separation; no push, merge or deployment is authorised.
+The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2 and 3 are complete here**; stop this continuation after Phase 3. Preserve the branch separation; no push, merge or deployment is authorised.

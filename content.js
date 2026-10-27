@@ -286,7 +286,18 @@ window.CONTENT = {
      • Give it a real url and a "Read it" button appears in the card's
        status bar; with no url the status sits there instead.
      • "stamp" (optional) is the little rubber stamp in the card's corner.
-     • "accent" colours the card's window and its margin line (default teal). */
+     • "accent" colours the card's window and its margin line (default teal).
+     • Optional overview: {} opens a structured introduction using the existing
+       excerpt/status. Fill any of premise: [], cover: '', coverAlt: '',
+       characters: [{ name: '', role: '', paragraphs: [], img: '', imageAlt: '' }],
+       setting: [], sampleLabel: ''. Blank sections stay hidden.
+       With overview, chapters: [{ title: '', paragraphs: [] }] is CURRENT sample
+       material only; never copy the archived Prospector draft into the rewrite.
+       No chapters means no sample heading/link, even with a sampleLabel.
+       Use your own text, one string per paragraph, no HTML. Images need useful
+       alt text and exact forward-slash PNG/JPG/WebP paths under assets/writing/
+       (suggested: assets/writing/dilettantes/) or reuse assets/art/ images.
+       See tracked CONTENT_AUTHORING.md for safe templates and checks. */
   writing: [
     {
       "title": "Prospector's Attempt at Sourdough Spellcasting",
@@ -381,6 +392,7 @@ window.CONTENT = {
       status: 'Re-write in progress',    // shown in the list and on the card
       stamp: 'Re-write',                  // rubber stamp in the top corner (optional)
       accent: 'lavender',
+      overview: {},                       // optional sections await current authored material
     },
     // ↑ copy a whole { ... }, block to add another piece of writing.
   ],

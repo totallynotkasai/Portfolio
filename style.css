@@ -1524,6 +1524,33 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
 .story-chapter { margin-top: 32px; }
 .story-chapter h3 { margin-bottom: 18px; font-family: var(--font-display); font-size: 1.25rem; }
 .story-chapter p + p { margin-top: 1em; }
+.overview-body { container-type: inline-size; }
+.writing-overview { max-width: 72ch; margin-inline: auto; overflow-wrap: anywhere; }
+.writing-overview .paper-excerpt { padding-bottom: 0; border: 0; }
+.writing-status { margin-top: 12px; font-family: var(--font-display); color: var(--acc-ink); }
+.writing-intro { display: grid; gap: 24px; align-items: start; margin-top: 28px; }
+.writing-intro.has-cover:has(> section) { grid-template-columns: minmax(0, 1fr) minmax(120px, 35%); }
+.writing-overview h3 { margin-bottom: 14px; font-family: var(--font-display); font-size: 1.25rem; line-height: 1.4; }
+.writing-overview h4 { margin-bottom: 8px; font-family: var(--font-display); font-size: 1.05rem; line-height: 1.5; }
+.writing-overview p + p { margin-top: 1em; }
+.writing-cover, .writing-character-image { display: block; width: 100%; height: auto; border: var(--border); border-radius: 6px; }
+.writing-cover { max-width: 280px; }
+.writing-character-image { max-width: 180px; }
+.writing-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--acc-ink); }
+.writing-characters { display: grid; gap: 24px; }
+.writing-character { display: grid; gap: 18px; align-items: start; }
+.writing-character:has(> img) { grid-template-columns: minmax(80px, 28%) minmax(0, 1fr); }
+.writing-role, .writing-sample-label { color: var(--ink-soft); font-size: var(--fs-small); }
+.writing-sample { margin-top: 24px; }
+.overview-body + .win-status { flex-wrap: wrap; }
+.story-nav .os-button { min-height: 44px; white-space: normal; }
+@container (max-width: 520px) {
+  .writing-overview { padding: 20px 18px 24px 32px; }
+  .writing-overview::before { left: 16px; }
+  .writing-intro.has-cover:has(> section), .writing-character:has(> img) { grid-template-columns: minmax(0, 1fr); }
+  .writing-overview .paper-title { font-size: 1.45rem; }
+}
+@media (max-width: 540px) { .overview-body { padding: 12px; } }
 .project-benefit { margin-top: 16px; font-family: var(--font-display); line-height: 1.5; }
 .project-assistance { margin-top: 14px; color: var(--ink-muted); font-size: var(--fs-small); }
 .project-story { margin-top: 22px; }

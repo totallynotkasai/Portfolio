@@ -744,9 +744,80 @@
   /* ══════════════════════════════════════════════════════════════════════
      WRITING  (documents, and a notepad window per piece)
      ══════════════════════════════════════════════════════════════════════ */
+  const writingText = (value) => typeof value === 'string' && value.trim() ? value : '';
+  const writingParagraphs = (value) => Array.isArray(value) ? value.filter(writingText) : [];
+  const writingChapters = (value) => (Array.isArray(value) ? value : []).filter((chapter) =>
+    chapter && writingParagraphs(chapter.paragraphs).length);
+  const writingOverview = (w) => {
+    const o = w.overview;
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    return {
+      cover: writingText(o.cover), coverAlt: writingText(o.coverAlt),
+      premise: writingParagraphs(o.premise), setting: writingParagraphs(o.setting),
+      characters: (Array.isArray(o.characters) ? o.characters : []).filter((c) => c &&
+        [c.name, c.role, c.img, ...writingParagraphs(c.paragraphs)].some(writingText)),
+      sampleLabel: writingText(o.sampleLabel), chapters: writingChapters(w.chapters),
+    };
+  };
+  const writingProse = (paragraphs) => writingParagraphs(paragraphs).map((p) => `<p>${esc(p)}</p>`).join('');
+  const writingImage = (path, alt, sizes, className) => path ?
+    `<img class="${className}" src="${esc(webSrc(path))}" srcset="${esc(thumbSrcset(path) || srcset(path))}" sizes="${sizes}"${dims(path)} alt="${esc(alt)}" loading="lazy" decoding="async">` : '';
+  const overviewSections = (o, headingId) => [
+    { id: headingId, label: 'Overview' },
+    ...(o.characters.length ? [{ id: headingId + '-characters', label: 'Characters' }] : []),
+    ...(o.setting.length ? [{ id: headingId + '-setting', label: 'Setting' }] : []),
+    ...(o.chapters.length ? [{ id: headingId + '-sample', label: 'Read a sample' }] : []),
+  ];
+  const renderWritingOverview = (w, o, headingId) => `
+    <article class="paper writing-overview">
+      ${writingText(w.stamp) ? `<span class="paper-stamp">${esc(w.stamp)}</span>` : ''}
+      ${writingText(w.date) ? `<p class="paper-date">${esc(w.date)}</p>` : ''}
+      <h2 class="paper-title" id="${headingId}" tabindex="-1">${esc(w.title || 'Untitled')}</h2>
+      ${writingText(w.status) ? `<p class="writing-status">${esc(w.status)}</p>` : ''}
+      ${writingText(w.excerpt) ? `<p class="paper-excerpt">${esc(w.excerpt)}</p>` : ''}
+      ${o.premise.length || o.cover ? `<div class="writing-intro${o.cover ? ' has-cover' : ''}">
+        ${o.premise.length ? `<section><h3>Premise</h3>${writingProse(o.premise)}</section>` : ''}
+        ${writingImage(o.cover, o.coverAlt, '(max-width: 520px) 70vw, 280px', 'writing-cover')}
+      </div>` : ''}
+      ${o.characters.length ? `<section class="writing-section" aria-labelledby="${headingId}-characters">
+        <h3 id="${headingId}-characters" tabindex="-1">Characters</h3>
+        <div class="writing-characters">${o.characters.map((c) => `<article class="writing-character">
+          ${writingImage(writingText(c.img), writingText(c.imageAlt), '(max-width: 520px) 60vw, 180px', 'writing-character-image')}
+          <div>${writingText(c.name) ? `<h4>${esc(c.name)}</h4>` : ''}
+          ${writingText(c.role) ? `<p class="writing-role">${esc(c.role)}</p>` : ''}${writingProse(c.paragraphs)}</div>
+        </article>`).join('')}</div>
+      </section>` : ''}
+      ${o.setting.length ? `<section class="writing-section" aria-labelledby="${headingId}-setting">
+        <h3 id="${headingId}-setting" tabindex="-1">Setting</h3>${writingProse(o.setting)}
+      </section>` : ''}
+      ${o.chapters.length ? `<section class="writing-section" aria-labelledby="${headingId}-sample">
+        <h3 id="${headingId}-sample" tabindex="-1">Current sample</h3>
+        ${o.sampleLabel ? `<p class="writing-sample-label">${esc(o.sampleLabel)}</p>` : ''}
+        ${o.chapters.map((c, i) => `<section class="writing-sample"><h4>${esc(writingText(c.title) || 'Sample ' + (i + 1))}</h4>${writingProse(c.paragraphs)}</section>`).join('')}
+      </section>` : ''}
+    </article>`;
+  // Real buttons preserve the OS URL and work with keyboard and touch. Move
+  // focus to the heading so reading continues there. Always jump immediately,
+  // including when reduced motion is requested; no scrolling animation.
+  const wireWritingSections = (win, sections, label, minimum = 2) => {
+    if (sections.length < minimum) return;
+    win.menu.innerHTML = `<nav class="story-nav win-toolbar" aria-label="${esc(label)}">${sections.map((s) =>
+      `<button class="os-button" type="button" data-doc-section="${s.id}" aria-controls="${s.id}">${esc(s.label)}</button>`).join('')}</nav>`;
+    win.menu.addEventListener('click', (e) => {
+      const button = e.target.closest('[data-doc-section]');
+      if (!button) return;
+      const heading = win.body.querySelector('[id="' + button.dataset.docSection + '"]');
+      if (heading) {
+        heading.scrollIntoView({ block: 'start', behavior: 'instant' });
+        heading.focus({ preventScroll: true });
+      }
+    });
+  };
   const openDoc = (w, from) => {
     const title = w.title || 'Untitled';
-    const hasLink = w.url && w.url !== '#';
+    const hasLink = writingText(w.url) && w.url.trim() !== '#';
+    const overview = writingOverview(w);
+    const chapters = writingChapters(w.chapters);
     K.wm.open({
       id: 'doc-' + slug(title),
       parent: 'writing',
@@ -754,30 +825,24 @@
       file: slug(title) + '.txt',
       colour: accent(w.accent || 'teal'),
       doodle: 'quill',
-      size: w.chapters && w.chapters.length ? [740, 760] : [600, 360],
+      size: chapters.length || overview && (overview.premise.length || overview.cover || overview.characters.length || overview.setting.length) ? [740, 760] : [600, overview ? 420 : 360],
       render(win) {
         win.body.classList.add('paper-body');
-        if (w.chapters && w.chapters.length) win.body.classList.add('story-body');
-        if (w.chapters && w.chapters.length) {
-          win.menu.innerHTML = `<nav class="story-nav win-toolbar" aria-label="Chapters">${w.chapters.map((chapter, i) => `<button class="os-button" type="button" data-chapter="${i}">${esc(chapter.title)}</button>`).join('')}</nav>`;
-          win.menu.addEventListener('click', (e) => {
-            const button = e.target.closest('[data-chapter]');
-            if (!button) return;
-            const heading = win.body.querySelectorAll('.story-chapter h3')[Number(button.dataset.chapter)];
-            if (heading) {
-              heading.scrollIntoView({ block: 'start' });
-              heading.focus({ preventScroll: true });
-            }
-          });
+        if (overview || chapters.length) win.body.classList.add('story-body');
+        if (overview) {
+          win.body.classList.add('overview-body');
+          wireWritingSections(win, overviewSections(overview, win.headingId), 'Writing sections');
+        } else if (chapters.length) {
+          wireWritingSections(win, chapters.map((c, i) => ({ id: win.headingId + '-chapter-' + i, label: writingText(c.title) || 'Chapter ' + (i + 1) })), 'Chapters', 1);
         }
-        win.body.innerHTML = `
+        win.body.innerHTML = overview ? renderWritingOverview(w, overview, win.headingId) : `
           <article class="paper">
             <span class="paper-hole" aria-hidden="true"></span>
             ${w.stamp ? `<span class="paper-stamp">${esc(w.stamp)}</span>` : ''}
             ${w.date ? `<p class="paper-date">${esc(w.date)}</p>` : ''}
             <h2 class="paper-title" id="${win.headingId}" tabindex="-1">${esc(title)}</h2>
             ${w.excerpt ? `<p class="paper-excerpt">${esc(w.excerpt)}</p>` : ''}
-            ${(w.chapters || []).map((chapter) => `<section class="story-chapter"><h3 tabindex="-1">${esc(chapter.title)}</h3>${chapter.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}</section>`).join('')}
+            ${chapters.map((chapter, i) => `<section class="story-chapter"><h3 id="${win.headingId}-chapter-${i}" tabindex="-1">${esc(writingText(chapter.title) || 'Chapter ' + (i + 1))}</h3>${writingProse(chapter.paragraphs)}</section>`).join('')}
           </article>`;
         win.setStatus(hasLink
           ? `<span>${esc(w.status || '')}</span><span class="os-links"><a href="${esc(w.url)}"${/^https?:/i.test(w.url) ? ' target="_blank" rel="noopener"' : ''}>Read it</a></span>`

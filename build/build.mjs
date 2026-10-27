@@ -37,6 +37,7 @@ const GEN_URL = '/generated/';
 const IMAGE_SETS = [
   { dir: 'assets/art', web: 800, large: 4000, thumb: 400, card: 200 }, // every artwork whole (the biggest is 3200x4000); thumb: a card in the binder; card: a playing card in Spell Solitaire
   { dir: 'assets/art-process', web: 800, large: 4000, thumb: 400 }, // reverse-side thumbnails and viewer copies; never gallery/card art
+  { dir: 'assets/writing', web: 800, large: 2400, thumb: 400 }, // covers and character images; never gallery/card art
   { dir: 'assets/certs', web: 480, large: 2000 },
   { dir: 'assets/photos', web: 480 },                 // About's me.png (about 220px wide) and the Start menu's circle
   { dir: 'assets/projects', web: 640, large: 2560 },   // a maximised project window
@@ -188,6 +189,7 @@ export async function checkContent(root = ROOT) {
   // Authored art backs are optional, but a typo here should name the exact
   // piece and field rather than silently dropping a note or broken image.
   errors.push(...await checkArtDetails(C.art, root));
+  errors.push(...await checkWriting(C.writing, root));
 
   // Every "assets/..." path mentioned in content.js should exist. Missing
   // ones only warn: the site shows a placeholder graphic in their place.
@@ -258,6 +260,81 @@ export async function checkArtDetails(art, root = ROOT) {
       if (!hasText) continue; // an empty drafting slot produces no thumbnail
       await filePath(image.img, 'assets/art-process/', `${field}.img`);
       if (typeof image.alt !== 'string' || !image.alt.trim()) errors.push(`${field}.alt needs a useful image description`);
+    }
+  }
+  return errors;
+}
+
+// Overview fields are opt-in; old documents and archived chapter arrays keep
+// their meaning. Drafting blanks are allowed, but supplied material is checked
+// before deployment, with the document and exact nested field in every error.
+export async function checkWriting(writing, root = ROOT) {
+  const errors = [];
+  const object = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const text = (v) => typeof v === 'string' && v.trim();
+  if (writing === undefined) return errors;
+  if (!Array.isArray(writing)) return ['content.js writing must be an array'];
+  const strings = (value, keys, field) => {
+    for (const key of keys) if (value[key] !== undefined && typeof value[key] !== 'string') errors.push(`${field}.${key} must be a string`);
+  };
+  const fields = (value, keys, field) => {
+    for (const key of Object.keys(value)) if (!keys.includes(key)) errors.push(`${field}.${key} is not a supported field`);
+  };
+  const paragraphs = (value, field) => {
+    if (value !== undefined && (!Array.isArray(value) || value.some((p) => typeof p !== 'string'))) errors.push(`${field} must be an array of strings (one per paragraph)`);
+  };
+  const image = async (path, alt, field, altField) => {
+    if (!text(path) && !text(alt)) return;
+    if (typeof path !== 'string' || !/^assets\/(writing|art)\//.test(path) ||
+        path.split('/').some((p) => !p || p === '.' || p === '..') || /[\\?#%]/.test(path) || !IMAGE_EXT.test(path)) {
+      errors.push(`${field} must be a forward-slash PNG, JPG or WebP path inside assets/writing/ or assets/art/`);
+    } else if (!(await stat(join(root, path)).catch(() => null))?.isFile()) {
+      errors.push(`${field} file does not exist (check spelling and case): ${path}`);
+    } else {
+      let folder = root;
+      for (const part of path.split('/')) {
+        if (!(await readdir(folder)).includes(part)) { errors.push(`${field} path case must match the file exactly: ${path}`); break; }
+        folder = join(folder, part);
+      }
+    }
+    if (!text(alt)) errors.push(`${altField} needs a useful image description`);
+  };
+  for (const [i, w] of writing.entries()) {
+    const label = `content.js writing[${i}] (${w?.title || 'untitled'})`;
+    if (!object(w)) { errors.push(`${label} must be an object`); continue; }
+    strings(w, ['title', 'excerpt', 'status', 'stamp', 'accent', 'date', 'url'], label);
+    if (w.url !== undefined && text(w.url) && w.url.trim() !== '#' && !/^(https?:\/\/[^\s]+|\/(?!\/)[^\s]*)$/i.test(w.url)) {
+      errors.push(`${label}.url must be an http(s) URL or a site-relative path (or blank)`);
+    }
+    if (w.chapters !== undefined) {
+      if (!Array.isArray(w.chapters)) errors.push(`${label}.chapters must be an array`);
+      else for (const [j, chapter] of w.chapters.entries()) {
+        const field = `${label}.chapters[${j}]`;
+        if (!object(chapter)) { errors.push(`${field} must be an object`); continue; }
+        fields(chapter, ['title', 'paragraphs'], field);
+        strings(chapter, ['title'], field);
+        paragraphs(chapter.paragraphs, `${field}.paragraphs`);
+      }
+    }
+    if (w.overview === undefined) continue;
+    const o = w.overview, field = `${label}.overview`;
+    if (!object(o)) { errors.push(`${field} must be an object (or omit it)`); continue; }
+    fields(o, ['premise', 'cover', 'coverAlt', 'characters', 'setting', 'sampleLabel'], field);
+    strings(o, ['cover', 'coverAlt', 'sampleLabel'], field);
+    paragraphs(o.premise, `${field}.premise`);
+    paragraphs(o.setting, `${field}.setting`);
+    await image(o.cover, o.coverAlt, `${field}.cover`, `${field}.coverAlt`);
+    if (o.characters === undefined) continue;
+    if (!Array.isArray(o.characters)) { errors.push(`${field}.characters must be an array`); continue; }
+    for (const [j, c] of o.characters.entries()) {
+      const character = `${field}.characters[${j}]`;
+      if (!object(c)) { errors.push(`${character} must be an object`); continue; }
+      fields(c, ['name', 'role', 'paragraphs', 'img', 'imageAlt'], character);
+      strings(c, ['name', 'role', 'img', 'imageAlt'], character);
+      paragraphs(c.paragraphs, `${character}.paragraphs`);
+      const hasContent = [c.name, c.role, c.img, c.imageAlt, ...(Array.isArray(c.paragraphs) ? c.paragraphs : [])].some(text);
+      if (hasContent && !text(c.name)) errors.push(`${character}.name needs a name for this character introduction`);
+      await image(c.img, c.imageAlt, `${character}.img`, `${character}.imageAlt`);
     }
   }
   return errors;
