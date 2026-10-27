@@ -2,9 +2,9 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Starweave’s current concept accepted by Andrew. Hat to Hat revised with travelling curved wards and drifting power runes, ready for another Phase 1 review.** Later phases and production integration remain unstarted.
+**Status: Phase 0 complete; Starweave concept accepted. Hat to Hat has moved to its own branch and plan. Phase 2 (art reverse sides and content authoring) is the next authorised work in a new chat.**
 
-**Single implementation branch: `codex/content-expansion`.** Keep every phase, preview, fix and final integration on this branch. Use phase-sized commits; no branch per feature. Push, merge and deploy are separate from this planning request.
+**Active implementation branch: `codex/content-expansion`.** Keep the remaining expansion phases on this branch. By Andrew’s later request, Hat to Hat is separately parked on `codex/hat-to-hat`; its complete brief and deferred tasks are in `HAT_TO_HAT_PLAN.md`. No push, merge or deployment is authorised.
 
 ### Confirmed decisions from the latest review
 
@@ -14,7 +14,7 @@ Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 - Contracts first apply to **deal four**, after completing deal three. Offer only objectives actually achievable for the specific planned deal and available resources. Light Touch and Keep a Spark require an owned usable spell.
 - A clean sweep **and** reaching the target earns **two sequential reward selections**. Other continuing deals keep their current single selection.
 - Art reverse sides, novel overview and the remaining uncommented details are accepted; Andrew still supplies authored content.
-- Build working music and hockey previews before committing to their final interactions or effects.
+- Starweave’s working musical-spell concept is accepted. Hat to Hat is parked separately and is not a dependency of this plan.
 
 ## 1. Scope and recommended direction
 
@@ -26,7 +26,6 @@ Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 | 33 | Art card reverse sides | A separate flip control reveals authored notes and process images; full-size artwork remains easy to open. |
 | 35 | A current novel introduction | Build a reusable writing overview with optional premise, characters, setting and sample sections; Andrew supplies the actual material. |
 | 41 | Musical spellcraft with the pet | Place symbols around a spell circle to compose music; the pet conducts and reacts. |
-| 44 | A hat spell duel against the pet | Deliberate casts, timed shields, self and portal defence, and on-field spell runes. |
 
 Keep the site's visual language, vanilla JavaScript architecture, lazy loading, keyboard controls, mobile layouts and existing sound preference. New visual effects must have reduced-motion alternatives. Content features must look complete when only some optional information exists.
 
@@ -354,37 +353,24 @@ Place/replace/erase, Undo, deliberate sound, Play/Stop, loop and tempo remain us
 
 Retain the previously agreed later-phase local autosave/named patterns, validated editable JSON import/export, visual PNG export and Match the tune activity, adapted to the approved rune model. Preserve explicit pitch, start and duration data with stable IDs; do not silently retune a composition when changing its pitch palette. MIDI/audio export remains outside scope.
 
-**Latest review:** Andrew is really happy with Starweave and says it strikes the perfect balance. Preserve this accepted concept; this continuation changes only the duel. Remaining music work is technical completion/integration and device verification, not another conceptual redesign.
+**Latest review:** Andrew is really happy with Starweave and says it strikes the perfect balance. Preserve this accepted concept during later technical completion. Remaining music work is technical completion/integration and device verification, not another conceptual redesign.
 
 Phase 1 reviewed the circle, sound differences, pet involvement and whether combining ingredients feels playful. Named saves, richer scales, longer compositions, import/export, the final music activity and production sound/OS integration await Phase 7 and feedback. Do not merely reskin the old grid. The initial kernels may remain as historical experiments; they are not the current interaction.
 
-## 9. Idea 44: Hat to Hat, a spell duel
+## 9. Separately deferred idea
 
-**Revised after Andrew tried the air-hockey preview.** The continuous puck, passive strikers and first-to-five goal match are superseded. The player controls a coloured wizard hat against the pet wizard's hat. The player defends both their own hat and their portal, deliberately casts projectiles and uses a brief reaction shield to return incoming spells.
-
-Initial Phase 1 tuning, explicitly provisional:
-
-- Six hearts each. An unshielded hat hit costs one heart; a portal hit costs two. Fire adds one damage. Damage clears that projectile, with a short hit grace period.
-- Cast at a chosen time and angle. One live cast originating from each side, at most two orbs total. Parrying changes the threatening owner while retaining the original caster slot, so returns cannot bypass the budget. A spell expires after eight active seconds or bounded wall contacts; there is no automatic persistent ball or serve loop.
-- Andrew’s next review replaces the body-centred shield with a launched curved ward. It starts ahead of the hat, travels along the aim captured at launch, and moves independently of subsequent hat movement. Initial tuning: a 108-unit-wide curve, speed 280 units/s, 0.65s lifetime and 1.8s recharge. One enemy-orb contact returns the spell along that captured direction and spends the ward, with a brief visual fade. Expiry also fades it. It provides no invulnerability at the hat, cannot catch friendly spells and is not a closed circle.
-- Fire/Electric power runes drift slowly around the field and rebound within a broad central region, including while recharging. Their motion freezes on pause/countdown. Use relative swept collisions for moving rune/orb collection. Shoot through them to empower a shot. Fire speeds travel and adds damage; Electric makes the next two side banks leave at 45 degrees toward the same end. Runes recharge, powers do not stack, and a parry retains an acquired power. Field geometry and exact effects remain review proposals.
-- Pointer/touch move and aim modes, a relative phone movement pad, aim slider, separate Cast/Shield buttons, and keyboard movement/aim/cast/shield/pause. Aimed casting should not require covering an orb with a finger.
-- Bounded movement/AI, a visible enemy cast wind-up, swept projectile collisions with moving hats, shields, walls, posts, portals and rune gates. Fixed-timestep simulation, bounded catch-up and projection-only resizing. No orb-to-orb collisions initially.
-- The existing animated pet is the opponent and reacts to casting, parries and hits. Player hat colour is selectable. Keep the site's own art/visual language.
-- Pause freezes every combat clock. Require a visible Resume countdown after interruptions. Keep a quiet-arena practice option and an explicit incoming-shot test for shield review. Real-time nonvisual equivalence is not claimed.
-
-Phase 1 must test the two simultaneous defensive targets, timing, readable threats, deliberate orb release, spell gates and pet character. Final balance, sound, art polish, records, progression and production integration wait for Phase 8 and feedback.
+Hat to Hat is outside this active plan. Its design, remaining work and verification history have moved to **`HAT_TO_HAT_PLAN.md`**, with its implementation preserved on **`codex/hat-to-hat`**. It does not block any remaining phase.
 
 ## 10. Phased implementation plan
 
 ### Branch and delivery rules
 
-- **Use one branch throughout: `codex/content-expansion`.** It has been created from the current main checkout. No feature branches or separate worktrees are needed.
+- **Continue the active expansion on `codex/content-expansion`.** The explicit exception is the separately deferred game documented in section 9. Do not switch this checkout to that branch during active expansion work.
 - Commit each completed phase, or a coherent substep within a large phase, on that branch. Suggested commit subjects below are descriptions, not instructions to push or merge.
 - Keep previews, reusable rule code and final implementation together. Keep review-only preview pages out of the production build unless Andrew explicitly wants them published.
 - Update this document's progress boxes as work actually completes. Acceptance of scope does not mean a phase is finished.
-- Phase 0 remains complete. Revised Phase 1 is ready for Andrew’s review; stop before later phases and production integration.
-- Full music/hockey integration depends on Andrew trying their previews. Independent approved phases may continue while that feedback is pending.
+- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew has now authorised a new chat to complete Phase 2. Keep later numbered phases for their own continuations.
+- Starweave’s later integration follows the accepted concept and Phase 7 requirements. The separately deferred game supplies no approval gate or dependency for this plan.
 - Avoid new blanket approval stops for accepted art, writing and contract details. Ask for missing authored material when needed; render optional sections safely without inventing it.
 
 ### Phase 0: scope, branch and technical baseline
@@ -401,49 +387,22 @@ Phase 1 must test the two simultaneous defensive targets, timing, readable threa
 
 Suggested commit: `docs: record phased content expansion plan`.
 
-### Phase 1: revised previews, pet-led musical spells and a hat duel
+### Phase 1: accepted Starweave preview
 
-**Revision implemented (27 October 2026).** Andrew’s feedback replaced the initial grid editor and plain air hockey as the direction for these features. The first implementation and its 38-test result remain historical evidence, not approval of those concepts. Phase 0 is complete and is not being repeated.
+**Complete for the active plan.** Andrew accepted the current musical-spell concept and its balance. Preserve its circle, rune families and pet participation.
 
-Current review paths through npm run dev:
+- [x] Working circle with three audible rune families, predictable time/pitch/duration and original recipes.
+- [x] Actual animated pet conducting and reacting to the composition.
+- [x] Phone/keyboard moment controls, Undo, deliberate audio, clock-synchronised playback and cancellation.
+- [x] Desktop and 390px browser review; no horizontal overflow, no warning/error console entries observed.
+- [x] Production build and output/reference exclusion verified for the review-only preview.
+- [x] Andrew’s concept approval recorded. No further concept approval gate blocks Phase 2.
 
-- [Starweave](http://localhost:4321/design-lab/content-expansion/starweave)
-- [Hat to Hat](http://localhost:4321/design-lab/content-expansion/duel)
-- [Workshop](http://localhost:4321/design-lab/content-expansion/index)
+Preview: http://localhost:4321/design-lab/content-expansion/starweave (also available via /music and the /index hub).
 
-Revision checklist:
+The pre-separation combined suite passed 61/61 tests. The active suite is reduced by moving game-only regressions with their preserved implementation; this does not mean those tests failed or that coverage was removed from the deferred branch. Retain the baseline interaction/Solitaire, musical model/audio and build-exclusion tests here. Device listening/touch and native interruption remain technical checks for Phase 7. Music currently has four pitches/sixteen moments/three voices and no saves/export/full activity.
 
-- [x] Record Andrew's feedback and replace sections 8/9 and the dependent Phase 7/8 briefs. Keep approved unrelated phases intact.
-- [x] Build a working musical spell circle with three audible rune families, predictable timing/pitch/duration, remixable original recipes and the actual animated pet conducting/reacting.
-- [x] Provide accessible moment buttons, phone controls, Undo, deliberate audio, clock-synchronised playback and cancellation.
-- [x] Build the coloured-hat duel with self/portal damage, chosen casts, bounded simultaneous projectiles, short timed shields, field rune powerups and expressive pet opponent.
-- [x] Provide pointer/touch/keyboard movement and aiming, phone pad/Cast/Shield, pause/countdown and explicit practice controls.
-- [x] Exercise meaningful music/audio and combat-rule tests, desktop/phone browser behaviour, console errors, production build and review-page exclusion.
-- [x] Update review notes with actual results, remaining limitations and direct preview links; commit on the same branch without pushing.
-- [ ] Andrew tries the revised concepts and supplies further feedback. Do not infer final design approval.
-
-Stop after this revised Phase 1. Phases 2 onward and production integration are outside this continuation.
-
-Verification of the revised concepts:
-
-- npm test: **53/53 pass**, comprising 23 original baseline tests, 15 retained initial-kernel regressions and 15 new musical-circle/audio/duel tests. New checks cover angle/pitch round-trips, actual waveform/harmonic differences and cancelled voices, chosen casts/two-orb budget, hat versus portal damage, shield timing/recharge/parry ownership, rune crossings, Fire/Electric rules, expiry, pause/countdown, moving-hat limits, swept posts and deterministic combat stress.
-- npm run build: success without warnings. Revised source routes/dependencies return HTTP 200. The production-preview server returns 404 for Starweave, the duel and the companion module while the portfolio root returns 200. The physical output/reference scan confirms exclusion. That temporary production server is stopped; the source server is retained for Andrew’s review.
-- Browser: audible-transport activation and cancellation, circle/numbered placement, actual ingredient drag, three-family pet response, Undo and mute preserving the composition. Duel: empty quiet arena, chosen cast causing a hat hit, a shot collecting Fire and later dealing three portal damage, shield activation without accidental pause, explicit pause/resume, aim slider and relative-pad movement. Desktop and 390px layouts have no horizontal page overflow. Console checks found no warnings/errors.
-- A UI focus bug discovered in playtesting was fixed: disabling Cast/Shield after use no longer automatically pauses combat. Keyboard and the focused arena remain usable after button activation.
-- Prototype limits are displayed on both pages: music has four pitches/sixteen moments/three voices, no saves/export/full activity; duel has initial balance/AI, circular hit areas, eight-second life and no orb-to-orb collisions, records, sound or OS integration. Actual phone listening/touch, live parry comfort, native OS/tab interruption and subjective game/music feel remain user/device checks. Do not count desktop automation as those checks.
-- The old /music and /hockey links lead to the revised pages. Original unused editor/hockey UI modules and kernels remain tracked as historical experiments; the shared circle sweep is reused by the duel. They are not the approved current concepts.
-
-### Phase 1 follow-up: travelling wards and drifting runes
-
-Andrew accepted Starweave’s balance but requested a stronger duel: send a curved shield out into the arena instead of surrounding the hat, and let powerups move slowly. Starweave sources are unchanged.
-
-- [x] Replace hat shield/invulnerability geometry with an independent launched curve; capture direction at launch, expire/fade after 0.65s or spend/fade on one contact.
-- [x] Share the visible curve’s geometry with continuous segment/capsule collision tests. Preserve powered returns, original caster slots and speed caps. AI uses the same launched-ward rules.
-- [x] Drift both rune powerups slowly inside the field, including during recharge, using relative moving-rune collision sweeps.
-- [x] Freeze wards, rune positions and their timers during pause/resume countdown; update controls, pet text and help.
-- [x] Automated verification: **61/61 tests pass**, including eight additional geometry, remote interception, independent movement, no body immunity, friendly-shot exclusion, one-contact spending, deadline/fade, pause/countdown and moving-rune boundary/collection regressions.
-- [x] Browser verification: actual incoming practice spell returned by the launched ward (one parry recorded), visible separated crescent, pause state and console check. 390px browser controls and layout also pass with no horizontal page overflow. The production build passes without warnings and a physical output/reference scan confirms preview exclusion.
-- [ ] Andrew tries the revised duel. Range, width, lifetime, movement pace and game feel remain provisional.
+The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Proceed to Phase 2 in the new chat; do not implement later phases in this handoff.
 
 ### Phase 2: art reverse sides and content authoring
 
@@ -541,15 +500,9 @@ Suggested commits: `feat: add Solitaire card enchantments`; `feat: clarify curse
 
 **Exit:** visitors can create a deliberate musical spell with the pet, edit and retain it, and understand its sounds. A generic grid editor does not satisfy this revised direction.
 
-### Phase 8: complete the hat spell duel after revised preview feedback
+### Phase 8: number reserved
 
-- [ ] Settle the self/portal defence, casting budget, aiming, shield timing and rune effects from the new preview.
-- [ ] Harden swept combat collisions, moving targets, simultaneous threats and idempotent damage.
-- [ ] Complete fair AI, pet reactions, sound, match/records and deliberate interruption/resume.
-- [ ] Verify actual phone movement/aim/Cast/Shield comfort and readable powered threats.
-- [ ] Integrate the lazy-loaded duel and content-driven help; remove review controls from production.
-
-**Exit:** the player can deliberately cast, defend their hat and portal, time a return and use field spells. No assumption of an always-live hockey puck remains.
+The former game integration phase has moved entirely to `HAT_TO_HAT_PLAN.md` on its dedicated branch. There is no active Phase 8 work or dependency in this plan. Other phase numbers remain unchanged.
 
 ### Phase 9: content population, regression and handoff
 
@@ -569,9 +522,9 @@ Suggested commit: `test: verify content expansion integration`.
 
 Existing: `apps.js`, `content.js`, `style.css`, `solitaire.js`, `sound.js`, `kasai-core.js` where required, `build/build.mjs`, relevant OS launch registration, README and existing tests.
 
-New proposed files: `musicbox.js`, `hockey.js`, shared pure rule helpers if required, focused tests, isolated preview pages, `assets/art-process/`, optional `assets/writing/`, and an authoring guide. Add the public authoring guide at a tracked path or keep its complete instructions in README/content comments; do not depend solely on ignored docs.
+New proposed files: `musicbox.js`, shared pure rule helpers if required, focused tests, isolated preview pages, `assets/art-process/`, optional `assets/writing/`, and an authoring guide. Add the public authoring guide at a tracked path or keep its complete instructions in README/content comments; do not depend solely on ignored docs.
 
-Relative effort: authoring features medium; variable layouts medium-to-large; double rewards medium; enchantments/curse presentation medium; **contract proof search large**; music large; hockey large. These compare scope rather than promise delivery times.
+Relative effort: authoring features medium; variable layouts medium-to-large; double rewards medium; enchantments/curse presentation medium; **contract proof search large**; music large. These compare scope rather than promise delivery times.
 
 ## 11. Verification for implementation
 
@@ -583,7 +536,6 @@ Use meaningful rule/interaction tests and `npm run build` after the correspondin
 - **Contracts:** strict deal-four boundary, owned/usable spell prerequisites, single-peak exclusions, witness replay through real rules, timeout/no-offer fallback, immutable deck/loadout, undo accounting and one-time payout.
 - **Art/writing:** backward compatibility, partial fields, long text, escaped characters, process images excluded from art discovery, missing-path messages, focus and viewer/section navigation.
 - **Music:** rune/time/pitch mapping, duration and recipe edits, distinct voices, pet conducting, save/import when implemented, scheduled stop/mute and phone audio timing.
-- **Duel:** chosen cast limits, self/portal damage, shield timing and ownership, swept moving-hat/post/rune collisions, power rules, AI wind-up, expiry, resizing and interruption.
 - **Manual review:** actual audio listening and real gameplay are necessary for feel. Keyboard access alone is not proof a real-time game is usable by all assistive technology.
 
 ## 12. Review and author input still needed
@@ -598,12 +550,11 @@ Use meaningful rule/interaction tests and `npm run build` after the correspondin
 - [x] Art reverse sides and the proposed authoring model.
 - [x] Novel overview and the proposed authoring model.
 - [x] One implementation branch and a phased delivery plan.
-- [x] Previously uncommented details, except music/hockey interactions which explicitly await previews.
+- [x] Previously uncommented details; Starweave’s revised concept is now accepted. The separately deferred game is outside this plan.
 
 ### Review through concrete previews
 
 - [x] Revised music concept accepted by Andrew: rune-circle mapping, distinct voices, duration and pet conducting. Actual-phone listening/touch remains technical verification.
-- [ ] Revised duel: deliberate casting, self/portal defence, reaction shield, field rune powers, pet opponent and phone controls.
 - [ ] Solitaire: multiplier arithmetic/feel and combined cursed/enchanted visuals as the design is refined. Treasure remains accepted; exact new multiplier values are proposed.
 - [ ] Layout prototypes: verify the intended broad-front versus peak-award tradeoff rather than assume peak count supplies it.
 
@@ -619,4 +570,4 @@ Functional art/writing features can be completed before this material arrives, u
 
 The canonical plan is **`CONTENT_EXPANSION_PLAN.md` in the repository root**, where Git can include it normally; it is tracked with the Phase 0 baseline commit. The original `docs/content-expansion-plan.md` is a local pointer to it, because docs is currently excluded by local Git rules. This avoids leaving the implementation instructions solely in an ignored folder.
 
-The shared branch **`codex/content-expansion`** has been created. Phase commits remain on this branch. No push, merge or deployment is authorised by the Phase 0/1 implementation request.
+The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan, and a new chat to complete **Phase 2** here. Preserve that separation; no push, merge or deployment is authorised.
