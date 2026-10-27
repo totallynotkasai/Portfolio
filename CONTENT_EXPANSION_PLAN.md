@@ -2,7 +2,7 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art), 3 (writing) and 4 (variable-peak Solitaire foundation/previews) complete. Hat to Hat remains on its own branch and plan. This continuation stops after Phase 4; Phases 5–7 and 9 remain unimplemented.**
+**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art), 3 (writing), 4 (variable-peak Solitaire foundation/previews) and 5 (sequential rewards and immutable next deals) complete. Hat to Hat remains on its own branch and plan. The separately authorised continuation stops after Phase 5; Phases 6–7 and 9 remain unimplemented.**
 
 **Active implementation branch: `codex/content-expansion`.** Keep the remaining expansion phases on this branch. By Andrew’s later request, Hat to Hat is separately parked on `codex/hat-to-hat`; its complete brief and deferred tasks are in `HAT_TO_HAT_PLAN.md`. No push, merge or deployment is authorised.
 
@@ -371,7 +371,7 @@ Hat to Hat is outside this active plan. Its design, remaining work and verificat
 - Commit each completed phase, or a coherent substep within a large phase, on that branch. Suggested commit subjects below are descriptions, not instructions to push or merge.
 - Keep previews, reusable rule code and final implementation together. Keep review-only preview pages out of the production build unless Andrew explicitly wants them published.
 - Update this document's progress boxes as work actually completes. Acceptance of scope does not mean a phase is finished.
-- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew authorised Phases 2 and 3, then a separate continuation through Phase 4 only. Stop after Phase 4; keep later numbered phases for their own continuations.
+- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew authorised Phases 2 and 3, then separate continuations through Phase 4 and now Phase 5 only. Stop after Phase 5; keep later numbered phases for their own continuations.
 - Starweave’s later integration follows the accepted concept and Phase 7 requirements. The separately deferred game supplies no approval gate or dependency for this plan.
 - Avoid new blanket approval stops for accepted art, writing and contract details. Ask for missing authored material when needed; render optional sections safely without inventing it.
 
@@ -406,7 +406,7 @@ After separation, the active suite passes **33/33 tests** and the production bui
 
 The pre-separation combined suite passed 61/61 tests. The active suite is reduced by moving game-only regressions with their preserved implementation; this does not mean those tests failed or that coverage was removed from the deferred branch. Retain the baseline interaction/Solitaire, musical model/audio and build-exclusion tests here. Device listening/touch and native interruption remain technical checks for Phase 7. Music currently has four pitches/sixteen moments/three voices and no saves/export/full activity.
 
-The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phases 2–4 followed in separate continuations, recorded below. Phases 5–7 and 9 remain deferred.
+The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phases 2–5 followed in separate continuations, recorded below. Phases 6–7 and 9 remain deferred.
 
 ### Phase 2: art reverse sides and content authoring
 
@@ -461,7 +461,7 @@ Suggested commit: `feat: add structured novel overviews`.
 
 ### Phase 4: variable-peak Solitaire foundation and layout previews
 
-**Complete on 27 October 2026, with the technical verification limits below.** This continuation stops here on `codex/content-expansion`; no push, merge or deployment.
+**Complete on 27 October 2026, with the technical verification limits below.** That continuation stopped here on `codex/content-expansion`; the later Phase 5 authorisation is recorded below. No push, merge or deployment.
 
 - [x] Extract/parameterise rule transitions enough to support layout validation, future search and rule tests. Play/Wild/Fireball share isolated `removeCard`; scoring, graph queries and keyboard navigation accept explicit deal data. Clone/live replay is tested. Full future solver orchestration is not claimed.
 - [x] Generalise peak IDs/count, scoring, row depth, keyboard selection, dimensions and explicit coverage. Stable descriptors, spatial tip names and arbitrary slot IDs replace fixed tips/rows; a permuted-slot regression proves this.
@@ -475,7 +475,7 @@ Suggested commit: `feat: add structured novel overviews`.
 
 **Verification:** **59/59 tests pass** (48-test Phase 3 baseline plus 11 focused regressions), including validation failures, arbitrary tip IDs, legal Seal release, every spell across every family, scoring charms, Second Deck, Spellbook/Hearthstone/Potion, Rewind/Undraw conventions, diagram/navigation data, final/endless flow and unchanged single-pick/stock-bonus settlement. `npm run build` succeeds without content warnings: 37 images, 106 variants and 19 artworks. Final production packaging excludes `dist/qa/`, preview sources and fixture references. A fresh review page exercised corrected theme/zoom controls with no console warnings/errors and retained its score. The actual built site has no review toolbar, opens Three Peaks with 23 stock/no spells, accepts keyboard/draw input and retains the deal through close/reopen; production diagnostics were empty. Existing art/writing, viewer, desktop interaction and accepted Starweave regressions all remain passing.
 
-**Limits:** play was agent-directed/partly scripted, not a separate human playtest or Andrew's subjective approval. Phones were browser viewports, not physical touch devices; no screen-reader session occurred. Reduced motion used a labelled JS/CSS fixture. All families were played at 200% CSS zoom and a 640×400 equivalent viewport; native browser access timed out before the separate native zoom action, so native browser/hardware zoom is unverified. Short/narrow views intentionally scroll to retain legibility; all cards, tips and controls need not fit simultaneously. The greedy simulations are reproducible comparisons, not optimal win-rate estimates or proof of every seed's solvability. These limits do not authorize Phase 5 or create another scope-approval stop.
+**Limits:** play was agent-directed/partly scripted, not a separate human playtest or Andrew's subjective approval. Phones were browser viewports, not physical touch devices; no screen-reader session occurred. Reduced motion used a labelled JS/CSS fixture. All families were played at 200% CSS zoom and a 640×400 equivalent viewport; native browser access timed out before the separate native zoom action, so native browser/hardware zoom is unverified. Short/narrow views intentionally scroll to retain legibility; all cards, tips and controls need not fit simultaneously. The greedy simulations are reproducible comparisons, not optimal win-rate estimates or proof of every seed's solvability. The separate Phase 5 authorisation extends the earlier stopping point without changing these verification limits.
 
 **Exit:** all five peak counts play correctly; no orphan tips, impossible Seal, obscured ranks or off-screen critical controls. If a brief fails the intended streak/peak tradeoff, revise its graph.
 
@@ -483,14 +483,20 @@ Suggested commit: `feat: support Solitaire layouts with one to five peaks`.
 
 ### Phase 5: sequential double rewards and immutable next-deal planning
 
-Build this before contracts so their resource checks see the final real loadout.
+**Complete on 27 October 2026.** This separately authorised continuation stops after Phase 5 on `codex/content-expansion`. No push, merge or deployment. Contracts, enchantments, score-record migration, music integration and final integration remain deferred.
 
-- [ ] Track whether final settled target plus sweep earns two selections.
-- [ ] Implement the reward-break state machine, fresh eligible second offer, distinct reward IDs and cap/exhaustion handling.
-- [ ] Preserve one reward for other continuing outcomes and no rewards for terminal losses.
-- [ ] Carry the correct entitlement through the won-run Continue action into endless.
-- [ ] Separate next-deal definition from starting it; lock layout/deck/curse data and reward-derived resources before any future contract offer.
-- [ ] Make repeated callbacks, close/reopen and interrupted reward screens idempotent.
+- [x] Track whether final settled target plus sweep earns two selections. Qualification follows stock bonus and the existing sticky target result; all 28 removals still define a sweep. Under-target sweeps retain half-heart loss and one selection if survived.
+- [x] Implement the reward-break state machine, fresh eligible second offer, distinct reward IDs and cap/exhaustion handling. Explicit IDs, remaining counts, chosen IDs and waiting/choosing/ready/started/abandoned states guard transitions. Picks update prospective resources; capped or previously selected IDs are excluded. An empty pool explains why and offers Skip for each unfillable slot.
+- [x] Preserve one reward for other continuing outcomes and no rewards for terminal losses. Spellbook separately reserves one eligible next-deal charge, subject to the existing spell maxima; it uses no selection slot and expires after that deal. A fully capped book reports no available temporary charge.
+- [x] Carry the correct entitlement through the won-run Continue action into endless. The won Final retains a waiting break and its one/two count; Continue opens it once using its ID. Later endless Finals use the same settled entitlement; bank/new-run paths cannot apply or duplicate the pending resources.
+- [x] Separate next-deal definition from starting it; lock layout/deck/curse data and reward-derived resources before any future contract offer. After rewards resolve, prepare once and deeply freeze the full 52-card order, 28-card table, pile, stock/eaten cards, layout graph/named tips/Seal groups, curses/Hex, final spell/charm/heart resources, charges/refills, rules version, definition ID and random state. Deal clones that definition and consumes no randomness. The real peak-count diagram and text preview remain.
+- [x] Make repeated callbacks, close/reopen and interrupted reward screens idempotent. Pick/Skip carry break ID plus selection ordinal; Continue/Deal carry break ID. Repeated settlement, stale callbacks, double clicks and held keyboard activation cannot spend the next slot or start early. Close/reopen and Help/Back retain offers and prepared definitions in memory; reload still starts without a saved live run.
+
+**Verification:** the clean Phase 4 starting checkout passed **59/59 tests** and its production build. Final Phase 5 verification passes **71/71 tests** and `npm run build` without content warnings (37 images, 106 variants, 19 artworks). Twelve new focused reward/resource/interaction regressions cover stock-bonus success through real final-card play, sticky Toll targets, under-target/unswept/terminal outcomes, fresh second offers over 80 seeds, distinct IDs, caps/exhaustion, temporary Spellbook expiry, explicit Deal gating, stale/repeated actions, window cleanup/redraw, Finals 7/14/21, banking/new-run abandonment, deep immutability and exact deck/loadout consumption over 35 prepared deals. Existing all-layout/all-spell, undo, Seal, art/writing, viewer and accepted Starweave checks still pass. Production packaging checks pass after the build removes generated `dist/qa/` fixtures. The actual built site opens the teaching Three Peaks with 23 stock/no spells, preserves a draw through close/reopen and minimise/restore, and starts without a live run after reload; it has no review toolbar and no browser warning/error entries.
+
+Actual in-app browser review at **1280×800, 390×844 and 320×740** exercised Enter/Space selections, focus moving to the fresh offer then Deal, pointer double clicks, one/two-choice flow, Spellbook + permanent charges, Potion hearts, full/partial exhaustion, won-Final Continue, endless Final, Help/Back and close/reopen both before and after preparation. A real final-card play produced 690 ordinary/peak points plus 20 stock points and two rewards, retained through an interrupted close/reopen. Review-state diagnostics confirmed identical retained definitions, deck/table/pile/stock, charges and RNG state across reopen and Deal. Light/dark and a labelled reduced-motion JS/CSS fixture were inspected; focus scrolls immediately with margin so the phone Deal button and outline stay visible. Review browser warnings/errors were empty. See [PHASE5_SOLITAIRE_REVIEW.md](PHASE5_SOLITAIRE_REVIEW.md) for state/resource semantics, reproduction and limits.
+
+**Limits:** browser play was agent-directed and uses viewport overrides, not physical touch devices or human balance playtesting. Reduced motion was a labelled JS/CSS preference fixture, not an OS setting. This phase does not claim native browser zoom, screen-reader verification, contract solvability/search, new balance estimates or live-run autosave. Existing Phase 4 zoom/geometry evidence remains historical. Generated review pages are disposable and excluded from production; the reusable generator remains in `tests/`.
 
 **Exit:** one selection cannot start a two-selection deal; earned choices cannot duplicate, disappear at a final deal or exceed caps. Stock-bonus target success qualifies.
 
@@ -608,4 +614,4 @@ Functional art/writing features can be completed before this material arrives, u
 
 The canonical plan is **`CONTENT_EXPANSION_PLAN.md` in the repository root**, where Git can include it normally; it is tracked with the Phase 0 baseline commit. The original `docs/content-expansion-plan.md` is a local pointer to it, because docs is currently excluded by local Git rules. This avoids leaving the implementation instructions solely in an ignored folder.
 
-The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2, 3 and 4 are complete here**; stop this continuation after Phase 4. Phases 5–7 and 9 remain unimplemented. Preserve the branch separation; no push, merge or deployment is authorised.
+The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2, 3, 4 and 5 are complete here**; stop this continuation after Phase 5. Phases 6–7 and 9 remain unimplemented. Preserve the branch separation; no push, merge or deployment is authorised.

@@ -64,7 +64,7 @@ for (let seed = 1; seed <= 100; seed++) {
     selection.peakCounts[l.tips.length] = (selection.peakCounts[l.tips.length] || 0) + 1;
     selection.incompatibleSeal += +(p.curses.includes('seal') && !l.sealGroups.length);
     selection.immediateRepeats += +(p.layout === g.run.deal.layout);
-    g.run.next = p; g.startDeal();
+    g.run.next = p; g.startPlannedDeal();
   }
 }
 console.log(JSON.stringify({ seeds, policy: 'exposed-card structural greedy; no search, hidden-rank peeking or rerolls', output, selection }, null, 2));

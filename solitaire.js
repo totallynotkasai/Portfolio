@@ -153,7 +153,7 @@
     fanLayout('forked-paths', 'Forked Paths', [4, 6, 9, 9], ['West Summit', 'West Central Summit', 'East Central Summit', 'East Summit'], true),
     fanLayout('five-towers', 'Five Towers', [5, 6, 8, 8, 1], ['West Tower', 'West Central Tower', 'Central Tower', 'East Central Tower', 'East Tower'], true),
   ];
-  const layoutOf = (d) => LAYOUTS[d.layout || 0];
+  const layoutOf = (d) => d.layoutDefinition || LAYOUTS[d.layout || 0];
   const slotsOf = (d) => layoutOf(d).slots;
   const tipOf = (d, i) => layoutOf(d).tips.find((t) => t.slot === i);
   const sealWords = (d) => layoutOf(d).sealGroups.map((g) => g.guards.map((i) => tipOf(d, i).name).join(' and ')).join('; ');
@@ -215,6 +215,13 @@
      (the balance bots play it thousands of times). The window further
      down draws what each event says. */
   let run = null;   // the run being played (it waits while the window is shut)
+  let breakSerial = 0; // never reused, including across new runs in this page
+  const RULES_VERSION = 'solitaire-peaks-rewards-v1';
+  const copy = (value) => JSON.parse(JSON.stringify(value));
+  const freeze = (value) => {
+    if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); }
+    return value;
+  };
   let view = null;  // the window it's drawn in, while that's open
 
   // A seeded random number generator (mulberry32): the same seed deals the
@@ -309,8 +316,8 @@
       // step: 'play' (a deal), 'pick' (a spell or a charm), 'over' or 'won'.
       step: 'play',
       deal: null,
-      offer: null,
-      next: null,    // the deal to come: its target and curses
+      reward: null, // waiting (won Final), choosing, ready, started or abandoned
+      next: null,    // immutable definition, prepared only after rewards lock
       bag: [],       // the curses on deals 4 to 6, in order
       longest: 0,    // the longest streak
       sweeps: 0,
@@ -320,7 +327,7 @@
     SPELL_IDS.forEach((id) => { run.spells[id] = START[id] || 0; });
     CHARM_IDS.forEach((id) => { run.have[id] = 0; });
     run.bag = shuffle(CURSE_IDS.slice());
-    run.next = planOf(1);
+    run.next = prepareDeal(planOf(1));
     return startDeal();
   }
 
@@ -355,23 +362,43 @@
     return { n, target: targetOf(n), curses, hex: curses.indexOf('hex') !== -1 ? rand(SUITS.length) : -1, layout };
   }
 
-  // Deal the cards: 28 into the peaks (the bottom row face up), one onto
-  // the pile and the rest into the stock, less any the Moths eat.
-  function startDeal() {
-    const p = run.next;
+  const resourcesOf = () => copy({ spells: run.spells, have: run.have, extra: run.extra, hearts: run.hearts, max: run.max });
+
+  // Consume randomness once, after the last selection. Retain the actual
+  // graph, deck and loadout so future witnesses can name this definition.
+  function prepareDeal(p, resources = resourcesOf(), id = `opening:${run.seed}`) {
     const cards = shuffle(range(52));
+    const stock = cards.slice(PLACES + 1);
+    const eaten = p.curses.includes('moths') ? stock.splice(0, MOTHS) : [];
+    const charges = {};
+    SPELL_IDS.forEach((spell) => { charges[spell] = Math.min(mostOf(spell), resources.spells[spell] + (resources.extra[spell] || 0)); });
+    return freeze({ ...copy(p), id, rulesVersion: RULES_VERSION, randomState: run.seed, layoutDefinition: copy(LAYOUTS[p.layout]),
+      deck: cards, table: cards.slice(0, PLACES), pile: [cards[PLACES]], stock, eaten,
+      resources: copy(resources), charges, refills: resources.have.deck });
+  }
+
+  // Starting a prepared deal clones its mutable play state, consumes no
+  // randomness and cannot bypass a pending selection or reuse a break.
+  function startDeal() {
+    if (!run || !run.next || run.next.rulesVersion !== RULES_VERSION) return [];
+    const b = run.reward;
+    if (run.step === 'pick' && (!b || b.status !== 'ready' || b.prepared !== run.next)) return [];
+    const p = run.next;
+    const resources = p.resources;
     const d = {
+      definition: p,
+      layoutDefinition: p.layoutDefinition,
       n: p.n,
       target: p.target,
       curses: p.curses.slice(),
       hex: p.hex,
       layout: p.layout,
-      slots: cards.slice(0, PLACES),       // the card at each place (-1 once it's gone)
-      up: LAYOUTS[p.layout].slots.map((s) => !s.over.length), // uncovered cards face up
-      pile: [cards[PLACES]],               // its top card last
-      stock: cards.slice(PLACES + 1),      // its top card last
-      charges: {},   // spells left to cast this deal
-      eaten: [],
+      slots: p.table.slice(),       // the card at each place (-1 once it's gone)
+      up: p.layoutDefinition.slots.map((s) => !s.over.length),
+      pile: p.pile.slice(),         // its top card last
+      stock: p.stock.slice(),       // its top card last
+      charges: { ...p.charges },
+      eaten: p.eaten.slice(),
       burnt: [],
       undo: [],      // what Rewind can take back (since the last draw)
       drawn: null,   // what Undraw can take back: the last draw, until the next play, burn or cast
@@ -382,16 +409,19 @@
       best: 0,       // the longest streak this deal
       peaks: 0,      // peaks cleared
       reached: false,
-      refills: run.have.deck,
+      refills: p.refills,
       over: false,
       swept: false,
     };
-    if (cursed(d, 'moths')) d.eaten = d.stock.splice(0, MOTHS);
-    SPELL_IDS.forEach((id) => { d.charges[id] = run.spells[id] + (run.extra[id] || 0); });
+    run.spells = { ...resources.spells };
+    run.have = { ...resources.have };
+    run.hearts = resources.hearts;
+    run.max = resources.max;
     run.extra = {};
+    run.n = p.n;
     run.deal = d;
     run.next = null;
-    run.offer = null;
+    if (b) b.status = 'started';
     run.step = 'play';
     return [{ t: 'deal', n: d.n }];
   }
@@ -610,6 +640,7 @@
   function endDeal(swept) {
     const d = run.deal;
     if (!d || d.over) return [];
+    run.reward = null;
     d.over = true;
     d.swept = !!swept;
     const ev = [];
@@ -626,9 +657,12 @@
         ev.push({ t: 'heal', hearts: run.hearts, amount: d.healed });
       }
       if (run.have.spellbook) {
-        const id = SPELL_IDS[rand(SPELL_IDS.length)];
-        run.extra[id] = (run.extra[id] || 0) + 1;
-        ev.push({ t: 'book', spell: id });
+        const pool = SPELL_IDS.filter((id) => run.spells[id] + (run.extra[id] || 0) < mostOf(id));
+        if (pool.length) {
+          const id = pool[rand(pool.length)];
+          run.extra[id] = (run.extra[id] || 0) + 1;
+          ev.push({ t: 'book', spell: id });
+        } else { d.bookFull = true; ev.push({ t: 'book-full' }); }
       }
     }
     run.score += d.score;
@@ -649,55 +683,93 @@
       const bonus = WIN + PER_HEART * run.hearts;
       run.score += bonus;
       if (!endless()) {
+        makeBreak(!!swept && made ? 2 : 1, true);
         run.step = 'won';
         ev.push({ t: 'won', bonus });
         return ev;
       }
       ev.push({ t: 'finale', bonus }); // an endless Final Deal beaten: the run completed again
     }
-    run.next = planOf(d.n + 1);
-    run.offer = offer();
+    makeBreak(!!swept && made ? 2 : 1);
     run.step = 'pick';
-    ev.push({ t: 'pick', none: !run.offer.length });
+    ev.push({ t: 'pick', none: !run.reward.offer.length });
     return ev;
   }
 
   // Two spells (new ones, or another charge of ones you have) and a
   // charm; more of one when the other runs short.
-  function offer() {
-    const spells = shuffle(SPELL_IDS.filter((id) => run.spells[id] < mostOf(id)));
-    const charms = shuffle(CHARM_IDS.filter((id) => (id === 'potion' ? run.max < MOST_HEARTS : run.have[id] < (CHARMS[id].most || 1))));
+  function offer(resources, chosen) {
+    const spells = shuffle(SPELL_IDS.filter((id) => !chosen.includes(id) && resources.spells[id] + (resources.extra[id] || 0) < mostOf(id)));
+    const charms = shuffle(CHARM_IDS.filter((id) => !chosen.includes(id) && (id === 'potion' ? resources.max < MOST_HEARTS : resources.have[id] < (CHARMS[id].most || 1))));
     const out = spells.splice(0, 2).concat(charms.splice(0, 1));
     while (out.length < 3 && spells.length + charms.length) out.push((spells.length ? spells : charms).shift());
     return out;
   }
 
-  // A pick between deals, then the next deal. With every pick taken
-  // already there's nothing on offer: choose() with no pick deals on.
-  function choose(id) {
-    if (!run || run.step !== 'pick') return [];
-    if (!run.offer.length) { run.n = run.next.n; return startDeal(); }
-    if (run.offer.indexOf(id) === -1) return [];
-    if (SPELLS[id]) run.spells[id] = Math.min(mostOf(id), run.spells[id] + 1);
+  function makeBreak(total, waiting = false) {
+    run.next = null;
+    run.reward = { id: `break-${++breakSerial}`, nextDeal: run.deal.n + 1, total, remaining: total,
+      chosen: [], skipped: 0, bookFull: !!run.deal.bookFull, resources: resourcesOf(), offer: [], status: waiting ? 'waiting' : 'choosing', prepared: null };
+    if (!waiting) run.reward.offer = offer(run.reward.resources, []);
+  }
+
+  // Every UI action carries both its break and selection ordinal. A late
+  // callback cannot spend a later selection, even if its ID is offered.
+  function currentBreak(id, remaining) {
+    const b = run && run.reward;
+    return run && run.step === 'pick' && b && b.status === 'choosing' && b.id === id && b.remaining === remaining ? b : null;
+  }
+
+  function lockRewards(b) {
+    b.offer = [];
+    b.prepared = prepareDeal(planOf(b.nextDeal), b.resources, `${b.id}:deal-${b.nextDeal}`);
+    b.resources = b.prepared.resources;
+    run.next = b.prepared;
+    b.status = 'ready';
+  }
+
+  function choose(id, breakId, remaining) {
+    const b = currentBreak(breakId, remaining);
+    if (!b || !b.offer.includes(id) || b.chosen.includes(id)) return [];
+    const r = b.resources;
+    if (SPELLS[id]) r.spells[id] = Math.min(mostOf(id), r.spells[id] + 1);
     else {
-      run.have[id]++;
-      if (id === 'potion') { run.max = Math.min(MOST_HEARTS, run.max + 1); run.hearts = run.max; }
+      r.have[id]++;
+      if (id === 'potion') { r.max = Math.min(MOST_HEARTS, r.max + 1); r.hearts = r.max; }
     }
-    run.n = run.next.n;
-    return [{ t: 'chose', id }].concat(startDeal());
+    b.chosen.push(id);
+    b.remaining--;
+    if (b.remaining) b.offer = offer(r, b.chosen);
+    else lockRewards(b);
+    return [{ t: 'chose', id }];
+  }
+
+  function skipReward(breakId, remaining) {
+    const b = currentBreak(breakId, remaining);
+    if (!b || b.offer.length) return [];
+    b.remaining--; b.skipped++;
+    if (!b.remaining) lockRewards(b);
+    return [{ t: 'reward-skipped' }];
+  }
+
+  function commitDeal(breakId) {
+    const b = run && run.reward;
+    if (!run || run.step !== 'pick' || !b || b.id !== breakId || b.status !== 'ready' || b.remaining) return [];
+    return startDeal();
   }
 
   // After a won run: endless deals, from a pick. The run's best is kept
   // already; from here on the run counts as endless.
-  function keepDealing() {
-    if (!run || run.step !== 'won') return [];
+  function keepDealing(breakId) {
+    if (!run || run.step !== 'won' || !run.reward || run.reward.id !== breakId || run.reward.status !== 'waiting') return [];
     run.mode = 'endless';
     run.recorded = false;
     run.newBest = false;
-    run.next = planOf(run.deal.n + 1);
-    run.offer = offer();
+    const b = run.reward;
+    b.status = 'choosing';
+    b.offer = offer(b.resources, b.chosen);
     run.step = 'pick';
-    return [{ t: 'pick', onwards: true, none: !run.offer.length }];
+    return [{ t: 'pick', onwards: true, none: !b.offer.length }];
   }
 
   // Bank the current score exactly once, including a partially played deal.
@@ -709,7 +781,7 @@
     run.ended = true;
     run.step = 'over';
     run.next = null;
-    run.offer = [];
+    if (run.reward && run.reward.status !== 'started') run.reward.status = 'abandoned';
     finishRun(false);
     return [{ t: 'banked', score: run.score }];
   }
@@ -1627,7 +1699,7 @@
     let hint;
     if (!run) hint = '<span class="status-hint">TriPeaks with spells</span>';
     else if (view.armed) hint = `<span class="status-hint">${esc(words(view.armed).name)}: pick an uncovered card${SPELLS[view.armed].aim ? ' (Esc cancels)' : ''}</span>`;
-    else if (step === 'pick') hint = '<span class="status-hint">Pick a spell or a charm</span>';
+    else if (step === 'pick') hint = `<span class="status-hint">${run.reward.status === 'ready' ? 'Rewards locked: press Deal when ready' : `Reward ${run.reward.total - run.reward.remaining + 1} of ${run.reward.total}${run.reward.offer.length ? ': pick a spell or a charm' : ': skip the unfillable reward'}`}</span>`;
     else if (step === 'over' || step === 'won') hint = '<span class="status-hint">New run deals again</span>';
     else if (live(d) && !movesOf().length) hint = K.hint(canDraw(d) ? 'No plays: click the stock or press D to draw' : 'No plays left: cast a spell or end the deal', canDraw(d) ? 'No plays: tap the stock to draw' : 'No plays left: cast a spell or end the deal');
     else hint = K.hint('Click a card one higher or lower than the pile', 'Tap a card one higher or lower than the pile');
@@ -1648,7 +1720,10 @@
     view.overlay.innerHTML = up ? cardHtml() : '';
     if (up && focus && !view.win.minimised) { // (a card shown while minimised leaves focus alone)
       const go = view.overlay.querySelector('[data-first]') || view.overlay.querySelector('button');
-      if (go) go.focus({ preventScroll: true });
+      if (go) {
+        go.focus({ preventScroll: true });
+        if (run && run.step === 'pick') go.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+      }
     }
     syncCards();
     drawDock();
@@ -1685,7 +1760,7 @@
             <li>A streak scores more with every card: 10, 20, 30... A draw ends it.</li>
             <li>Layouts have one to five named peaks: 100 points for each, 250 for the last remaining peak. Twin Peaks doubles those awards. A clean sweep clears all 28 cards.</li>
             <li>Seven deals with changing layouts. Miss a target and lose a heart, or only half a heart if you clear the table. A clean sweep that reaches its target heals a heart.</li>
-            <li>Pick spells and charms between deals; curses join from deal 4. Hex restarts streaks for its marked suit, even with Kindred. Hover, focus or tap a charm or curse to read it.</li>
+            <li>Pick spells and charms between deals: target plus clean sweep earns two sequential rewards; other continuing deals earn one. Press Deal when ready. Curses join from deal 4. Hex restarts streaks for its marked suit, even with Kindred.</li>
             <li>The wizard’s star glows at streaks of 5, 10 and 15. After the Final Deal, keep dealing or bank your score with End Run.</li>
           </ul>
           <p class="gm-keys"><span class="hint-mouse">Keys: arrows, Enter to play, D to draw, ${SPELL_IDS.map((id) => SPELLS[id].key.toUpperCase()).join(' ')} to cast, L to look.</span><span class="hint-touch">Tap a card to play it, or the stock to draw.</span></p>
@@ -1710,6 +1785,9 @@
     }
     const d = run.deal;
     if (run.step === 'pick') {
+      const b = run.reward;
+      const ready = b.status === 'ready';
+      const token = `data-break="${b.id}" data-remaining="${b.remaining}"`;
       const onwards = !!run.onwards;
       const kicker = onwards ? 'Endless deals' : `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}${endless() ? '' : ` of ${DEALS}`}`}: ${d.swept ? 'clean sweep!' : madeIt(d) ? 'target made' : 'under target'}`;
       const notes = [];
@@ -1725,9 +1803,16 @@
           ${run.last && !onwards ? `<p class="gm-said">${esc(run.last)}</p>` : ''}
           <p class="gm-kicker">${esc(kicker)}</p>
           <p class="gm-tally">${esc(tally)}</p>
-          <h3 class="gm-card-h" id="ss-card-h">Pick a spell or a charm</h3>
-          <div class="gm-ups">${run.offer.map((id, k) => upCard(id, k === 0)).join('')}</div>
-          <p class="ss-next">${esc(nextWords(run.next))}</p>${nextDiagram(run.next)}
+          <p>${b.total === 2 ? 'Target + clean sweep: two rewards' : 'One reward'}</p>
+          <h3 class="gm-card-h" id="ss-card-h">${ready ? 'Ready for the next deal' : `Reward ${b.total - b.remaining + 1} of ${b.total}`}</h3>
+          ${b.chosen.length ? `<p>Chosen: ${b.chosen.map((id) => esc(words(id).name)).join(', ')}. Locked for the next deal.</p>` : ''}
+          ${b.remaining ? `<div class="gm-ups">${b.offer.map((id, k) => upCard(id, k === 0)).join('')}</div>
+            ${!b.offer.length ? `<p>Nothing eligible remains: spell charges, charms and hearts are at their caps, or the reward was already chosen in this break.</p><p class="gm-actions"><button class="os-button" type="button" data-act="skip-reward" ${token} data-first>Skip unfillable reward</button></p>` : ''}` : ''}
+          ${Object.keys(b.resources.extra).length ? `<p>Spellbook: ${Object.entries(b.resources.extra).map(([id, n]) => `${esc(words(id).name)} +${n}`).join(', ')} for the next deal only. Separate from your reward selections.</p>` : ''}
+          ${b.bookFull ? '<p>Spellbook: no temporary charge available; all spell charges are at their caps.</p>' : ''}
+          ${ready ? `<p class="ss-next">${esc(nextWords(b.prepared))}</p>${nextDiagram(b.prepared)}
+            <p>Next-deal charges: ${SPELL_IDS.filter((id) => b.prepared.charges[id]).map((id) => `${esc(words(id).name)} ${b.prepared.charges[id]}`).join(', ') || 'none'}. Hearts: ${b.resources.hearts}/${b.resources.max}.</p>` : '<p class="ss-next">Choose your rewards to prepare the next layout and deal.</p>'}
+          <p class="gm-actions"><button class="os-button gm-go" type="button" data-act="deal" ${token}${ready ? ' data-first' : ' disabled'}>Deal</button></p>
         </section>`;
     }
     const won = run.step === 'won';
@@ -1741,11 +1826,12 @@
         <p class="gm-tally">${won
           ? `${plural(run.hearts, 'heart')} to spare: +${WIN}, and +${PER_HEART} a heart.<br />Score: ${num(run.score)}`
           : `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}`}${endless() || finalDeal(d.n) ? '' : ` of ${DEALS}`}: ${num(d.score)} of ${num(d.target)} points.<br />Score: ${num(run.score)}`}</p>
+        ${won ? `<p>${run.reward.total === 2 ? 'Target + clean sweep: two rewards' : 'One reward'} waiting if you keep dealing.</p>` : ''}
         ${run.newBest
           ? `<p class="gm-best is-new">${endless() ? 'New best endless run!' : 'New best run!'}${run.bestLine ? ` <span>${esc(run.bestLine)}</span>` : ''}</p>`
           : bestText ? `<p class="gm-best">${esc(bestText)}</p>` : ''}
         <p class="gm-actions">${won
-          ? '<button class="os-button gm-go" type="button" data-act="onwards" data-first>Keep dealing</button>' +
+          ? `<button class="os-button gm-go" type="button" data-act="onwards" data-break="${run.reward.id}" data-first>Keep dealing</button>` +
             '<button class="os-button" type="button" data-act="again">New run</button>'
           : '<button class="os-button gm-go" type="button" data-act="again" data-first>New run</button>' +
             '<button class="os-button" type="button" data-act="peek">See the table</button>'}</p>
@@ -1759,14 +1845,14 @@
     let kind;
     let blurb = w.blurb;
     if (spell) {
-      const n = run.spells[id];
+      const n = run.reward.resources.spells[id];
       kind = n ? `Spell, ${n + 1} a deal` : 'New spell';
       if (n) blurb = `One more charge every deal: ${n + 1} in all.`;
-    } else kind = `Charm${run.have[id] ? `, you have ${run.have[id]}` : ''}`;
-    if (id === 'potion') blurb = `${blurb} (${run.max + 1} hearts.)`;
+    } else kind = `Charm${run.reward.resources.have[id] ? `, you have ${run.reward.resources.have[id]}` : ''}`;
+    if (id === 'potion') blurb = `${blurb} (${run.reward.resources.max + 1} hearts.)`;
     const colour = spell ? SPELLS[id].colour : CHARMS[id].colour;
     const key = spell ? `<kbd class="hint-mouse">${SPELLS[id].key.toUpperCase()}</kbd>` : '';
-    return `<button class="gm-up ${colour}" type="button" data-up="${id}"${first ? ' data-first' : ''}>
+    return `<button class="gm-up ${colour}" type="button" data-up="${id}" data-break="${run.reward.id}" data-remaining="${run.reward.remaining}"${first ? ' data-first' : ''}>
         <span class="gm-up-icon">${iconOf(spell ? SPELLS[id].icon : CHARMS[id].icon)}</span>
         <span class="gm-up-name">${esc(w.name)}</span>
         <span class="gm-up-blurb">${esc(blurb)}</span>
@@ -2009,15 +2095,17 @@
         return;
       }
       if (run.step === 'over') later(() => sound(run.newBest ? 'best' : 'lose'), 200);
-      if (run.step === 'pick' && !run.offer.length) { dealOn(); return; }
       syncCard(true);
-      announce(run.step === 'pick' ? `Pick a spell or a charm. ${nextWords(run.next)}` : `The run is over. Score ${num(run.score)}.`);
+      announce(run.step === 'pick' ? rewardWords() : `The run is over. Score ${num(run.score)}.`);
     }, wait);
   }
-  // Every spell charge and charm is taken: there's nothing to pick, so
-  // the next deal comes straight away.
-  function dealOn() {
-    const ev = choose(null);
+  function rewardWords() {
+    const b = run.reward;
+    return b.status === 'ready' ? `Rewards locked. ${nextWords(b.prepared)} Press Deal when ready.`
+      : `Reward ${b.total - b.remaining + 1} of ${b.total}. ${b.offer.length ? 'Pick a spell or a charm.' : 'No eligible rewards remain. Skip this unfillable reward.'}`;
+  }
+  function dealOn(breakId) {
+    const ev = commitDeal(breakId);
     if (!view || !ev.length) return;
     run.onwards = false;
     view.peek = false;
@@ -2026,9 +2114,7 @@
     view.focus = -1;
     syncCards();
     focusCard();
-    const line = `Nothing left to learn. On to deal ${run.deal.n}!`;
-    wizardSays(line, 2600);
-    announce(`${line} ${dealText()}`);
+    dealWords();
   }
   function finishWin() {
     if (!view) return;
@@ -2221,6 +2307,7 @@
   // (and never tucks the window away); Scry's card has keys of its own.
   function cardKey(e) {
     const k = e.key;
+    if (run && run.step === 'pick' && e.repeat && (k === 'Enter' || k === ' ')) { e.preventDefault(); return; }
     if (view.help) {
       if (k === 'Escape') { e.preventDefault(); backToGame(); }
       return;
@@ -2293,7 +2380,7 @@
   // A new deal, in words (and his line about it).
   function dealText() {
     const d = run.deal;
-    const p = { n: d.n, target: d.target, curses: d.curses, hex: d.hex };
+    const p = d;
     return `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}`}, ${layoutOf(d).name}, target ${num(d.target)}.${d.curses.length ? ` ${d.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(p)}.` : ''} The pile: ${caption(pileFace(d))}. ${movesOf().length ? `${plural(movesOf().length, 'card')} can go on it.` : 'Nothing goes on it yet.'}`;
   }
   function dealWords() {
@@ -2310,30 +2397,34 @@
   function onCard(e) {
     const btn = e.target.closest('button');
     if (!btn || !view) return;
+    // Replacing a selected reward under the pointer must not turn the
+    // second click of a double-click into an unseen second selection.
+    if (e.detail > 1 && (btn.dataset.up || ['deal', 'skip-reward', 'onwards'].includes(btn.dataset.act))) return;
     if (btn.dataset.scry) { scryPick(Number(btn.dataset.scry)); return; }
     if (btn.dataset.up) {
-      const ev = choose(btn.dataset.up);
+      const ev = choose(btn.dataset.up, btn.dataset.break, Number(btn.dataset.remaining));
       if (!ev.length) return;
-      run.onwards = false;
       sound('pick');
       view.peek = false;
-      syncCard(false);
+      syncCard(true);
       show(ev);
-      view.focus = -1;
-      syncCards();
-      focusCard();
-      dealWords();
+      announce(rewardWords());
       return;
     }
     const what = btn.dataset.act;
     if (what === 'start' || what === 'again') begin();
     else if (what === 'onwards') {
-      if (!keepDealing().length) return;
-      if (!run.offer.length) { dealOn(); return; }
+      if (!keepDealing(btn.dataset.break).length) return;
       run.onwards = true;
       sound('pick');
       syncCard(true);
-      announce(`Endless deals: a curse on every deal, and higher targets. Pick a spell or a charm. ${nextWords(run.next)}`);
+      announce(`Endless deals: a curse on every deal, and higher targets. ${rewardWords()}`);
+    } else if (what === 'skip-reward') {
+      if (!skipReward(btn.dataset.break, Number(btn.dataset.remaining)).length) return;
+      syncCard(true);
+      announce(rewardWords());
+    } else if (what === 'deal') {
+      dealOn(btn.dataset.break);
     } else if (what === 'back') backToGame();
     else if (what === 'scry-done') scryDone(true);
     else if (what === 'peek') {

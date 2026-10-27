@@ -3066,6 +3066,7 @@ button.ss-scry-pick:hover { background: var(--yellow-tint); }
 .ss-scry .ss-card { position: relative; }
 .ss-scry-pick.is-picked .ss-card { box-shadow: 0 0 0 3px var(--yellow), 0 0 0 5px var(--ink); }
 .gm-card .ss-next { margin-top: 14px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--text); }
+.ss .gm-up, .ss .gm-actions button { scroll-margin-block: 12px; }
 .ss .gm-card-art :is(img, svg) { width: 56px; height: 56px; }
 /* (The window is wide: so are its cards, and they're shorter for it.) */
 .ss .gm-card { width: min(100%, 580px); }

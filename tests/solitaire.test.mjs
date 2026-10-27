@@ -84,7 +84,7 @@ test('Lucky Clover pays at every fifth consecutive play, after the Kindred multi
 test('Dispel returns the Moths’ eaten cards without duplicating the deck', () => {
   const g = game();
   g.run.next = { n: 4, target: 1050, curses: ['moths'], hex: -1, layout: 1 };
-  g.startDeal();
+  g.startPlannedDeal();
   const d = g.run.deal;
   assert.equal(d.stock.length, 12);
   d.charges.dispel = 1;
@@ -107,7 +107,7 @@ test('layouts have 28 connected cards, named tips, safe Seal coverage and can al
       slot.over.forEach((j) => assert.ok(layout.slots[j].under.includes(i)));
     });
     g.run.next = { n: 2, target: 800, curses: [], hex: -1, layout: id };
-    g.startDeal();
+    g.startPlannedDeal();
     const d = g.run.deal;
     assert.equal(d.slots.length + d.pile.length + d.stock.length, 52);
     assert.equal(new Set([...d.slots, ...d.pile, ...d.stock]).size, 52);
@@ -130,8 +130,8 @@ test('seeded layout selection is reproducible and never repeats immediately', ()
     const pb = b.planOf(n);
     assert.equal(pa.layout, pb.layout);
     assert.notEqual(pa.layout, a.run.deal.layout);
-    a.run.next = pa; a.startDeal();
-    b.run.next = pb; b.startDeal();
+    a.run.next = pa; a.startPlannedDeal();
+    b.run.next = pb; b.startPlannedDeal();
     assert.equal(a.run.deal.slots.join(','), b.run.deal.slots.join(','));
   }
 });

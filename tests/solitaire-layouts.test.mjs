@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { game, deal } from './helpers/solitaire.mjs';
+import { game, deal, pick, resolveRewards } from './helpers/solitaire.mjs';
 
 test('legacy coordinates and overlap graphs remain exact; all five families have distinct stable IDs', () => {
   const g = game();
@@ -93,7 +93,7 @@ test('real seeded planning introduces all counts, excludes incompatible Seal and
       assert.equal(pa.curses.length, n < 4 ? 0 : n % 7 === 0 ? 2 : 1);
       assert.ok(!(pa.curses.includes('circle') && pa.curses.includes('moths')));
       if (n > 7 && n % 7 !== 0 && a.run.deal.curses.length === 1) assert.notEqual(pa.curses[0], a.run.deal.curses[0]);
-      a.run.next = pa; b.run.next = pb; a.startDeal(); b.startDeal();
+      a.run.next = pa; b.run.next = pb; a.startPlannedDeal(); b.startPlannedDeal();
       assert.equal(a.run.deal.slots.join(), b.run.deal.slots.join());
       assert.equal(new Set([...a.run.deal.slots, ...a.run.deal.pile, ...a.run.deal.stock, ...a.run.deal.eaten]).size, 52);
     }
@@ -193,26 +193,28 @@ test('Second Deck, Spellbook, Hearthstone and Healing Potion retain their resour
     g.endDeal(true);
     assert.equal(g.run.hearts, 2.5); assert.equal(Object.values(g.run.extra).reduce((a, b) => a + b, 0), 1);
     const extra = Object.keys(g.run.extra)[0];
-    g.run.offer = ['potion']; g.choose('potion'); d = g.run.deal;
+    g.run.reward.offer = ['potion']; pick(g, 'potion'); resolveRewards(g); d = g.run.deal;
     assert.equal(g.run.max, 4); assert.equal(g.run.hearts, 4);
     assert.equal(d.charges[extra], g.run.spells[extra] + 1);
     assert.equal(Object.keys(g.run.extra).length, 0);
   }
 });
 
-test('variable peaks preserve settlement, single reward, stock-bonus qualification and final-to-endless behavior', () => {
+test('variable peaks preserve settlement, stock-bonus double rewards and final-to-endless behavior', () => {
   const g = game();
   g.LAYOUTS.forEach((_, id) => {
     g.newRun(415); const d = deal(g, id, [], 7);
     Object.assign(d, { score: 680, target: 700, stock: [10] }); d.slots.fill(-1);
     g.endDeal(true);
     assert.equal(g.run.step, 'won'); assert.ok(d.reached); assert.equal(d.score, 700);
-    g.keepDealing(); assert.equal(g.run.step, 'pick'); assert.equal(g.run.next.n, 8);
-    const choice = g.run.offer[0]; g.choose(choice);
+    g.keepDealing(g.run.reward.id); assert.equal(g.run.step, 'pick'); assert.equal(g.run.reward.nextDeal, 8);
+    assert.equal(g.run.reward.total, 2);
+    const choice = g.run.reward.offer[0]; pick(g, choice);
+    assert.equal(g.run.step, 'pick'); resolveRewards(g);
     assert.equal(g.run.step, 'play'); assert.equal(g.run.deal.n, 8);
     assert.equal(g.choose(choice).length, 0);
     g.run.deal.score = 9000; g.endDeal(false);
     assert.equal(g.run.step, 'pick');
-    const next = g.run.offer[0]; g.choose(next); assert.equal(g.run.deal.n, 9);
+    assert.equal(g.run.reward.total, 1); resolveRewards(g); assert.equal(g.run.deal.n, 9);
   });
 });
