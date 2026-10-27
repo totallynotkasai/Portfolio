@@ -23,7 +23,14 @@ const hook = `
     view.help = false;
     view.scry = null;
     view.peek = false;
-    if (scenario !== 'new') {
+    if (scenario.startsWith('layout-')) {
+      const id = Number(scenario.slice(7));
+      Object.assign(run.spells, { wild: 2, fireball: 2, echo: 2, rewind: 2, moonlight: 1, scry: 2, undraw: 2, nudge: 2, dispel: 2 });
+      run.next = { n: 4, target: 1050, curses: LAYOUTS[id].sealGroups.length ? ['seal', 'hex'] : ['hex', 'toll'], hex: 1, layout: id };
+      startDeal();
+    } else if (scenario === 'reward-preview') {
+      run.deal.score = 900; endDeal(false);
+    } else if (scenario !== 'new') {
       Object.assign(run, { mode: 'endless', n: 9, score: 6380, hearts: 2.5, longest: 10 });
       Object.assign(run.have, { kindred: 1, clover: 1, hearth: 1 });
       Object.assign(run.spells, { nudge: 2, dispel: 2, wild: 1, undraw: 1 });
@@ -50,28 +57,46 @@ const hook = `
     syncCard(false);
     primeFaces();
   }
-  K.solitaire = { mount(win) { mount(win); sample('gate'); }, unmount };
+  K.solitaire = { mount(win) { mount(win); sample('layout-3'); }, unmount };
   const controls = document.createElement('nav');
   controls.className = 'solitaire-preview-controls';
   controls.setAttribute('aria-label', 'Local preview scenarios');
-  const scenarios = [['new','New game'],['peaks','Three Peaks'],['gate','Starlit Gate'],['terraces','Terraces'],
+  const scenarios = [['new','New game'], ...LAYOUTS.map((l, i) => ['layout-'+i, l.name]), ['reward-preview','Next layout'],
     ['glow0','Streak 0'],['glow5','Streak 5'],['glow10','Streak 10'],['glow15','Streak 15'],
     ['half','Half-heart loss'],['charms','Charms'],['spells','Spells']];
-  controls.innerHTML = '<strong>Local preview</strong><span>Sample scores are not saved.</span>' + scenarios.map(([id,label]) =>
+  controls.innerHTML = '<strong>' + (RM ? 'Reduced motion fixture' : 'Isolated seeded review') + '</strong><span>Seed 415, real deck; sample scores are not saved.</span>' + scenarios.map(([id,label]) =>
     '<button type="button" data-scenario="'+id+'">'+label+'</button>').join('');
-  controls.addEventListener('click', (e) => { const btn=e.target.closest('button'); if(btn && view) sample(btn.dataset.scenario); });
+  controls.addEventListener('click', (e) => { const btn=e.target.closest('[data-scenario]'); if(btn && view) sample(btn.dataset.scenario); });
   document.body.appendChild(controls);
+  const zoom = document.createElement('button');
+  zoom.type = 'button'; zoom.textContent = 'CSS zoom 200%';
+  zoom.addEventListener('click', () => {
+    const on = document.documentElement.style.zoom !== '2';
+    document.documentElement.style.zoom = on ? '2' : '';
+    zoom.textContent = on ? 'CSS zoom 100%' : 'CSS zoom 200%';
+  });
+  controls.appendChild(zoom);
+  const theme = document.createElement('button');
+  theme.type = 'button'; theme.textContent = 'Toggle review theme';
+  theme.addEventListener('click', () => { document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; });
+  controls.appendChild(theme);
   K.openGame('solitaire');
 `;
-await writeFile(new URL('solitaire-preview.js', out), source.replace(marker, hook));
+const reviewSource = source.replace('const RM = K.REDUCE_MOTION;', `const RM = K.REDUCE_MOTION || window.__SOLITAIRE_REVIEW_REDUCED__;
+  if (RM) document.documentElement.classList.add('ss-preview-reduced');`);
+await writeFile(new URL('solitaire-preview.js', out), reviewSource.replace(marker, hook));
 let html = await readFile(new URL('about.html', root), 'utf8');
+await writeFile(new URL('preferences.js', out), "window.__SOLITAIRE_REVIEW_REDUCED__ = new URL(location.href).searchParams.get('motion') === 'reduce';");
+html = html.replace('<script src="/head.js">', '<script src="/dist/qa/preferences.js"></script><script src="/head.js">');
 html = html.replace('</head>', '<link rel="stylesheet" href="/dist/qa/preview.css" /></head>')
   .replace('</body>', '<script src="/dist/qa/solitaire-preview.js"></script></body>');
 // All portfolio scripts are deferred. Run the preview after them.
 html = html.replace('<script src="/dist/qa/solitaire-preview.js">', '<script src="/dist/qa/solitaire-preview.js" defer>');
 await writeFile(new URL('solitaire.html', out), html);
 await writeFile(new URL('preview.css', out), `
-.solitaire-preview-controls { position:fixed; inset:0 0 auto; z-index:99999; display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:8px 12px; background:var(--surface); border-bottom:var(--border); font-size:12px; }
+.solitaire-preview-controls { position:fixed; inset:0 0 auto; z-index:99999; display:flex; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; align-items:center; gap:6px; padding:4px 8px; background:var(--surface); border-bottom:var(--border); font-size:12px; }
+.os { top:48px !important; }
+.ss-preview-reduced .ss *, .ss-preview-reduced #win-solitaire { animation:none !important; transition:none !important; }
 .solitaire-preview-controls strong { margin-right:4px; }
 .solitaire-preview-controls span { margin-right:12px; }
 .solitaire-preview-controls button { padding:4px 8px; border:2px solid var(--ink); border-radius:6px; background:var(--yellow-tint); cursor:pointer; }

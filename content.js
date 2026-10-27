@@ -1133,7 +1133,7 @@ window.CONTENT = {
 
     curses: {
       circle: { name: 'Broken Circle', blurb: "Kings and Aces don't connect." },
-      seal:   { name: 'Seal',          blurb: "The middle peak's top three cards are sealed until both outer peaks are clear." },
+      seal:   { name: 'Seal',          blurb: "Locked cards open after the two named guard peaks are cleared." },
       moths:  { name: 'Moths',         blurb: '11 fewer cards in the stock.' },
       hex:    { name: 'Hex',           blurb: 'One suit still scores, but starts the streak again.' },
       toll:   { name: 'Toll',          blurb: 'Every draw costs 15 points.' },

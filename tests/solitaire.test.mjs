@@ -1,25 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import vm from 'node:vm';
-
-// Exercise the real rules without adding a debug API to the shipped game.
-const source = readFileSync(new URL('../solitaire.js', import.meta.url), 'utf8');
-function game(seed = 123) {
-  const saved = {};
-  const K = {
-    C: {}, DOODLE_ICONS: {},
-    store: { get: (key, fallback) => saved[key] || fallback, merge: (key, fields) => { saved[key] = { ...saved[key], ...fields }; } },
-  };
-  const exposed = source.replace('K.solitaire = { mount, unmount };', `K.test = {
-    newRun, endDeal, endRun, keepDealing, choose, planOf, startDeal, scored,
-    play, cast, draw, free, open, opens, movesOf, fits, pileFace, hopeless,
-    LAYOUTS, SPELLS, CHARMS, get run() { return run; }
-  };`);
-  vm.runInNewContext(exposed, { window: { Kasai: K }, console, setTimeout, clearTimeout });
-  K.test.newRun(seed);
-  return { ...K.test, get run() { return K.test.run; }, saved };
-}
+import { game } from './helpers/solitaire.mjs';
 
 test('an under-target clean sweep loses exactly half a heart at full or partial health', () => {
   for (const hearts of [3, 2, 1, 0.5]) {
@@ -114,14 +95,15 @@ test('Dispel returns the Moths’ eaten cards without duplicating the deck', () 
   assert.equal(new Set([...d.slots, ...d.pile, ...d.stock]).size, 52);
 });
 
-test('layouts have 28 connected cards, three tips, legal seal coverage and can all clear', () => {
+test('layouts have 28 connected cards, named tips, safe Seal coverage and can all clear', () => {
   const g = game();
   g.LAYOUTS.forEach((layout, id) => {
     assert.equal(layout.slots.length, 28);
-    assert.equal(layout.slots.filter((s) => !s.under.length).length, 3);
-    assert.equal(layout.sealed.length, 3);
+    assert.equal(layout.slots.filter((s) => !s.under.length).length, layout.tips.length);
+    assert.equal(g.validateLayout(layout), true);
+    assert.equal(layout.sealGroups.length, layout.tips.length >= 3 ? 1 : 0);
     layout.slots.forEach((slot, i) => {
-      if (slot.y < 3) assert.ok(slot.over.length > 0, `${layout.name}: covered slot ${i}`);
+      assert.ok(slot.under.length || layout.tips.some((t) => t.slot === i));
       slot.over.forEach((j) => assert.ok(layout.slots[j].under.includes(i)));
     });
     g.run.next = { n: 2, target: 800, curses: [], hex: -1, layout: id };

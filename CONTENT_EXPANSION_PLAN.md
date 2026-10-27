@@ -2,7 +2,7 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art reverse sides) and 3 (novel overview and writing authoring) complete. Hat to Hat remains on its own branch and plan. This continuation stops after Phase 3; later phases remain unimplemented.**
+**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art), 3 (writing) and 4 (variable-peak Solitaire foundation/previews) complete. Hat to Hat remains on its own branch and plan. This continuation stops after Phase 4; Phases 5–7 and 9 remain unimplemented.**
 
 **Active implementation branch: `codex/content-expansion`.** Keep the remaining expansion phases on this branch. By Andrew’s later request, Hat to Hat is separately parked on `codex/hat-to-hat`; its complete brief and deferred tasks are in `HAT_TO_HAT_PLAN.md`. No push, merge or deployment is authorised.
 
@@ -31,7 +31,9 @@ Keep the site's visual language, vanilla JavaScript architecture, lazy loading, 
 
 This is a sizeable set of changes. Implement and review each feature in stages; do not merge all Solitaire mechanics into one untested change.
 
-## 2. Relevant current implementation
+## 2. Relevant implementation at the Phase 0 baseline
+
+Historical starting inventory; completed changes are recorded in each phase below. Phase 4's current layout model, measured comparisons and verification limits are in [PHASE4_SOLITAIRE_REVIEW.md](PHASE4_SOLITAIRE_REVIEW.md).
 
 - `solitaire.js` contains the seeded rules, three layouts, rendering, scoring, nine spells, nine charms and five curses. A run has seven deals, then optional endless play. Deal one is plain TriPeaks with no starting spells.
 - All layouts currently contain 28 table cards, four rows and three peak tips. A 52-card deck leaves one starting pile card and 23 stock cards before curses. Peak bonuses are currently 100, 100 and 250, multiplied by Twin Peaks when owned.
@@ -369,7 +371,7 @@ Hat to Hat is outside this active plan. Its design, remaining work and verificat
 - Commit each completed phase, or a coherent substep within a large phase, on that branch. Suggested commit subjects below are descriptions, not instructions to push or merge.
 - Keep previews, reusable rule code and final implementation together. Keep review-only preview pages out of the production build unless Andrew explicitly wants them published.
 - Update this document's progress boxes as work actually completes. Acceptance of scope does not mean a phase is finished.
-- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew authorised Phase 2, then this continuation through Phase 3 only. Keep later numbered phases for their own continuations.
+- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew authorised Phases 2 and 3, then a separate continuation through Phase 4 only. Stop after Phase 4; keep later numbered phases for their own continuations.
 - Starweave’s later integration follows the accepted concept and Phase 7 requirements. The separately deferred game supplies no approval gate or dependency for this plan.
 - Avoid new blanket approval stops for accepted art, writing and contract details. Ask for missing authored material when needed; render optional sections safely without inventing it.
 
@@ -404,7 +406,7 @@ After separation, the active suite passes **33/33 tests** and the production bui
 
 The pre-separation combined suite passed 61/61 tests. The active suite is reduced by moving game-only regressions with their preserved implementation; this does not mean those tests failed or that coverage was removed from the deferred branch. Retain the baseline interaction/Solitaire, musical model/audio and build-exclusion tests here. Device listening/touch and native interruption remain technical checks for Phase 7. Music currently has four pitches/sixteen moments/three voices and no saves/export/full activity.
 
-The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phase 2 followed in its own continuation; Phase 3 is recorded below. Later phases remain deferred.
+The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phases 2–4 followed in separate continuations, recorded below. Phases 5–7 and 9 remain deferred.
 
 ### Phase 2: art reverse sides and content authoring
 
@@ -433,7 +435,7 @@ Suggested commit: `feat: add authored art card reverse sides`.
 
 ### Phase 3: novel overview and writing authoring
 
-**Complete on 27 October 2026.** This continuation ends here on `codex/content-expansion`; no push, merge or deployment.
+**Complete on 27 October 2026.** Its continuation ended after Phase 3; the separately authorised Phase 4 is recorded below. No push, merge or deployment.
 
 - [x] Implement the optional overview schema and reusable section navigation from section 7.
 - [x] Support premise, cover, characters, setting and an explicitly current sample, hiding absent sections.
@@ -459,13 +461,21 @@ Suggested commit: `feat: add structured novel overviews`.
 
 ### Phase 4: variable-peak Solitaire foundation and layout previews
 
-- [ ] Extract/parameterise rule transitions enough to support layout validation, future search and rule tests.
-- [ ] Generalise peak IDs/count, scoring, row depth, keyboard selection, dimensions and explicit coverage.
-- [ ] Add compatible curse selection and safe Seal groups; exclude Seal where no valid group exists.
-- [ ] Prototype at least one new layout for each of 1, 2, 4 and 5 peaks, preserving the existing three-peak options.
-- [ ] Apply 100-per-intermediate / 250-last scoring as the initial proposal, with Twin Peaks handled generically.
-- [ ] Preview real seeded deals at desktop and small-phone sizes. Measure frontiers/chains rather than claiming width follows automatically from peak count.
-- [ ] Compare scores and success across families before accepting the geometries.
+**Complete on 27 October 2026, with the technical verification limits below.** This continuation stops here on `codex/content-expansion`; no push, merge or deployment.
+
+- [x] Extract/parameterise rule transitions enough to support layout validation, future search and rule tests. Play/Wild/Fireball share isolated `removeCard`; scoring, graph queries and keyboard navigation accept explicit deal data. Clone/live replay is tested. Full future solver orchestration is not claimed.
+- [x] Generalise peak IDs/count, scoring, row depth, keyboard selection, dimensions and explicit coverage. Stable descriptors, spatial tip names and arbitrary slot IDs replace fixed tips/rows; a permuted-slot regression proves this.
+- [x] Add compatible curse selection and safe Seal groups; exclude Seal where no valid group exists. Validate reachability, inverse edges, acyclicity, two named unsealed guard paths and complete structural clearance with locks active. Crown/Crescent cannot receive Seal; Final/endless rules remain compatible and deterministic.
+- [x] Prototype at least one new layout for each of 1, 2, 4 and 5 peaks, preserving the existing three-peak options. Crown, Crescent, Forked Paths and Five Towers are implemented; the three reference graphs/coordinates and first teaching deal are preserved.
+- [x] Apply 100-per-intermediate / 250-last scoring as the initial proposal, with Twin Peaks handled generically. All five totals and doubled awards are tested; a sweep still clears all 28 cards.
+- [x] Preview real seeded deals at desktop and small-phone sizes. Real seed-415 browser play at 1280×800, 390×844 and 320×740, all nine spell interactions, keyboard scrolling, next-layout diagrams, light/dark, reduced-motion fixtures and zoom checks are recorded. Readable 36px-minimum cards, compact phone spell controls, expandable tip/guard text and scrollable short views replace illegible shrinking. Connector endpoint errors measured at most 0.03px desktop / 0.02px phone.
+- [x] Compare scores and success across families before accepting the prototype geometries. Revise the initially narrow high-peak graphs; retain the measured broad-front/frequent-peak tradeoff, without changing targets or normalizing approved peak totals.
+
+**Measured outcome:** 7,600 matched seeded deals across plain, equipped and eligible-Seal profiles, plus 5,000 selection deals. In plain play, Crown / Five Towers averaged frontiers **4.99 / 4.60**, best streaks **6.66 / 6.14**, **1.84 / 14.66** peaks per 100 plays, scores **843.73 / 1,090.05**, sweeps **49.5% / 41%**, and target success **25.25% / 49%**. Lower peaks do not automatically lengthen chains: Starlit Gate and Terraces averaged 6.82. Initial four/five-peak graphs swept only 22% / 15.25%; revised fronts improved them to 45% / 41%. The selection sample had zero immediate layout repeats and zero incompatible Seals. See [PHASE4_SOLITAIRE_REVIEW.md](PHASE4_SOLITAIRE_REVIEW.md) for every layout/profile, method, raw-results path and interpretation.
+
+**Verification:** **59/59 tests pass** (48-test Phase 3 baseline plus 11 focused regressions), including validation failures, arbitrary tip IDs, legal Seal release, every spell across every family, scoring charms, Second Deck, Spellbook/Hearthstone/Potion, Rewind/Undraw conventions, diagram/navigation data, final/endless flow and unchanged single-pick/stock-bonus settlement. `npm run build` succeeds without content warnings: 37 images, 106 variants and 19 artworks. Final production packaging excludes `dist/qa/`, preview sources and fixture references. A fresh review page exercised corrected theme/zoom controls with no console warnings/errors and retained its score. The actual built site has no review toolbar, opens Three Peaks with 23 stock/no spells, accepts keyboard/draw input and retains the deal through close/reopen; production diagnostics were empty. Existing art/writing, viewer, desktop interaction and accepted Starweave regressions all remain passing.
+
+**Limits:** play was agent-directed/partly scripted, not a separate human playtest or Andrew's subjective approval. Phones were browser viewports, not physical touch devices; no screen-reader session occurred. Reduced motion used a labelled JS/CSS fixture. All families were played at 200% CSS zoom and a 640×400 equivalent viewport; native browser access timed out before the separate native zoom action, so native browser/hardware zoom is unverified. Short/narrow views intentionally scroll to retain legibility; all cards, tips and controls need not fit simultaneously. The greedy simulations are reproducible comparisons, not optimal win-rate estimates or proof of every seed's solvability. These limits do not authorize Phase 5 or create another scope-approval stop.
 
 **Exit:** all five peak counts play correctly; no orphan tips, impossible Seal, obscured ranks or off-screen critical controls. If a brief fails the intended streak/peak tradeoff, revise its graph.
 
@@ -584,7 +594,7 @@ Use meaningful rule/interaction tests and `npm run build` after the correspondin
 
 - [x] Revised music concept accepted by Andrew: rune-circle mapping, distinct voices, duration and pet conducting. Actual-phone listening/touch remains technical verification.
 - [ ] Solitaire: multiplier arithmetic/feel and combined cursed/enchanted visuals as the design is refined. Treasure remains accepted; exact new multiplier values are proposed.
-- [ ] Layout prototypes: verify the intended broad-front versus peak-award tradeoff rather than assume peak count supplies it.
+- [x] Layout prototypes: verify the intended broad-front versus peak-award tradeoff rather than assume peak count supplies it. Phase 4 graph revisions, comparisons, actual browser play and technical limits are recorded above; no separate human playtest approval is claimed.
 
 ### Authored material Andrew can provide later
 
@@ -598,4 +608,4 @@ Functional art/writing features can be completed before this material arrives, u
 
 The canonical plan is **`CONTENT_EXPANSION_PLAN.md` in the repository root**, where Git can include it normally; it is tracked with the Phase 0 baseline commit. The original `docs/content-expansion-plan.md` is a local pointer to it, because docs is currently excluded by local Git rules. This avoids leaving the implementation instructions solely in an ignored folder.
 
-The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2 and 3 are complete here**; stop this continuation after Phase 3. Preserve the branch separation; no push, merge or deployment is authorised.
+The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2, 3 and 4 are complete here**; stop this continuation after Phase 4. Phases 5–7 and 9 remain unimplemented. Preserve the branch separation; no push, merge or deployment is authorised.

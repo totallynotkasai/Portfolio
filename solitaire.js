@@ -7,7 +7,7 @@
    wizard wears his own drawings (wizard.frames), stand-ins and all.
    apps.js fetches this file the first time the game opens.
 
-   TriPeaks with spells. Three peaks of cards, their bottom row face up:
+   TriPeaks with spells. One to five named peaks, uncovered cards face up:
    play any uncovered card one rank above or below the top of the pile
    (Kings and Aces go round), or draw from the stock. Every card in an
    unbroken streak is worth more than the last, a draw ends the streak,
@@ -38,7 +38,7 @@
   const HEARTS = 3;              // at the start of a run
   const MOST_HEARTS = 5;         // the Healing Potion stops offering itself here
   const CARD = 10;               // a card scores this times its place in the streak (10, 20, 30...)
-  const PEAK = [100, 100, 250];  // the first, second and third peak cleared (the third is a clean sweep)
+  const peakPoints = (cleared, count, twin) => (cleared === count - 1 ? 250 : 100) * (twin ? 2 : 1);
   const LEFT_OVER = 20;          // each card still in the stock after a clean sweep
   const WIN = 500;               // beating the Final Deal...
   const PER_HEART = 100;         // ...and each heart left then
@@ -64,28 +64,99 @@
   const rankOf = (c) => (c % 13) + 1;
 
   /* ---------- the layouts ----------
-     Every layout has 28 cards, four rows and three tips. Cards in the
-     next row cover any card they overlap horizontally. Keeping the same
-     card count preserves the stock size and scoring across layouts. */
-  function makeLayout(name, rows) {
+     over is the explicit list of cards that must leave before this slot.
+     under is its inverse, never a second source of rules. Legacy layouts
+     retain their overlap graph. New layouts separate rows and draw every
+     dependency, so a broad fan need not pretend to physically overlap. */
+  const PLACES = 28;
+  function makeLayout(id, name, rows, tips, coverage, sealGroups = [], connected = false) {
     const slots = [];
     rows.forEach((xs, y) => xs.forEach((x) => slots.push({ x, y, over: [], under: [] })));
-    slots.forEach((s, i) => slots.forEach((t, j) => {
-      if (t.y === s.y + 1 && Math.abs(t.x - s.x) < 1) { s.over.push(j); t.under.push(i); }
-    }));
-    return { name, slots, width: Math.max(...slots.map((s) => s.x)) + 1, sealed: [1].concat(slots[1].over) };
+    slots.forEach((s, i) => {
+      s.over = coverage ? coverage[i].slice() : slots.flatMap((t, j) => t.y === s.y + 1 && Math.abs(t.x - s.x) < 1 ? [j] : []);
+      s.over.forEach((j) => slots[j].under.push(i));
+    });
+    const layout = { id, name, slots, tips: tips.map((name, slot) => ({ slot, name })), sealGroups,
+      width: Math.max(...slots.map((s) => s.x)) + 1, depth: rows.length, rowScale: connected ? 1.65 : 0.7, connected };
+    validateLayout(layout);
+    return layout;
+  }
+
+  // Reject orphan cards and circular locks before dealing. Simulating
+  // structural removals with all locks active proves the combined locks
+  // can release; individual guard paths must also avoid every sealed slot.
+  function validateLayout(l) {
+    const fail = (why) => { throw new Error(`${l.name}: ${why}`); };
+    const valid = (i) => Number.isInteger(i) && i >= 0 && i < PLACES;
+    if (l.slots.length !== PLACES || new Set(l.slots.map((s) => `${s.x},${s.y}`)).size !== PLACES) fail('28 unique slots required');
+    if (l.slots.some((s) => !Number.isFinite(s.x) || s.x < 0 || !Number.isInteger(s.y) || s.y < 0)) fail('invalid coordinates');
+    if (!/^[a-z]+(?:-[a-z]+)*$/.test(l.id) || l.width !== Math.max(...l.slots.map((s) => s.x)) + 1 || l.depth !== Math.max(...l.slots.map((s) => s.y)) + 1 || !Number.isFinite(l.rowScale) || l.rowScale <= 0) fail('invalid layout dimensions or ID');
+    const roots = l.slots.flatMap((s, i) => !s.under.length ? [i] : []);
+    if (l.tips.length < 1 || l.tips.length > 5 || new Set(l.tips.map((t) => t.slot)).size !== l.tips.length || new Set(l.tips.map((t) => t.name)).size !== l.tips.length || l.tips.some((t) => !valid(t.slot) || !t.name.trim()) || roots.length !== l.tips.length || roots.some((i) => !l.tips.some((t) => t.slot === i))) fail('incorrect named tips');
+    const visited = new Set(), active = new Set();
+    function visit(i) {
+      if (active.has(i)) fail('coverage cycle');
+      if (visited.has(i)) return;
+      active.add(i);
+      const s = l.slots[i];
+      if (new Set(s.over).size !== s.over.length) fail('duplicate coverage');
+      s.over.forEach((j) => {
+        if (!valid(j) || !l.slots[j].under.includes(i)) fail('invalid coverage inverse');
+        visit(j);
+      });
+      if (s.under.some((j) => !valid(j) || !l.slots[j].over.includes(i))) fail('invalid coverage inverse');
+      active.delete(i); visited.add(i);
+    }
+    l.tips.forEach((t) => visit(t.slot));
+    if (visited.size !== PLACES) fail('orphan card');
+    const locked = new Set(l.sealGroups.flatMap((g) => g.cards));
+    l.sealGroups.forEach((g) => {
+      if (!g.cards.length || !g.cards.some((i) => l.tips.some((t) => t.slot === i)) || new Set(g.cards).size !== g.cards.length || g.cards.some((i) => !valid(i)) || g.guards.length !== 2 || new Set(g.guards).size !== 2 || g.guards.some((i) => !l.tips.some((t) => t.slot === i) || locked.has(i))) fail('unsafe Seal group');
+      const path = (i) => { if (locked.has(i)) fail('Seal guard depends on a lock'); l.slots[i].over.forEach(path); };
+      g.guards.forEach(path);
+    });
+    const left = new Set(l.slots.map((_, i) => i));
+    while (left.size) {
+      const available = [...left].filter((i) => l.slots[i].over.every((j) => !left.has(j)) && !l.sealGroups.some((g) => g.cards.includes(i) && g.guards.some((j) => left.has(j))));
+      if (!available.length) fail('Seal deadlock');
+      available.forEach((i) => left.delete(i));
+    }
+    return true;
+  }
+
+  const threeNames = ['West Peak', 'Central Peak', 'East Peak'];
+  const classicSeal = [{ cards: [1, 5, 6], guards: [0, 2] }];
+  // Explicit, balanced fans: each lower card belongs to at least one
+  // upper route. At wing boundaries a shared card is a genuine junction.
+  function fanLayout(id, name, counts, names, seal = false) {
+    const width = Math.max(...counts);
+    const rows = counts.map((n) => Array.from({ length: n }, (_, i) => (width - n) / 2 + i));
+    const coverage = Array.from({ length: PLACES }, () => []);
+    let offset = 0;
+    counts.slice(0, -1).forEach((n, r) => {
+      const next = counts[r + 1], start = offset + n;
+      for (let j = 0; j < next; j++) {
+        const owner = Math.min(n - 1, Math.floor(j * n / next));
+        coverage[offset + owner].push(start + j);
+        if (j > 0 && owner > Math.floor((j - 1) * n / next)) coverage[offset + owner - 1].push(start + j);
+      }
+      offset = start;
+    });
+    return makeLayout(id, name, rows, names, coverage, seal ? [{ cards: [1], guards: [0, names.length - 1] }] : [], true);
   }
   const LAYOUTS = [
-    makeLayout('Three Peaks', [[1.5, 4.5, 7.5], [1, 2, 4, 5, 7, 8], [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]),
-    makeLayout('Starlit Gate', [[1.5, 5, 8.5], [1, 2, 4.5, 5.5, 8, 9], [0.5, 1.5, 2.5, 4.5, 5.5, 7.5, 8.5, 9.5], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]),
-    makeLayout('Terraces', [[1.5, 4.5, 7.5], [0.6, 2.4, 4, 5, 6.6, 8.4], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]]),
+    makeLayout('three-peaks', 'Three Peaks', [[1.5, 4.5, 7.5], [1, 2, 4, 5, 7, 8], [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]], threeNames, null, classicSeal),
+    makeLayout('starlit-gate', 'Starlit Gate', [[1.5, 5, 8.5], [1, 2, 4.5, 5.5, 8, 9], [0.5, 1.5, 2.5, 4.5, 5.5, 7.5, 8.5, 9.5], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]], threeNames, null, classicSeal),
+    makeLayout('terraces', 'Terraces', [[1.5, 4.5, 7.5], [0.6, 2.4, 4, 5, 6.6, 8.4], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]], threeNames, null, classicSeal),
+    fanLayout('crown', 'Crown', [1, 9, 9, 9], ['Crown']),
+    fanLayout('crescent', 'Crescent', [2, 8, 9, 9], ['West Wing', 'East Wing']),
+    fanLayout('forked-paths', 'Forked Paths', [4, 6, 9, 9], ['West Summit', 'West Central Summit', 'East Central Summit', 'East Summit'], true),
+    fanLayout('five-towers', 'Five Towers', [5, 6, 8, 8, 1], ['West Tower', 'West Central Tower', 'Central Tower', 'East Central Tower', 'East Tower'], true),
   ];
   const layoutOf = (d) => LAYOUTS[d.layout || 0];
   const slotsOf = (d) => layoutOf(d).slots;
-  const PLACES = 28;
-  const LAST_ROW = 3;
-  const TIPS = [0, 1, 2];
-  const MIDDLE = 1;    // the middle peak's tip
+  const tipOf = (d, i) => layoutOf(d).tips.find((t) => t.slot === i);
+  const sealWords = (d) => layoutOf(d).sealGroups.map((g) => g.guards.map((i) => tipOf(d, i).name).join(' and ')).join('; ');
 
   /* ---------- spells ----------
      Each pick of a spell is one more charge of it in every deal (up to
@@ -121,7 +192,7 @@
   /* ---------- curses (one on each of deals 4 to 6, two on the Final Deal) ---------- */
   const CURSES = {
     circle: { icon: 'circle', name: 'Broken Circle', blurb: "Kings and Aces don't connect." },
-    seal: { icon: 'seal', name: 'Seal', blurb: "The middle peak's top three cards are sealed until both outer peaks are clear." },
+    seal: { icon: 'seal', name: 'Seal', blurb: 'Locked cards open after the two named guard peaks are cleared.' },
     moths: { icon: 'moth', name: 'Moths', blurb: `${MOTHS} fewer cards in the stock.` },
     hex: { icon: 'hex', name: 'Hex', blurb: 'One suit still scores, but starts the streak again.' },
     toll: { icon: 'coin', name: 'Toll', blurb: `Every draw costs ${TOLL} points.` },
@@ -169,8 +240,8 @@
   const cursed = (d, id) => d.curses.indexOf(id) !== -1;
   const topOf = (d) => d.pile[d.pile.length - 1];
   const pileFace = (d) => d.nudge == null ? topOf(d) : suitOf(topOf(d)) * 13 + d.nudge - 1;
-  const free = (d, i) => d.slots[i] >= 0 && slotsOf(d)[i].over.every((j) => d.slots[j] < 0);
-  const sealed = (d, i) => layoutOf(d).sealed.indexOf(i) !== -1 && cursed(d, 'seal') && (d.slots[0] >= 0 || d.slots[2] >= 0);
+  const free = (d, i) => Number.isInteger(i) && !!slotsOf(d)[i] && d.slots[i] >= 0 && slotsOf(d)[i].over.every((j) => d.slots[j] < 0);
+  const sealed = (d, i) => cursed(d, 'seal') && layoutOf(d).sealGroups.some((g) => g.cards.includes(i) && g.guards.some((j) => d.slots[j] >= 0));
   const open = (d, i) => free(d, i) && !sealed(d, i);
   const opens = (d) => range(PLACES).filter((i) => open(d, i));
   // One rank either side of the pile's top card. Kings and Aces go round,
@@ -259,21 +330,28 @@
   // take one (never the last deal's), and every seventh is a Final Deal.
   // The Hex picks its suit here too.
   function planOf(n) {
+    const layouts = range(LAYOUTS.length).filter((id) => !run.deal || id !== run.deal.layout);
+    const layout = n === 1 ? 0 : layouts[rand(layouts.length)];
+    const compatible = CURSE_IDS.filter((id) => id !== 'seal' || LAYOUTS[layout].sealGroups.length);
     let curses = [];
-    if (n > 3 && n < DEALS) curses = [run.bag[n - 4]];
+    if (n > 3 && n < DEALS) {
+      const used = run.earlyCurses || [];
+      const preferred = run.bag[n - 4];
+      const pool = compatible.filter((id) => !used.includes(id));
+      curses = [pool.includes(preferred) ? preferred : pool[rand(pool.length)]];
+      run.earlyCurses = used.concat(curses);
+    }
     else if (finalDeal(n)) {
       const pairs = [];
-      CURSE_IDS.forEach((a, i) => CURSE_IDS.slice(i + 1).forEach((b) => {
+      compatible.forEach((a, i) => compatible.slice(i + 1).forEach((b) => {
         if (!(a === 'circle' && b === 'moths')) pairs.push([a, b]);
       }));
       curses = pairs[rand(pairs.length)];
     } else if (n > DEALS) {
       const last = run.deal ? run.deal.curses : [];
-      const pool = CURSE_IDS.filter((id) => !(last.length === 1 && last[0] === id));
+      const pool = compatible.filter((id) => !(last.length === 1 && last[0] === id));
       curses = [pool[rand(pool.length)]];
     }
-    const layouts = range(LAYOUTS.length).filter((id) => !run.deal || id !== run.deal.layout);
-    const layout = n === 1 ? 0 : layouts[rand(layouts.length)];
     return { n, target: targetOf(n), curses, hex: curses.indexOf('hex') !== -1 ? rand(SUITS.length) : -1, layout };
   }
 
@@ -331,43 +409,47 @@
   // its place in the streak (a step higher for each Ember), double with
   // Kindred when it's the same suit. A card of the Hex's suit scores, but
   // starts the streak again. Also the streak after it.
-  function scored(d, card, under, streak) {
+  function scored(d, card, under, streak, have = run.have) {
     const hexed = cursed(d, 'hex') && d.hex >= 0 && suitOf(card) === d.hex;
     const s = hexed ? 1 : streak + 1;
-    const kin = !!run.have.kindred && suitOf(card) === suitOf(under);
-    const clover = !!run.have.clover && s % 5 === 0;
-    return { pts: CARD * (s + run.have.ember) * (kin ? 2 : 1) + (clover ? 50 : 0), streak: s, hexed, kin, clover };
+    const kin = !!have.kindred && suitOf(card) === suitOf(under);
+    const clover = !!have.clover && s % 5 === 0;
+    return { pts: CARD * (s + (have.ember || 0)) * (kin ? 2 : 1) + (clover ? 50 : 0), streak: s, hexed, kin, clover };
   }
 
   // A card onto the pile, by a play or by Wild.
   function put(i, wild) {
     const d = run.deal;
+    const ev = removeCard(d, i, run.have, wild ? 'wild' : 'play');
+    run.longest = Math.max(run.longest, d.streak);
+    return settle(ev);
+  }
+
+  // Isolated deterministic transition shared by live play, rule tests and
+  // future search. Mutates only the supplied deal; callers own settlement,
+  // resources, RNG and run records. Invalid actions never change the state.
+  function removeCard(d, i, have, action = 'play') {
+    if (!['play', 'wild', 'fireball'].includes(action) || d.over || !open(d, i) || (action === 'play' && !fits(d, d.slots[i]))) return [];
     keep(d, i);
     const card = d.slots[i];
-    const sc = scored(d, card, topOf(d), d.streak);
+    const sc = action === 'fireball' ? null : scored(d, card, topOf(d), d.streak, have);
     d.slots[i] = -1;
-    d.pile.push(card);
-    d.nudge = null;
-    d.streak = sc.streak;
-    d.best = Math.max(d.best, d.streak);
-    run.longest = Math.max(run.longest, d.streak);
-    d.score += sc.pts;
-    const ev = [{ t: 'play', i, card, pts: sc.pts, streak: d.streak, kin: sc.kin, hexed: sc.hexed, clover: sc.clover, wild: !!wild }];
-    gone(i, ev);
-    return settle(ev);
+    let ev;
+    if (sc) {
+      d.pile.push(card); d.nudge = null; d.streak = sc.streak;
+      d.best = Math.max(d.best, d.streak); d.score += sc.pts;
+      ev = [{ t: 'play', i, card, ...sc, wild: action === 'wild' }];
+    } else { d.burnt.push(card); ev = [{ t: 'burn', i, card }]; }
+    gone(d, i, ev, have);
+    if (!d.reached && d.score >= d.target) { d.reached = true; ev.push({ t: 'target' }); }
+    return ev;
   }
 
   // Fireball: the card at place i burns away. It scores nothing and the
   // streak carries on; it uncovers cards, and a tip pays, as a play would.
   function burn(i) {
     const d = run.deal;
-    keep(d, i);
-    const card = d.slots[i];
-    d.slots[i] = -1;
-    d.burnt.push(card);
-    const ev = [{ t: 'burn', i, card }];
-    gone(i, ev);
-    return settle(ev);
+    return settle(removeCard(d, i, run.have, 'fireball'));
   }
 
   // Kept before every move on the peaks, for Rewind (and from then on the
@@ -380,20 +462,19 @@
 
   // A card has left place i: the cards it lay over may be uncovered (they
   // turn face up), a tip pays its peak's bonus, and the Seal may break.
-  function gone(i, ev) {
-    const d = run.deal;
+  function gone(d, i, ev, have) {
     slotsOf(d)[i].under.forEach((j) => {
       if (d.slots[j] >= 0 && !d.up[j] && free(d, j)) {
         d.up[j] = true;
         ev.push({ t: 'flip', i: j, card: d.slots[j] });
       }
     });
-    if (TIPS.indexOf(i) === -1) return;
-    const pts = PEAK[d.peaks] * (run.have.twin ? 2 : 1);
+    if (!tipOf(d, i)) return;
+    const pts = peakPoints(d.peaks, layoutOf(d).tips.length, have.twin);
     d.peaks++;
     d.score += pts;
     ev.push({ t: 'peak', i, n: d.peaks, pts });
-    if (i !== MIDDLE && cursed(d, 'seal') && (d.slots[0] < 0 && d.slots[2] < 0) && layoutOf(d).sealed.some((k) => d.slots[k] >= 0)) ev.push({ t: 'unseal' });
+    if (cursed(d, 'seal') && layoutOf(d).sealGroups.some((g) => g.guards.includes(i) && g.guards.every((j) => d.slots[j] < 0) && g.cards.some((k) => d.slots[k] >= 0))) ev.push({ t: 'unseal' });
   }
 
   // After every move: the target, a clean sweep, or a deal with nothing
@@ -842,7 +923,8 @@
       <div class="gm-play">
         <div class="ss-stage" data-stage>
           <div class="ss-table" data-table>
-            <div class="ss-peaks" role="group" aria-label="The peaks" data-peaks></div>
+            <div class="ss-board"><div class="ss-peaks" role="group" aria-label="The peaks" data-peaks></div></div>
+            <div class="ss-layout-note" data-layout-note></div>
             <div class="ss-low">
               <div class="ss-stock" data-stock></div>
               <div class="ss-pile" data-pile></div>
@@ -1019,7 +1101,7 @@
     if (!view) return;
     const w = view.peaks.offsetWidth;
     if (!w) return;
-    view.cw = w / 10.585; // (ten cards and nine gaps, style.css .ss-peaks)
+    view.cw = w / (layoutOf(dealShown()).width * 1.065 - 0.065);
     // (Layout widths: a window gliding or growing is scaled for a moment.)
     view.root.querySelectorAll('.ss-art img[sizes]').forEach((img) => {
       if (img.offsetWidth) img.sizes = `${img.offsetWidth}px`;
@@ -1056,10 +1138,15 @@
 
   function drawTable(cascade) {
     const d = dealShown();
+    const l = layoutOf(d);
     view.shown = d;
-    view.table.style.setProperty('--columns', layoutOf(d).width);
-    view.peaks.innerHTML = slotsOf(d).map((s, i) => `<div class="ss-card" data-slot="${i}" style="--x:${s.x};--y:${s.y}"></div>`).join('');
-    view.els = Array.prototype.slice.call(view.peaks.children);
+    view.frontierPending = true;
+    view.table.style.setProperty('--columns', l.width);
+    view.table.style.setProperty('--depth', l.depth - 1);
+    view.table.style.setProperty('--row-scale', l.rowScale);
+    view.table.style.setProperty('--table-height', 3.9 + (l.depth - 1) * l.rowScale);
+    view.peaks.innerHTML = (l.connected ? layoutDiagram(l, true) : '') + slotsOf(d).map((s, i) => `<div class="ss-card" data-slot="${i}" style="--x:${s.x};--y:${s.y}"></div>`).join('');
+    view.els = Array.from(view.peaks.querySelectorAll('.ss-card'));
     view.pileCard = d.pile.length ? topOf(d) : -1;
     view.focus = -1;
     view.armed = '';
@@ -1097,6 +1184,7 @@
   // ringed by an armed spell.
   function syncCards() {
     const d = dealShown();
+    drawLayoutNote(d);
     const on = live(d) && !view.card;
     const fitsNow = on ? movesOf() : [];
     const ringed = on && view.armed ? opens(d) : [];
@@ -1117,24 +1205,29 @@
       paint(el, c, up, final);
       const isFree = frees.indexOf(i) !== -1;
       const held = !d.idle && sealed(d, i);
+      const tip = tipOf(d, i);
+      const guard = cursed(d, 'seal') && layoutOf(d).sealGroups.some((g) => g.guards.includes(i));
+      const place = `${tip ? `, ${tip.name}${guard ? ', Seal guard' : ''}` : ''}`;
+      if (tip && !el.querySelector('.ss-tip')) el.insertAdjacentHTML('beforeend', `<span class="ss-tip" aria-hidden="true">${layoutOf(d).tips.indexOf(tip) + 1}${guard ? ' G' : ''}</span>`);
+      if (tip) el.querySelector('.ss-tip').textContent = `${layoutOf(d).tips.indexOf(tip) + 1}${guard ? ' G' : ''}`;
       el.classList.toggle('is-down', !up);
       el.classList.toggle('is-free', isFree);
       el.classList.toggle('is-sealed', held);
       const hexed = !d.idle && cursed(d, 'hex') && suitOf(c) === d.hex;
       el.classList.toggle('is-hexed', up && hexed);
       el.classList.toggle('is-ringed', ringed.indexOf(i) !== -1);
-      el.title = up ? `${caption(c)}${hexed ? '. Hex: playing this suit restarts the streak.' : ''}` : '';
+      el.title = `${up ? caption(c) : 'Covered card'}${place}${held ? `. Sealed: clear ${sealWords(d)}` : ''}${up && hexed ? '. Hex: playing this suit restarts the streak.' : ''}`;
       if (isFree) {
         el.setAttribute('role', 'button');
         el.tabIndex = i === view.focus ? 0 : -1;
         el.removeAttribute('aria-hidden');
-        el.setAttribute('aria-label', `${caption(c)}${held ? ', sealed' : fitsNow.indexOf(i) !== -1 ? ', goes on the pile' : ''}${hexed ? ', Hex: restarts the streak' : ''}`);
+        el.setAttribute('aria-label', `${caption(c)}${place}${held ? `, sealed until ${sealWords(d)} are clear` : fitsNow.indexOf(i) !== -1 ? ', goes on the pile' : ''}${hexed ? ', Hex: restarts the streak' : ''}`);
       } else if (up && !d.idle) {
         // Face up but covered (Moonlight): named, though it can't be played yet.
         el.setAttribute('role', 'img');
         el.removeAttribute('tabindex');
         el.removeAttribute('aria-hidden');
-        el.setAttribute('aria-label', `${caption(c)}, covered`);
+        el.setAttribute('aria-label', `${caption(c)}${place}, covered${held ? `, sealed until ${sealWords(d)} are clear` : ''}`);
       } else {
         el.removeAttribute('role');
         el.removeAttribute('tabindex');
@@ -1142,8 +1235,31 @@
         el.setAttribute('aria-hidden', 'true');
       }
     });
-    view.peaks.setAttribute('aria-label', d.idle ? 'The peaks' : `The peaks: ${plural(d.slots.filter((c) => c >= 0).length, 'card')}, ${frees.length} uncovered`);
+    view.peaks.querySelectorAll('[data-link-from]').forEach((el) => { el.style.display = d.slots[+el.dataset.linkFrom] < 0 || d.slots[+el.dataset.linkTo] < 0 ? 'none' : ''; });
+    view.peaks.setAttribute('aria-label', d.idle ? 'The peaks' : `${layoutOf(d).name}, ${plural(layoutOf(d).tips.length - d.peaks, 'peak')} remaining: ${plural(d.slots.filter((c) => c >= 0).length, 'card')}, ${frees.length} uncovered`);
   }
+
+  function drawLayoutNote(d, note = view.root.querySelector('[data-layout-note]')) {
+    const l = layoutOf(d);
+    const key = `${l.id}|${cursed(d, 'seal')}`;
+    if (note.dataset.layout === key) return;
+    const expanded = note.querySelector('details')?.open;
+    note.dataset.layout = key;
+    note.innerHTML = `<details${expanded ? ' open' : ''}><summary>${esc(l.name)} · ${plural(l.tips.length, 'peak')} · Tip names${cursed(d, 'seal') ? ' / Seal' : ''}</summary><p>${esc(l.tips.map((t, i) => `${i + 1}: ${t.name}`).join(' · '))}.${cursed(d, 'seal') ? ` G = guard: clear ${esc(sealWords(d))} to unlock.` : ''}</p></details><span>${l.connected ? 'Lines join blockers; clear lower cards first. ' : ''}Scroll the board if needed.</span>`;
+  }
+
+  // Same geometry for the preview and the board's exact dependency cues.
+  function layoutDiagram(l, connectionsOnly = false) {
+    const height = (l.depth - 1) * l.rowScale + 1.4;
+    const links = l.slots.flatMap((s, i) => s.over.map((j) => {
+      const t = l.slots[j];
+      return `<line data-link-from="${i}" data-link-to="${j}" x1="${s.x * 1.065 + 0.5}" y1="${s.y * l.rowScale + (l.connected ? 1.4 : 0.5)}" x2="${t.x * 1.065 + 0.5}" y2="${t.y * l.rowScale}" />`;
+    })).join('');
+    const cards = connectionsOnly ? '' : l.slots.map((s, i) => `<rect x="${s.x * 1.065}" y="${s.y * l.rowScale}" width="1" height="1.4" rx=".1" class="${l.tips.some((t) => t.slot === i) ? 'is-tip' : ''}" />`).join('');
+    return `<svg class="${connectionsOnly ? 'ss-connections' : 'ss-layout-diagram'}" viewBox="${connectionsOnly ? `0 0 ${l.width * 1.065 - .065} ${height}` : `-.08 -.08 ${l.width * 1.065 + .095} ${height + .16}`}" aria-hidden="true" focusable="false">${links}${cards}</svg>`;
+  }
+
+  const nextDiagram = (p) => `<figure class="ss-layout-preview">${layoutDiagram(layoutOf(p))}<figcaption>${esc(layoutOf(p).tips.map((t, i) => `${i + 1}: ${t.name}`).join(' · '))}</figcaption></figure>`;
 
   // Of the cards in `list`, the one nearest place `from` (left to right).
   function nearest(list, from) {
@@ -1199,7 +1315,8 @@
     ev = ev || [];
     const d = dealShown();
     const dealt = ev.some((e) => e.t === 'deal');
-    if (view.shown !== d || dealt) drawTable(dealt && !RM);
+    const rebuilt = view.shown !== d || dealt;
+    if (rebuilt) drawTable(dealt && !RM);
     const flips = [];
     let rewound = -1;
     ev.forEach((e) => {
@@ -1231,8 +1348,19 @@
     drawHud(ev);
     drawDock();
     drawStatus();
+    positionFrontier();
     syncWizard();
     hear(ev);
+  }
+
+  function positionFrontier() {
+    if (!view.frontierPending || view.card || view.dock.hidden) return;
+    // Measure after the overlay has released the dock's space. Short
+    // screens start at the frontier; scroll/arrow focus shows the graph.
+    const board = view.peaks.parentElement;
+    board.scrollTop = board.scrollHeight;
+    board.scrollLeft = 0;
+    view.frontierPending = false;
   }
 
   // What a move sounds like (a heart lost is heard where it's drawn).
@@ -1445,7 +1573,7 @@
   const curseChip = (id) => {
     const w = words(id);
     const d = dealShown();
-    const label = `Curse: ${w.name}. ${id === 'hex' && d.hex >= 0 ? `${SUITS[d.hex].name} still score, but start the streak again.` : w.blurb}`;
+    const label = `Curse: ${w.name}. ${id === 'seal' ? `Clear ${sealWords(d)} to release the locked cards. G marks a guard.` : id === 'hex' && d.hex >= 0 ? `${SUITS[d.hex].name} still score, but start the streak again.` : w.blurb}`;
     return `<li class="ss-owned-item"><button type="button" class="gm-chip ink ss-curse" aria-label="${esc(label)}" aria-describedby="ss-tip-${id}">${iconOf(CURSES[id].icon)}${id === 'hex' && d.hex >= 0 ? `<span class="ss-hex ${SUITS[d.hex].colour}">${suitPic(SUITS[d.hex].id)}</span>` : ''}</button><span class="ss-tooltip" role="tooltip" id="ss-tip-${id}">${esc(label)}</span></li>`;
   };
   const charmChip = (id) => {
@@ -1526,6 +1654,7 @@
     drawDock();
     drawStatus();
     syncWizard();
+    positionFrontier();
   }
 
   // The best runs, in words.
@@ -1541,8 +1670,8 @@
     return n ? `Longest streak: ${n}.` : '';
   };
   // A deal's curses, in words: "Moths (11 fewer cards in the stock)".
-  const cursesWords = (p) => p.curses.map((id) => `${words(id).name} (${id === 'hex' && p.hex >= 0 ? `${SUITS[p.hex].name} still score, but start the streak again` : words(id).blurb.replace(/\.$/, '').replace(/^./, (ch) => ch.toLowerCase())})`).join(' and ');
-  const nextWords = (p) => `Next: ${finalDeal(p.n) ? `deal ${p.n}, ${endless() ? 'a Final Deal' : 'the Final Deal'}` : `deal ${p.n}${endless() ? '' : ` of ${DEALS}`}`}, ${layoutOf(p).name}, target ${num(p.target)}.${p.curses.length ? ` ${p.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(p)}.` : ''}`;
+  const cursesWords = (p) => p.curses.map((id) => `${words(id).name} (${id === 'seal' ? `clear ${sealWords(p)} to release the locked cards` : id === 'hex' && p.hex >= 0 ? `${SUITS[p.hex].name} still score, but start the streak again` : words(id).blurb.replace(/\.$/, '').replace(/^./, (ch) => ch.toLowerCase())})`).join(' and ');
+  const nextWords = (p) => `Next: ${finalDeal(p.n) ? `deal ${p.n}, ${endless() ? 'a Final Deal' : 'the Final Deal'}` : `deal ${p.n}${endless() ? '' : ` of ${DEALS}`}`}, ${layoutOf(p).name}, ${plural(layoutOf(p).tips.length, 'peak')}, target ${num(p.target)}.${p.curses.length ? ` ${p.curses.length > 1 ? 'Curses' : 'Curse'}: ${cursesWords(p)}.` : ''}`;
 
   function cardHtml() {
     if (view.help || !run) {
@@ -1554,6 +1683,7 @@
           <ul class="gm-rules">
             <li>Play an uncovered card one higher or lower than the pile. Kings and Aces go round.</li>
             <li>A streak scores more with every card: 10, 20, 30... A draw ends it.</li>
+            <li>Layouts have one to five named peaks: 100 points for each, 250 for the last remaining peak. Twin Peaks doubles those awards. A clean sweep clears all 28 cards.</li>
             <li>Seven deals with changing layouts. Miss a target and lose a heart, or only half a heart if you clear the table. A clean sweep that reaches its target heals a heart.</li>
             <li>Pick spells and charms between deals; curses join from deal 4. Hex restarts streaks for its marked suit, even with Kindred. Hover, focus or tap a charm or curse to read it.</li>
             <li>The wizard’s star glows at streaks of 5, 10 and 15. After the Final Deal, keep dealing or bank your score with End Run.</li>
@@ -1597,7 +1727,7 @@
           <p class="gm-tally">${esc(tally)}</p>
           <h3 class="gm-card-h" id="ss-card-h">Pick a spell or a charm</h3>
           <div class="gm-ups">${run.offer.map((id, k) => upCard(id, k === 0)).join('')}</div>
-          <p class="ss-next">${esc(nextWords(run.next))}</p>
+          <p class="ss-next">${esc(nextWords(run.next))}</p>${nextDiagram(run.next)}
         </section>`;
     }
     const won = run.step === 'won';
@@ -1770,7 +1900,7 @@
       else if (e.t === 'dispel') out.push(`Dispel: ${words(e.curse).name} removed for this deal.${e.restored ? ` ${plural(e.restored, 'card')} returned under the stock.` : ''}`);
       else if (e.t === 'flip') out.push(`Turned over: ${caption(e.card)}.`);
       else if (e.t === 'peak') out.push(`Peak! Plus ${e.pts}.`);
-      else if (e.t === 'unseal') out.push('Both outer peaks are clear: the Seal breaks.');
+      else if (e.t === 'unseal') out.push('The named guard peaks are clear: the Seal breaks.');
       else if (e.t === 'target') { out.push('Target reached!'); note = note || 'Target reached!'; wizardSays(lineOf('targetLines'), 2400); }
       else if (e.t === 'sweep') out.push(`Clean sweep!${e.left ? ` Plus ${e.pts} for the ${plural(e.left, 'card')} left in the stock.` : ''}`);
       else if (e.t === 'heal') out.push(`${plural(e.amount, 'heart')} back.`);
@@ -1798,11 +1928,11 @@
           undraw: 'No draw to take back: a play or a spell since the last one keeps it.',
           dispel: 'There are no curses left to remove this deal.',
         }[e.spell] || 'No uncovered card to cast it on.',
-        sealed: 'That card is sealed until both outer peaks are clear.',
+        sealed: `That card is sealed until ${sealWords(run.deal)} are clear.`,
         covered: 'That card is covered.',
       }[e.why] || 'Not now.';
     }
-    if (e.why === 'sealed') return 'Sealed until both outer peaks are clear.';
+    if (e.why === 'sealed') return `Sealed until ${sealWords(run.deal)} are clear.`;
     if (e.why === 'covered') return 'That card is covered.';
     if (e.why === 'empty') return playing() && stuck() ? 'The stock is empty: cast a spell, or press End deal.' : 'The stock is empty.';
     return `The ${cardName(d.slots[e.i])} doesn't go on the ${cardName(pileFace(d))}: play ${fitWords(d)}.`;
@@ -1975,27 +2105,34 @@
   // to the nearest one a row up or down; Home and End to either end).
   function moveFocus(key) {
     const d = run.deal;
+    const to = focusSlot(d, view.focus, key);
+    if (to < 0) return;
+    view.focus = to;
+    syncCards();
+    focusCard();
+    view.els[to].scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+  }
+
+  function focusSlot(d, from, key) {
     const SLOTS = slotsOf(d);
-    const frees = range(PLACES).filter((i) => free(d, i)).sort(byPlace);
-    if (!frees.length) return;
-    const at = frees.indexOf(view.focus);
-    let to = view.focus;
+    const frees = range(PLACES).filter((i) => free(d, i)).sort((a, b) => SLOTS[a].x - SLOTS[b].x || SLOTS[a].y - SLOTS[b].y);
+    if (!frees.length) return -1;
+    const at = frees.indexOf(from);
+    let to = from;
     if (key === 'ArrowRight') to = frees[Math.min(frees.length - 1, at + 1)];
     else if (key === 'ArrowLeft') to = frees[Math.max(0, at - 1)];
     else if (key === 'Home') to = frees[0];
     else if (key === 'End') to = frees[frees.length - 1];
     else {
-      const y = SLOTS[view.focus] ? SLOTS[view.focus].y : LAST_ROW;
+      const y = SLOTS[from] ? SLOTS[from].y : layoutOf(d).depth - 1;
       const rows = frees.filter((i) => (key === 'ArrowUp' ? SLOTS[i].y < y : SLOTS[i].y > y));
       if (rows.length) {
         const near = key === 'ArrowUp' ? Math.max(...rows.map((i) => SLOTS[i].y)) : Math.min(...rows.map((i) => SLOTS[i].y));
-        to = nearest(rows.filter((i) => SLOTS[i].y === near), view.focus);
+        to = rows.filter((i) => SLOTS[i].y === near).sort((a, b) => Math.abs(SLOTS[a].x - (SLOTS[from]?.x || 0)) - Math.abs(SLOTS[b].x - (SLOTS[from]?.x || 0)))[0];
       }
     }
     if (to == null || to < 0) to = frees[0];
-    view.focus = to;
-    syncCards();
-    focusCard();
+    return to;
   }
 
   function wire(v) {

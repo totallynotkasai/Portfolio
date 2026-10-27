@@ -2671,13 +2671,12 @@ html[data-open-mode="single"] .hint-single { display: inline; }
 /* ============================================================
    APP: SPELL SOLITAIRE  (solitaire.js arrives when the game opens)
    ============================================================
-   TriPeaks on the binder's starry mat: the three peaks, and under
+   TriPeaks on the binder's starry mat: one to five peaks, and under
    them the stock, the pile (bigger, to show off the art) and the
    wizard. The cards size themselves to the window (the stage is a
-   container), until the peaks fill its width or the table its height:
-   about 66px wide in the window, 34px on a phone, up to 150px
-   maximised. The height takes 3.5 card widths for the peaks, 0.25 for
-   the gap and 1.89 for the pile (1.35 cards wide), plus the padding.
+   container), following each layout's width, depth and row spacing.
+   Cards keep a 36px minimum; small boards pan and short windows scroll.
+   Reference layouts overlap; new graphs separate rows and draw blockers.
    Each card is a container too, so one under 44px wide hides its art
    and shows a big rank instead. The menu bar, scores, notes and cards
    are Wizard Sweeper's (the .gm- names). */
@@ -2689,18 +2688,31 @@ html[data-open-mode="single"] .hint-single { display: inline; }
   container-type: size;
   background: var(--ink) var(--tx-stars);
 }
+/* At high zoom / short landscape sizes the window scrolls, rather than
+   collapsing the card area to zero underneath the HUD and spell dock. */
+#win-solitaire .win-body { overflow: auto; }
+.ss { min-height: 400px; }
 .ss-table {
   --columns: 10;
-  --cw: clamp(22px, min((100cqw - 20px) / (var(--columns) * 1.065), (100cqh - 28px) / 5.7), 150px);
+  --depth: 3;
+  --row-scale: 0.7;
+  --table-height: 6;
+  --cw: clamp(36px, min((100cqw - 24px) / (var(--columns) * 1.065), (100cqh - 72px) / var(--table-height)), 150px);
   --ch: calc(var(--cw) * 1.4);
   --gap: calc(var(--cw) * 0.065);
   --step: calc(var(--cw) + var(--gap));
-  --row: calc(var(--ch) * 0.5);
+  --row: calc(var(--cw) * var(--row-scale));
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--cw) * 0.25);
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  justify-content: center;
+  min-width: 0;
   margin: auto;
   padding: 10px;
   user-select: none;
@@ -2708,7 +2720,19 @@ html[data-open-mode="single"] .hint-single { display: inline; }
   -webkit-touch-callout: none;
   touch-action: manipulation;
 }
-.ss-peaks { position: relative; width: calc(var(--cw) * var(--columns) + var(--gap) * (var(--columns) - 1)); height: calc(var(--row) * 3 + var(--ch)); }
+.ss-board { flex: 0 1 auto; min-height: 0; width: 100%; overflow: auto; padding: 16px 4px 4px; }
+.ss-peaks { position: relative; margin-inline: auto; width: calc(var(--cw) * var(--columns) + var(--gap) * (var(--columns) - 1)); height: calc(var(--row) * var(--depth) + var(--ch)); }
+.ss-connections { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.ss-connections line { stroke: var(--yellow); stroke-width: .045; }
+.ss-layout-note { flex: none; max-width: 70ch; max-height: 25%; overflow: auto; margin: 0; color: var(--white); text-align: center; font-size: 11px; line-height: 1.4; }
+.ss-layout-note summary { cursor: var(--cursor-pointer); padding: 2px; }
+.ss-layout-note p { margin: 4px 0; }
+.ss-tip { position: absolute; right: 0; top: -12px; padding: 0 3px; border: 1px solid var(--ink); border-radius: 3px; color: var(--ink); background: var(--yellow); font: bold 10px/1 var(--font-body); pointer-events: none; }
+.ss-layout-preview { margin: 8px auto 0; text-align: center; font-size: 12px; }
+.ss-layout-diagram { display: block; width: min(220px, 100%); max-height: 120px; margin: auto; }
+.ss-layout-diagram line { stroke: var(--text); stroke-width: .06; }
+.ss-layout-diagram rect { fill: var(--periwinkle); stroke: var(--text); stroke-width: .05; }
+.ss-layout-diagram .is-tip { fill: var(--yellow); stroke-width: .12; }
 
 /* A card: a mini spell card in its suit's colour. */
 .ss-card {
@@ -2762,6 +2786,12 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
   .ss-big { display: grid; justify-items: center; gap: 2cqw; font-family: var(--font-display); font-size: 46cqw; line-height: 1; }
   .ss-big .ss-suit { width: 44cqw; height: 44cqw; }
   .ss-face svg.ss-suit { fill: var(--white); }
+  /* Moonlight's covered cards keep rank AND suit in the exposed strip. */
+  .ss-peaks .ss-card:not(.is-free) .ss-face { justify-content: flex-start; }
+  .ss-peaks .ss-card:not(.is-free) .ss-big { display: flex; justify-content: center; gap: 2cqw; font-size: 34cqw; }
+  .ss-peaks .ss-card:not(.is-free) .ss-big .ss-suit { width: 28cqw; height: 28cqw; }
+  .ss-peaks .ss-card.is-sealed:not(.is-free) .ss-big { justify-content: flex-end; font-size: 30cqw; }
+  .ss-peaks .ss-card.is-sealed:not(.is-free) .ss-big .ss-suit { width: 24cqw; height: 24cqw; }
 }
 
 /* The back: a stand-in until Andrew draws one (ink, with a yellow flame, on a Final Deal). */
@@ -2788,17 +2818,22 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .ss-card.is-sealed::after {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: auto auto 2px 2px;
+  width: 38%;
+  height: 38%;
   z-index: 1;
-  background: rgba(22, 26, 46, 0.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='10.5' width='14' height='10' rx='2'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2.2'/%3E%3C/svg%3E") center / 56% no-repeat;
+  background: rgba(22, 26, 46, 0.9) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='10.5' width='14' height='10' rx='2'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2.2'/%3E%3C/svg%3E") center / 85% no-repeat;
   border-radius: inherit;
 }
 .ss-card.is-sealed.is-free { cursor: not-allowed; }
+.ss-card.is-sealed:not(.is-free)::after { inset: 2px auto auto 2px; width: 25%; height: 25%; }
+.ss-card.is-sealed:not(.is-free) .ss-corner { padding-left: 25cqw; font-size: 24cqw; }
+.ss-card.is-sealed:not(.is-free) .ss-corner .ss-suit { width: 24cqw; height: 24cqw; }
 /* Wild or Fireball, waiting for a card: a ring round every one it could go on. */
 .ss-card.is-ringed { box-shadow: 0 0 0 3px var(--yellow), 0 0 0 5px var(--ink); }
 
 /* Under the peaks: the stock, the pile and the wizard. */
-.ss-low { display: flex; align-items: flex-end; justify-content: center; gap: calc(var(--cw) * 0.7); }
+.ss-low { display: flex; flex: none; align-items: flex-end; justify-content: center; gap: calc(var(--cw) * 0.7); }
 .ss-stock { position: relative; width: calc(var(--cw) * 1.1); height: calc(var(--ch) * 1.08); cursor: var(--cursor-pointer); }
 .ss-stock .ss-card.is-stock { left: calc(var(--k) * 3px); bottom: calc(var(--k) * 3px); }
 .ss-empty { position: absolute; inset: auto 0 0 auto; display: grid; place-items: center; width: var(--cw); aspect-ratio: 5 / 7; color: var(--periwinkle); border: 2px dashed rgba(174, 157, 243, 0.6); border-radius: calc(var(--cw) * 0.12); }
@@ -2988,6 +3023,14 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .ss-act b { min-width: 1.6em; padding: 0 5px; font-family: var(--font-mono); font-size: 0.74rem; text-align: center; background: var(--grey-tint); border-radius: 6px; }
 .ss-draw b { color: var(--ink); background: var(--white); }
 .ss-act b[hidden] { display: none; }
+@media (max-width: 480px) {
+  .ss-draw { flex-direction: column; justify-content: center; align-self: stretch; min-width: 58px; gap: 2px; }
+  .ss-spells { display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); gap: 4px; }
+  .ss-spells .ss-act { justify-content: center; min-width: 0; min-height: 44px; padding: 0 3px; gap: 2px; }
+  .ss-spells .ss-act svg.doodle, .ss-spells .ss-act .ss-pic { width: 16px; height: 16px; }
+  .ss-spells .ss-act b { min-width: 1.1em; padding: 0 2px; font-size: .68rem; }
+  #win-solitaire .win-status { padding: 6px 8px; font-size: 11px; line-height: 1.3; }
+}
 .ss-act kbd { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-muted); }
 .ss-draw { color: var(--ink); background: var(--yellow); }
 .ss-draw:hover:not(:disabled) { background: var(--periwinkle); }
