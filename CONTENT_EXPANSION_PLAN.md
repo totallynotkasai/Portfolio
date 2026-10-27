@@ -2,7 +2,7 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Phase 1 in progress.** Andrew approved the previously uncommented proposals, with the changes recorded below. Music-box and hockey design decisions require working previews before further input. Enchantment multiplier details remain design proposals to validate rather than settled balance values. Implementation is limited to Phase 0 and the isolated Phase 1 previews; later phases await a separate continuation.
+**Status: Phase 0 complete; Phase 1 previews implemented and verified, awaiting Andrew's hands-on feedback.** Andrew approved the previously uncommented proposals, with the changes recorded below. Music-box and hockey design decisions require working previews before further input. Enchantment multiplier details remain design proposals to validate rather than settled balance values. Implementation is limited to Phase 0 and the isolated Phase 1 previews; later phases await a separate continuation.
 
 **Single implementation branch: `codex/content-expansion`.** Keep every phase, preview, fix and final integration on this branch. Use phase-sized commits; no branch per feature. Push, merge and deploy are separate from this planning request.
 
@@ -468,7 +468,7 @@ A match is ready when rallies feel controllable without powerups, goal posts beh
 - Commit each completed phase, or a coherent substep within a large phase, on that branch. Suggested commit subjects below are descriptions, not instructions to push or merge.
 - Keep previews, reusable rule code and final implementation together. Keep review-only preview pages out of the production build unless Andrew explicitly wants them published.
 - Update this document's progress boxes as work actually completes. Acceptance of scope does not mean a phase is finished.
-- Phase 0 baseline is complete. Phase 1 is being implemented in isolation; production integration remains deferred.
+- Phase 0 baseline and Phase 1 preview implementation are complete. Production integration remains deferred; stop here for Andrew to try the previews.
 - Full music/hockey integration depends on Andrew trying their previews. Independent approved phases may continue while that feedback is pending.
 - Avoid new blanket approval stops for accepted art, writing and contract details. Ask for missing authored material when needed; render optional sections safely without inventing it.
 
@@ -489,6 +489,29 @@ Suggested commit: `docs: record phased content expansion plan`.
 ### Phase 1: working previews for the music box and hockey
 
 **Purpose:** give Andrew something concrete to try before requesting design input.
+
+**Implementation status (27 October 2026): complete for review.** The previews are available through `npm run dev`:
+
+- [Music box](http://localhost:4321/design-lab/content-expansion/music)
+- [Spell hockey](http://localhost:4321/design-lab/content-expansion/hockey)
+- [Review hub](http://localhost:4321/design-lab/content-expansion/index)
+
+Progress and evidence:
+
+- [x] Editable labelled 16-step, 15-pitch music grid; Pencil/Eraser, interpolated fast/backward strokes, stroke-based holds versus separate attacks, Split/Join, Undo, Play/Stop, tempo and loop.
+- [x] Original sample and target overlay; deliberate Enable sound/Mute; audio-clock transport, cancellable queued voices and visible playhead. Muting preserves the pattern.
+- [x] Phone time paging and keyboard edits; verified at 390px without page-width overflow. Narrow-browser pointer checks do not establish real-phone touch comfort.
+- [x] Circular player/AI hockey strikers, actual swept puck/striker/post/table/pickup collisions, radius-aware goals, score, conceding-side serve/countdown, first-to-five match, pause/resume and alternating opening serves on rematch.
+- [x] Plain/Fire/Electric manual controls, ordinary pickup toggle, active-time timers/charges, Electric bank guide, bounded speed/impulses and small clamped Fire recoil. These are initial proposed powers, not final approved mechanics.
+- [x] Pointer/drag, keyboard and relative phone control pad, with a Pause/Resume button next to the pad. Real browser rallies and a pad drag were exercised.
+- [x] Small standalone note/audio/physics kernels, isolated review UI and concise limitation/help text. Production launchers, content, Solitaire and sound service are untouched.
+- [x] `npm test`: **38/38 passing** (23 baseline plus 15 preview regressions). Includes cancelled audio voices, interpolation/holds/erase, moving-striker sweeps, posts/goals, power rules, spawn/expiry, pause timers and five seeded stress matches ending at five. A wall-pinch issue discovered by stress testing was repaired and retained under regression coverage.
+- [x] `npm run build`: success without warnings. Source HTTP pages and all six script/style dependencies return 200 with correct MIME types. Physical `dist/` and root reference scan contain no preview; the production-preview server returns 404 for the hub, music, hockey and preview module while `/` returns 200.
+- [x] Browser checks: actual held drawing versus separate taps, Undo, sample/overlay, Play/playhead/Stop/Mute and keyboard edits; hockey Serve/countdown, pause/resume, manual powers, actual rallies, relative-pad pointer drag and pause when focus leaves game controls. No warning/error console entries observed.
+- [x] Clear open paths, browser previews and review notes supplied. See `design-lab/content-expansion/README.md` for operation and kernel boundaries.
+- [ ] Andrew tries both previews and supplies feedback on drawing, listening, holds, rally/AI feel, powers/recoil and real-phone controls. No user feedback or final design approval has been inferred.
+
+**Remaining prototype limits:** music is one C-major bar with one sine voice/sample, no saves/reload persistence, longer patterns, import/export or full Match the tune activity. Hockey has no statistics, production sound or OS integration; rendering currently shows fixed-step positions rather than interpolating them. Actual-device listening/touch and more extreme-contact playtesting remain for review/integration. Stop/mute cancellation is covered by the transport tests and browser controls; hidden-tab/window-blur handlers are implemented, but an actual OS interruption/phone-audio test has not been independently established. Browser automation across background tabs did not reproduce native tab visibility changes, so it is not counted as that check. Phases 2–9 remain unstarted.
 
 Deliver two isolated browser previews, provisionally under `design-lab/content-expansion/`, using the site's colours/window framing and runnable through the local dev server. Provide an obvious open path/link and test it. Verify the current build excludes review-only pages; do not expose a new live app automatically.
 

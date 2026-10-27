@@ -52,6 +52,14 @@ npm run dev            # serve the site locally, building images on the fly
 npm run build          # build the deployable site into dist/
 ```
 
+Phase 1 content-expansion previews run through that source server:
+
+- [Design lab](http://localhost:4321/design-lab/content-expansion/index)
+- [Drawing music box](http://localhost:4321/design-lab/content-expansion/music)
+- [Spell hockey](http://localhost:4321/design-lab/content-expansion/hockey)
+
+These are isolated review pages, excluded from `dist/` and production launchers. Music sound requires Enable sound; hockey provides direct power controls and a relative phone pad. Neither preview saves portfolio data. Run `npm test` for the drawing/audio/physics regressions. See [the canonical plan](CONTENT_EXPANSION_PLAN.md), [baseline](CONTENT_EXPANSION_BASELINE.md) and [preview notes](design-lab/content-expansion/README.md) for scope and verification limits. Stop the source server with Ctrl+C when finished trying them.
+
 ## Licence
 
 © Andrew Worgan. All rights reserved, including the artwork, photos and writing.
