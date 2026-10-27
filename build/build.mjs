@@ -36,6 +36,7 @@ const GEN_URL = '/generated/';
 // the small one (a big window, the image viewer, a high-density screen).
 const IMAGE_SETS = [
   { dir: 'assets/art', web: 800, large: 4000, thumb: 400, card: 200 }, // every artwork whole (the biggest is 3200x4000); thumb: a card in the binder; card: a playing card in Spell Solitaire
+  { dir: 'assets/art-process', web: 800, large: 4000, thumb: 400 }, // reverse-side thumbnails and viewer copies; never gallery/card art
   { dir: 'assets/certs', web: 480, large: 2000 },
   { dir: 'assets/photos', web: 480 },                 // About's me.png (about 220px wide) and the Start menu's circle
   { dir: 'assets/projects', web: 640, large: 2560 },   // a maximised project window
@@ -184,6 +185,10 @@ export async function checkContent(root = ROOT) {
     return { errors, warnings };
   }
 
+  // Authored art backs are optional, but a typo here should name the exact
+  // piece and field rather than silently dropping a note or broken image.
+  errors.push(...await checkArtDetails(C.art, root));
+
   // Every "assets/..." path mentioned in content.js should exist. Missing
   // ones only warn: the site shows a placeholder graphic in their place.
   const paths = [];
@@ -196,6 +201,66 @@ export async function checkContent(root = ROOT) {
     if (!(await exists(join(root, p)))) warnings.push(`content.js mentions a file that doesn't exist: ${p}`);
   }
   return { errors, warnings };
+}
+
+export async function checkArtDetails(art, root = ROOT) {
+  const errors = [];
+  const object = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  if (art == null) return errors;
+  if (!Array.isArray(art)) return ['content.js art must be an array'];
+  const filePath = async (value, prefix, field) => {
+    if (typeof value !== 'string' || !value.startsWith(prefix) ||
+        value.split('/').some((p) => !p || p === '.' || p === '..') ||
+        /[\\?#%]/.test(value) || !IMAGE_EXT.test(value)) {
+      errors.push(`${field} must be a forward-slash PNG, JPG or WebP path inside ${prefix}`);
+    } else if (!(await stat(join(root, value)).catch(() => null))?.isFile()) {
+      errors.push(`${field} file does not exist (check spelling and case): ${value}`);
+    } else {
+      // Windows can resolve the wrong case locally; Linux deployments cannot.
+      let folder = root;
+      for (const part of value.split('/')) {
+        if (!(await readdir(folder)).includes(part)) {
+          errors.push(`${field} path case must match the file exactly: ${value}`);
+          break;
+        }
+        folder = join(folder, part);
+      }
+    }
+  };
+  for (const [i, piece] of art.entries()) {
+    const label = `content.js art[${i}] (${piece?.title || piece?.img || 'untitled'})`;
+    if (!object(piece)) { errors.push(`${label} must be an object`); continue; }
+    if (piece.details === undefined) continue;
+    if (!object(piece.details)) { errors.push(`${label}.details must be an object (or omit it)`); continue; }
+    await filePath(piece.img, 'assets/art/', `${label}.img`);
+    const d = piece.details;
+    for (const key of Object.keys(d)) {
+      if (!['year', 'medium', 'paragraphs', 'process'].includes(key)) errors.push(`${label}.details.${key} is not a supported field`);
+    }
+    for (const key of ['year', 'medium']) {
+      if (d[key] !== undefined && typeof d[key] !== 'string') errors.push(`${label}.details.${key} must be a string`);
+    }
+    if (d.paragraphs !== undefined && (!Array.isArray(d.paragraphs) || d.paragraphs.some((p) => typeof p !== 'string'))) {
+      errors.push(`${label}.details.paragraphs must be an array of strings (one per paragraph)`);
+    }
+    if (d.process === undefined) continue;
+    if (!Array.isArray(d.process)) { errors.push(`${label}.details.process must be an array`); continue; }
+    for (const [j, image] of d.process.entries()) {
+      const field = `${label}.details.process[${j}]`;
+      if (!object(image)) { errors.push(`${field} must be an object`); continue; }
+      for (const key of Object.keys(image)) {
+        if (!['img', 'alt', 'caption'].includes(key)) errors.push(`${field}.${key} is not a supported field`);
+      }
+      for (const key of ['img', 'alt', 'caption']) {
+        if (image[key] !== undefined && typeof image[key] !== 'string') errors.push(`${field}.${key} must be a string`);
+      }
+      const hasText = [image.img, image.alt, image.caption].some((s) => typeof s === 'string' && s.trim());
+      if (!hasText) continue; // an empty drafting slot produces no thumbnail
+      await filePath(image.img, 'assets/art-process/', `${field}.img`);
+      if (typeof image.alt !== 'string' || !image.alt.trim()) errors.push(`${field}.alt needs a useful image description`);
+    }
+  }
+  return errors;
 }
 
 /* ---------- 2 + 3. WebP copies and the art list ---------- */

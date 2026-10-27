@@ -59,7 +59,7 @@ a:hover, button, [role="button"], .desk-icon, .file-tile, .file-row, .petexe-wiz
 p, h1, h2, h3, li { cursor: var(--cursor-text); }
 :is(a, button, [role="button"]) :is(p, h1, h2, h3, li) { cursor: inherit; }
 /* Pictures that open full size: art, certificate scans and project screenshots. */
-.art-card[role="button"], button.cert-tile, .os-shot-open { cursor: var(--cursor-zoom); }
+.art-card-view[data-full], .art-process-view, button.cert-tile, .os-shot-open { cursor: var(--cursor-zoom); }
 
 /* ---------- CUSTOM PROPERTIES ---------- */
 :root {
@@ -1224,6 +1224,7 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
   --chip: var(--yellow);
   --chip-ink: var(--ink);
   position: relative;
+  width: 100%;
   min-width: 0;
   aspect-ratio: 5 / 7;
   perspective: 900px;
@@ -1231,8 +1232,8 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
   transition: rotate 0.35s var(--ease-bounce), translate 0.35s var(--ease-bounce);
 }
 .art-card.is-wide { grid-column: span 2; aspect-ratio: 7 / 5; }
-.art-card:hover, .art-card:focus-visible { z-index: 2; rotate: 0deg; translate: 0 -8px; }
-.art-card:focus-visible { outline-color: var(--periwinkle); outline-offset: 4px; border-radius: 16px; }
+.art-card.has-details { min-height: 320px; }
+.art-card:hover, .art-card:focus-within { z-index: 2; rotate: 0deg; translate: 0 -8px; }
 .art-card.filtered-out { display: none; }
 .art-card-tilt {
   height: 100%;
@@ -1252,6 +1253,77 @@ html[data-theme="dark"] .snap-preview, html[data-wall="navy"] .snap-preview { --
   background: var(--frame) var(--tx-card-stars);
   border: var(--border);
   border-radius: 14px;
+}
+.art-card-face[hidden] { display: none; }
+.art-card-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: 7px;
+}
+.art-card-view:focus-visible, .art-card-view.is-selected { outline: 3px solid var(--frame-ink); outline-offset: 2px; }
+.art-card-view-label {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 4px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+  background: var(--surface);
+  border-top: var(--border);
+}
+.art-card-flip, .art-card-actions button {
+  min-height: 44px;
+  padding: 5px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: 7px;
+}
+.art-card-flip { flex: none; }
+.art-card-flip:hover, .art-card-actions button:hover { background: var(--yellow-tint); color: var(--ink); }
+.art-card-actions { display: flex; flex-wrap: wrap; flex: none; gap: 5px; }
+.art-card-actions button { flex: 1 1 70px; }
+.art-card-notes {
+  flex: 1;
+  min-height: 0;
+  padding: 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: 7px;
+}
+.art-card-notes p + p { margin-top: 0.8em; }
+.art-card-meta { font-weight: 700; }
+.art-process { display: grid; gap: 12px; margin-top: 12px; }
+.art-process:first-child { margin-top: 0; }
+.art-process-view { display: block; width: 100%; padding: 0; overflow: hidden; border: var(--border); border-radius: 5px; background: var(--periwinkle-tint); }
+.art-process-view img { display: block; width: 100%; height: auto; }
+.art-process-image figcaption { margin-top: 4px; font-size: 0.78rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .art-card-back:not([hidden]) { animation: art-card-reveal 0.2s ease-out; }
+  @keyframes art-card-reveal { from { transform: rotateY(-12deg); opacity: 0.5; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .art-card, .art-card-tilt, .art-card-glint { transition: none; }
+  .art-card:hover, .art-card:focus-within { translate: none; }
 }
 .art-card-name {
   flex: none;
@@ -3593,6 +3665,8 @@ html.vt-theme .taskbar { view-transition-name: none; }
 }
 @media (max-width: 380px) {
   .desk-icons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .card-grid { grid-template-columns: minmax(0, 1fr); }
+  .art-card.is-wide { grid-column: auto; }
 }
 /* Short screens (a phone on its side): slimmer window chrome, so what's
    inside keeps most of the room. The folder path and the line under each

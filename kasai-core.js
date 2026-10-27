@@ -332,7 +332,9 @@
     const found = {};
     (GEN.art || []).forEach((a) => { found[a.img] = a; });
     const listed = (C.art || []).map((it) =>
-      Object.assign({}, it, { tag: it.tag != null ? it.tag : (found[assetKey(it.img)] || {}).tag || '' }));
+      // Keep generated title/category defaults when an author adds only
+      // details; all authored metadata (including the nested back) passes through.
+      Object.assign({}, found[assetKey(it.img)], it, { tag: it.tag != null ? it.tag : (found[assetKey(it.img)] || {}).tag || '' }));
     const mentioned = {};
     listed.forEach((it) => { mentioned[assetKey(it.img)] = mentioned[assetKey(it.full)] = true; });
     const fresh = (GEN.art || []).filter((a) => !mentioned[a.img]);

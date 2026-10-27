@@ -77,10 +77,17 @@
   // without a big picture (a file that isn't one) is skipped.
   const setOf = (t) => {
     const box = t.closest('[data-viewer-set]');
-    return box ? Array.prototype.filter.call(box.querySelectorAll('[data-full]'), (el) => !el.closest('.filtered-out')) : [t];
+    return box ? Array.prototype.filter.call(box.querySelectorAll('[data-full]'), (el) =>
+      el.closest('[data-viewer-set]') === box && !el.closest('.filtered-out')) : [t];
   };
   const altOf = (t) => { const thumb = t.querySelector('img'); return (thumb && thumb.alt) || t.getAttribute('data-caption') || ''; };
   const fileOf = (t) => t.getAttribute('data-file') || altOf(t) || 'picture.png';
+  // A gallery item has one canonical viewer entry on its front. Return
+  // focus to its visible View control if the card has since been flipped.
+  const viewerOpener = (t) => {
+    const card = t.matches('.art-card-view') && t.closest('.art-card.is-flipped');
+    return card ? card.querySelector('[data-art-view]') : t;
+  };
 
   // The viewer window, sized for the picture `t` opens.
   const viewerSpec = (t) => {
@@ -189,7 +196,7 @@
     // A swish, from the side it's heading for.
     if (K.sound) K.sound.play('flip', { pan: by === -1 || by === 'first' ? -0.35 : 0.35 });
     // Closing the viewer takes focus back to the picture's card or file.
-    fill(K.wm.open(viewerSpec(t), { refit: true, keepCentre: true, from: t, focus: false, push: false }), t, true);
+    fill(K.wm.open(viewerSpec(t), { refit: true, keepCentre: true, from: viewerOpener(t), focus: false, push: false }), t, true);
   };
 
   const STEP_KEYS = { ArrowLeft: -1, ArrowRight: 1, Home: 'first', End: 'last' };
@@ -222,11 +229,11 @@
   K.openViewer = (t) => {
     const thumb = t.querySelector('img');
     // Closing it takes focus back to the card or file.
-    const show = () => fill(K.wm.open(viewerSpec(t), { refit: true, from: t }), t);
+    const show = () => fill(K.wm.open(viewerSpec(t), { refit: true, from: viewerOpener(t) }), t);
 
     // The picture grows out of its card (a same-page view transition);
     // browsers without one simply open the window.
-    if (K.REDUCE_MOTION || !document.startViewTransition || !thumb || !thumb.complete) { show(); return; }
+    if (K.REDUCE_MOTION || !document.startViewTransition || !thumb || !thumb.complete || t.closest('[hidden]')) { show(); return; }
     K.wm.settle(); // no window caught mid-animation in its snapshots
     thumb.style.viewTransitionName = 'viewer-art';
     document.documentElement.classList.add('vt-viewer');
@@ -560,6 +567,39 @@
     return slug(it.title) + '.' + ext;
   };
 
+  const artDetails = (it) => {
+    const d = it.details || {};
+    const text = (s) => typeof s === 'string' ? s.trim() : '';
+    const paragraphs = (Array.isArray(d.paragraphs) ? d.paragraphs : []).map(text).filter(Boolean);
+    const process = (Array.isArray(d.process) ? d.process : []).filter((p) => p && text(p.img));
+    const meta = [text(d.medium), text(d.year)].filter(Boolean).join(' · ');
+    return { paragraphs, process, meta, exists: !!(meta || paragraphs.length || process.length) };
+  };
+
+  const artBack = (it, details) => {
+    const title = it.title || 'Untitled';
+    const process = details.process.map((p, i) => {
+      const set = thumbSrcset(p.img);
+      return `<figure class="art-process-image">
+        <button type="button" class="art-process-view" data-full="${esc(largeSrc(p.img))}" data-img="${esc(p.img)}" data-file="${esc(artFileName({ img: p.img, title: title + ' process ' + (i + 1) }))}" data-caption="${esc(p.caption || '')}" aria-label="View process image ${i + 1}: ${esc(p.alt || title)}">
+          <img src="${esc(webSrc(p.img))}"${set ? ` srcset="${esc(set)}" sizes="240px"` : ''}${dims(p.img)} alt="${esc(p.alt || '')}" loading="lazy" decoding="async" draggable="false" />
+        </button>${p.caption && p.caption.trim() ? `<figcaption>${esc(p.caption)}</figcaption>` : ''}
+      </figure>`;
+    }).join('');
+    return `<div class="art-card-face art-card-back" data-art-back hidden inert>
+      <span class="art-card-name">${esc(title)}</span>
+      <div class="art-card-notes" tabindex="0" role="region" aria-label="About ${esc(title)}">
+        ${details.meta ? `<p class="art-card-meta">${esc(details.meta)}</p>` : ''}
+        ${details.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}
+        ${process ? `<div class="art-process" data-viewer-set aria-label="Process images for ${esc(title)}">${process}</div>` : ''}
+      </div>
+      <div class="art-card-actions">
+        ${it.img ? `<button type="button" data-art-view aria-label="View ${esc(title)} full size">View artwork</button>` : ''}
+        <button type="button" data-art-flip aria-label="Back to front of ${esc(title)}">Back to front</button>
+      </div>
+    </div>`;
+  };
+
   const artCard = (it, i, n) => {
     const info = imgInfo(it.img) || {};
     const picked = info.colors || [];
@@ -570,29 +610,46 @@
     if (chip) style += `--chip:${chip};--chip-ink:${textOn(chip)};`;
     const wide = info.w && info.h && info.w / info.h >= 1.25;
     // A card is 168 to about 260px wide (a wide one two columns), half a
-    // phone each: the thumbnail is plenty unless the screen is high-density.
+    // phone each or one column on the narrowest phones.
     const set = thumbSrcset(it.img);
-    const sizes = wide ? '(max-width: 760px) 92vw, 540px' : '(max-width: 760px) 46vw, 260px';
+    const sizes = wide ? '(max-width: 760px) 92vw, 540px' : '(max-width: 380px) 92vw, (max-width: 760px) 46vw, 260px';
     const title = it.title || 'Untitled';
+    const details = artDetails(it);
     const viewer = it.img
       ? ` data-full="${esc(largeSrc(it.full || it.img))}" data-img="${esc(it.full || it.img)}" data-file="${esc(artFileName(it))}"` +
         ` data-colors="${esc(picked.join(' '))}" data-caption="${esc(title + (it.tag ? ' · ' + it.tag : ''))}"` +
-        ` tabindex="0" role="button" aria-label="View ${esc(title)} full size"`
+        ` aria-label="View ${esc(title)} full size"`
       : '';
     return `
-      <figure class="art-card${wide ? ' is-wide' : ''}" style="${style}" data-tag="${esc(it.tag || '')}"${viewer}>
+      <figure class="art-card${wide ? ' is-wide' : ''}${details.exists ? ' has-details' : ''}" style="${style}" data-tag="${esc(it.tag || '')}">
         <div class="art-card-tilt">
-          <div class="art-card-face">
+          <div class="art-card-face" data-art-front>
+            <${it.img ? 'button type="button"' : 'div'} class="art-card-view"${viewer}>
             <span class="art-card-name">${esc(title)}</span>
-            <div class="art-card-window">${it.img
+            <span class="art-card-window">${it.img
               ? `<img src="${esc(webSrc(it.img))}"${set ? ` srcset="${esc(set)}" sizes="${sizes}"` : ''}${dims(it.img)} alt="${esc(title)}" loading="lazy" decoding="async" draggable="false" />`
-              : doodleIcon('palette')}</div>
-            <p class="art-card-type"><span>${esc(it.tag || 'Art')}</span><img src="/assets/ui/favicon.png" alt="" /></p>
-            <p class="art-card-foot" aria-hidden="true"><span>${pad2(i + 1)}/${pad2(n)}</span><span>Kasai</span></p>
+              : doodleIcon('palette')}<span class="art-card-view-label">View artwork</span></span>
+            <span class="art-card-type"><span>${esc(it.tag || 'Art')}</span><img src="/assets/ui/favicon.png" alt="" /></span>
+            <span class="art-card-foot" aria-hidden="true"><span>${pad2(i + 1)}/${pad2(n)}</span><span>Kasai</span></span>
+            </${it.img ? 'button' : 'div'}>
+            ${details.exists ? `<button type="button" class="art-card-flip" data-art-flip aria-label="About ${esc(title)}: flip card">About this piece</button>` : ''}
             <span class="art-card-glint" aria-hidden="true"></span>
           </div>
+          ${details.exists ? artBack(it, details) : ''}
         </div>
       </figure>`;
+  };
+
+  const flipArtCard = (card, back, focus = false) => {
+    const front = card.querySelector('[data-art-front]');
+    const reverse = card.querySelector('[data-art-back]');
+    if (!reverse) return;
+    card.classList.toggle('is-flipped', back);
+    [front, reverse].forEach((face, i) => {
+      face.hidden = i === (back ? 0 : 1);
+      face.inert = face.hidden;
+    });
+    if (focus) (back ? reverse : front).querySelector('[data-art-flip]').focus({ preventScroll: true });
   };
 
   // Cards lean towards the mouse, and the foil glint follows it across.
@@ -631,15 +688,18 @@
       win.body.innerHTML = `<div class="card-grid" data-viewer-set>${ART.map((it, i) => artCard(it, i, ART.length)).join('')}</div>`;
       const grid = win.body.querySelector('.card-grid');
       if (!K.REDUCE_MOTION) grid.querySelectorAll('.art-card').forEach(tiltCard);
+      K.openable(grid, '.art-card-view[data-full]', K.openViewer);
       grid.addEventListener('click', (e) => {
-        const card = e.target.closest('[data-full]');
-        if (card) K.openViewer(card);
+        const flip = e.target.closest('[data-art-flip]');
+        const card = e.target.closest('.art-card');
+        if (flip) flipArtCard(card, !card.classList.contains('is-flipped'), true);
+        const view = e.target.closest('[data-art-view]');
+        if (view) K.openViewer(card.querySelector('.art-card-view'));
+        const process = e.target.closest('.art-process-view');
+        if (process) K.openViewer(process);
       });
-      grid.addEventListener('keydown', (e) => {
-        const card = e.target.closest('[data-full]');
-        if (card && e.target === card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); K.openViewer(card); }
-      });
-      win.setStatus(`<span class="binder-status">${esc(binderStatus(ART.length))}</span>`);
+      const status = (shown) => `<span class="binder-status">${esc(binderStatus(shown))}</span>${K.hint('Double-click artwork to view it', 'Tap artwork to view it')}`;
+      win.setStatus(status(ART.length));
 
       // The menu bar: one item per category plus Shuffle. Filtering toggles a
       // class (no re-render), so each card's wiring survives.
@@ -669,10 +729,14 @@
         const tag = btn.getAttribute('data-tag');
         bar.querySelectorAll('[data-tag]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
         const match = (card) => tag === '*' || card.getAttribute('data-tag') === tag;
+        Array.from(grid.children).filter((card) => !match(card)).forEach((card) => {
+          if (card.contains(document.activeElement)) btn.focus();
+          flipArtCard(card, false);
+        });
         K.glide(grid, { show: match });
         const shown = Array.prototype.filter.call(grid.children, match).length;
         said.textContent = 'Showing ' + shown + ' of ' + grid.children.length + ' pieces';
-        win.setStatus(`<span class="binder-status">${esc(binderStatus(shown))}</span>`);
+        win.setStatus(status(shown));
       });
     },
   };

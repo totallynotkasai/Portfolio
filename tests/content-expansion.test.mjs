@@ -44,5 +44,10 @@ test('production packaging excludes review directories and production pages do n
   const build=readFileSync(new URL('../build/build.mjs',import.meta.url),'utf8');assert.match(build,/const SITE_DIRS = \['assets', 'fonts'\]/);
   const root=new URL('../',import.meta.url);for(const file of readdirSync(root).filter(f=>/\.(html|js)$/.test(f)))assert.doesNotMatch(readFileSync(new URL(file,root),'utf8'),/design-lab\/content-expansion/);
   // Build must run first for the physical artifact check (documented command).
-  if(existsSync(new URL('../dist/about.html',import.meta.url)))assert.equal(existsSync(new URL('../dist/design-lab/content-expansion',import.meta.url)),false);
+  if(existsSync(new URL('../dist/about.html',import.meta.url))){
+    assert.equal(existsSync(new URL('../dist/design-lab/content-expansion',import.meta.url)),false);
+    assert.equal(existsSync(new URL('../dist/qa',import.meta.url)),false);
+    for(const file of readdirSync(new URL('../dist/',import.meta.url)).filter(f=>/\.(html|js|css)$/.test(f)))
+      assert.doesNotMatch(readFileSync(new URL('../dist/'+file,import.meta.url),'utf8'),/REVIEW FIXTURE|art-setup\.js|art-end\.js|\/dist\/qa\//);
+  }
 });
