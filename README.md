@@ -55,10 +55,10 @@ npm run build          # build the deployable site into dist/
 Phase 1 content-expansion previews run through that source server:
 
 - [Design lab](http://localhost:4321/design-lab/content-expansion/index)
-- [Drawing music box](http://localhost:4321/design-lab/content-expansion/music)
-- [Spell hockey](http://localhost:4321/design-lab/content-expansion/hockey)
+- [Starweave musical spell circle](http://localhost:4321/design-lab/content-expansion/starweave)
+- [Hat to Hat spell duel](http://localhost:4321/design-lab/content-expansion/duel)
 
-These are isolated review pages, excluded from `dist/` and production launchers. Music sound requires Enable sound; hockey provides direct power controls and a relative phone pad. Neither preview saves portfolio data. Run `npm test` for the drawing/audio/physics regressions. See [the canonical plan](CONTENT_EXPANSION_PLAN.md), [baseline](CONTENT_EXPANSION_BASELINE.md) and [preview notes](design-lab/content-expansion/README.md) for scope and verification limits. Stop the source server with Ctrl+C when finished trying them.
+These are isolated review pages, excluded from `dist/` and production launchers. Starweave uses musical runes and the animated pet conductor; sound requires Enable sound. Hat to Hat uses deliberate casts, timed shields, self/portal damage and a phone pad. Neither preview saves portfolio data. Run `npm test` for the drawing/audio/physics regressions. See [the canonical plan](CONTENT_EXPANSION_PLAN.md), [baseline](CONTENT_EXPANSION_BASELINE.md) and [preview notes](design-lab/content-expansion/README.md) for scope and verification limits. Stop the source server with Ctrl+C when finished trying them.
 
 ## Licence
 

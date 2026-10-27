@@ -1,0 +1,2 @@
+// The real animated pet artwork, without mounting or changing desktop state.
+export function companion(element){element.innerHTML=window.Kasai.WIZARD_RIG.svg;const svg=element.querySelector('svg'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;svg.setAttribute('data-state','idle');return{pose(name='idle'){svg.setAttribute('data-state',name);if(reduced)svg.setAttribute('data-frame',name==='party'?'happy':name);}};}

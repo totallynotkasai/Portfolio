@@ -2,7 +2,7 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Phase 1 previews implemented and verified, awaiting Andrew's hands-on feedback.** Andrew approved the previously uncommented proposals, with the changes recorded below. Music-box and hockey design decisions require working previews before further input. Enchantment multiplier details remain design proposals to validate rather than settled balance values. Implementation is limited to Phase 0 and the isolated Phase 1 previews; later phases await a separate continuation.
+**Status: Phase 0 complete; revised Phase 1 implemented and verified, awaiting Andrew’s next hands-on review.** Musical spellcraft and a hat duel replace the original concepts. Other accepted scope is preserved.
 
 **Single implementation branch: `codex/content-expansion`.** Keep every phase, preview, fix and final integration on this branch. Use phase-sized commits; no branch per feature. Push, merge and deploy are separate from this planning request.
 
@@ -25,8 +25,8 @@ Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 | 25 | Optional Solitaire contracts and double rewards | From deal four; prove offered contracts doable; two choices for target plus sweep. |
 | 33 | Art card reverse sides | A separate flip control reveals authored notes and process images; full-size artwork remains easy to open. |
 | 35 | A current novel introduction | Build a reusable writing overview with optional premise, characters, setting and sample sections; Andrew supplies the actual material. |
-| 41 | A drawing-based music box | Horizontal position means time, vertical position means pitch. Visitors draw an editable musical pattern with predictable results. |
-| 44 | A magical air-hockey game | A short match against an AI, with a physical puck and occasional on-table Fire and Electric pickups. |
+| 41 | Musical spellcraft with the pet | Place symbols around a spell circle to compose music; the pet conducts and reacts. |
+| 44 | A hat spell duel against the pet | Deliberate casts, timed shields, self and portal defence, and on-field spell runes. |
 
 Keep the site's visual language, vanilla JavaScript architecture, lazy loading, keyboard controls, mobile layouts and existing sound preference. New visual effects must have reduced-motion alternatives. Content features must look complete when only some optional information exists.
 
@@ -344,121 +344,34 @@ No release date, fixed posting schedule, word count or percentage is required. L
 - Document the exact editing location/template in the same authoring guide, `content.js` comments and README.
 - Verify the entry with only the existing summary, with premise only, with images but no sample, and with a long sample. No empty headings, broken links or misleading sample labels.
 
-## 8. Idea 41: draw a pattern to make a tune
+## 8. Idea 41: Starweave, musical spellcraft
 
-### Preview-first concept: Starline Music Box (working name)
+**Revised after Andrew tried the first preview.** The initial grid editor missed the intended whimsy. It is superseded by a musical spell circle, with the virtual pet participating in the interaction. This revision takes precedence over the original rectangular piano-roll specification.
 
-**Design checkpoint:** the specification below is a starting prototype brief. Andrew needs to try a working preview before choosing the final drawing behaviour, layout and controls. Build phase 1's preview first; do not interpret earlier silence on this idea as approval of final interactions.
+Place Star, Ember and Moon symbols around sixteen clockwise moments. Angle means time; four concentric pitch rings mean C4, E4, G4 and C5 in the initial prototype. The symbols produce different synthesised chime, pluck and soft humming voices. Duration is an explicit one/two/four-moment choice. The star travels around the circle on the audio clock while the actual animated pet conducts and reacts to the ingredients. Lines between runes form the visible spell. Provide original recipes to remix rather than present an empty technical editor.
 
-A small creative app containing a musical grid. Drawing a rising staircase makes a rising melody; a low horizontal stroke makes a held low note; spaced dots make repeated notes. A playhead moves from left to right while the wizard conducts. The mapping is visible and consistent, so a visitor can deliberately reproduce a tune.
+Place/replace/erase, Undo, deliberate sound, Play/Stop, loop and tempo remain useful. Provide large equivalent numbered moment controls and ingredient/pitch selection for phones and keyboard users. Musical mapping must remain predictable: no arbitrary symbol recognition or opaque generated music. Sound stops on editing, Stop, mute, hiding or loss of window focus. Reduced motion keeps state legible without requiring pet animation.
 
-Provide a clear launch tile in the existing Games window, labelled as a creative toy rather than a scored game, avoiding another desktop icon solely for this release. Keep the app's registration flexible if its eventual home changes.
+Retain the previously agreed later-phase local autosave/named patterns, validated editable JSON import/export, visual PNG export and Match the tune activity, adapted to the approved rune model. Preserve explicit pitch, start and duration data with stable IDs; do not silently retune a composition when changing its pitch palette. MIDI/audio export remains outside scope.
 
-### Drawing and musical model
+Phase 1 reviews the circle, sound differences, pet involvement and whether combining ingredients feels playful. Named saves, richer scales, longer compositions, import/export, the final music activity and production sound/OS integration await Phase 7 and feedback. Do not merely reskin the old grid. The initial kernels may remain as historical experiments; they are not the current interaction.
 
-- **Horizontal = time.** Start with 16 steps, grouped into four beats at four steps per beat. That is one bar in 4/4. Allow 32 steps (two bars) and 64 steps (four bars) using pages; never squeeze 64 tiny columns into a phone's width.
-- **Vertical = pitch.** Default to 15 labelled rows from C4 to C6 in C major. Higher cells sound higher. Highlight C rows and beat boundaries. Offer a pentatonic scale for easy improvisation and a chromatic mode for tunes requiring accidentals.
-- **One active note per step initially.** This makes drawing predictable. Chords/polyphonic layers can be considered separately after the core tool is approved; they are not part of this plan's first release.
-- **Pencil gesture:** sample the path at each crossed time column; the latest position visited in that column wins. Replace that step's existing pitch instead of accumulating accidental chords. Interpolate skipped columns during a fast drag.
-- **Held notes:** adjacent equal-pitch steps drawn in the same stroke join into one note. Separate taps/strokes produce separate attacks. Show joined cells as one connected bar, and offer a Split/Join command to correct the result.
-- **Silence:** empty steps are rests. Eraser removes cells, splitting a held note if necessary. Drawing backwards edits time positions; it does not reverse playback order.
-- **Scale changes:** preserve note pitches. If notes fall outside the newly selected scale, retain them with a warning/extra rows until the visitor explicitly chooses Snap to scale. Do not silently change a tune.
-- Tempo defaults to a proposed 100 BPM, adjustable from 50 to 180. Changing tempo changes duration, not pitch. New notes receive a gentle fixed envelope and moderate volume.
+## 9. Idea 44: Hat to Hat, a spell duel
 
-Example: drawing C4 across steps 1-4 creates a one-beat held C; separate C4 taps on steps 1, 3, 5 and 7 make four distinct short notes. A staircase C4-D4-E4-G4 across four successive steps produces that exact four-note phrase.
+**Revised after Andrew tried the air-hockey preview.** The continuous puck, passive strikers and first-to-five goal match are superseded. The player controls a coloured wizard hat against the pet wizard's hat. The player defends both their own hat and their portal, deliberately casts projectiles and uses a brief reaction shield to return incoming spells.
 
-### Making a specific tune
+Initial Phase 1 tuning, explicitly provisional:
 
-1. Select the tune length, scale/chromatic mode and tempo.
-2. Draw its pitch contour, then listen on a loop.
-3. Correct individual notes using row labels, keyboard editing, rests and note lengths.
-4. Optionally enable a reference overlay for an original example melody. Show its target notes faintly so visitors can trace or recreate it.
+- Six hearts each. An unshielded hat hit costs one heart; a portal hit costs two. Fire adds one damage. Damage clears that projectile, with a short hit grace period.
+- Cast at a chosen time and angle. One live cast originating from each side, at most two orbs total. Parrying changes the threatening owner while retaining the original caster slot, so returns cannot bypass the budget. A spell expires after eight active seconds or bounded wall contacts; there is no automatic persistent ball or serve loop.
+- A Spell Shield opens for 0.35 active seconds, then recharges over 1.8 seconds. A successful parry spends the shield and returns the orb along that hat's aim. Holding the key does not maintain a shield. There is no passive striker reflection: dodging and shielding make different decisions.
+- Shoot through visible on-field Fire/Electric runes to empower a shot. Fire speeds travel and adds damage; Electric makes the next two side banks leave at 45 degrees toward the same end. Runes recharge, powers do not stack, and a parry retains an acquired power. Field geometry and exact effects remain review proposals.
+- Pointer/touch move and aim modes, a relative phone movement pad, aim slider, separate Cast/Shield buttons, and keyboard movement/aim/cast/shield/pause. Aimed casting should not require covering an orb with a finger.
+- Bounded movement/AI, a visible enemy cast wind-up, swept projectile collisions with moving hats, shields, walls, posts, portals and rune gates. Fixed-timestep simulation, bounded catch-up and projection-only resizing. No orb-to-orb collisions initially.
+- The existing animated pet is the opponent and reacts to casting, parries and hits. Player hat colour is selectable. Keep the site's own art/visual language.
+- Pause freezes every combat clock. Require a visible Resume countdown after interruptions. Keep a quiet-arena practice option and an explicit incoming-shot test for shield review. Real-time nonvisual equivalence is not claimed.
 
-Propose three original built-in patterns: a rising greeting, a gentle lullaby and a short game-like jingle. These are demonstrations of the tool, not claims about the website's current music.
-
-An optional **Match the tune** activity uses those same original patterns: listen, draw, then compare. Compare the actual pitch/start/length data when the visitor presses Check; explain mismatches by step. Tempo is ignored unless explicitly part of that exercise. Do not run opaque tune recognition or claim that an arbitrary picture automatically becomes a recognisable song.
-
-### Controls, saving and sound
-
-- Controls: Pencil, Eraser, Split/Join, Undo/Redo, Play/Stop, Loop, tempo, scale, pattern length and Clear with undo available.
-- Keyboard: arrow keys move a grid cursor, Enter toggles a note, Delete erases, a command extends/shortens a note, and labelled toolbar buttons provide equivalent actions. Announce note name, position, duration and whether a note begins or continues.
-- On phones use a comfortably sized editable viewport with vertical pitch scrolling and time pages. Keep Play/Stop and the current page indicator reachable while drawing. Distinguish edit gestures from navigation with explicit tools/scroll controls.
-- Autosave the current pattern locally; offer a small bounded set of named local patterns. Clearly describe that browser storage is device/browser-specific.
-- Include validated JSON import/export for editable patterns and PNG export for the visible notation with enough data to identify tempo/scale/length. Shareable URL encoding, MIDI and audio export are outside the first release.
-- Extend the existing sound service with a dedicated scheduled-note transport using its AudioContext/mixer and global mute. Named game sound effects are rate-limited and unsuitable as a sequencer.
-- Play while muted becomes an explicit **Enable sound and play** action; this turns on the existing global preference through a user gesture. Editing never enables sound automatically.
-- Schedule notes against the audio clock with a short lookahead; the visual playhead follows that clock. Avoid timing the tune with animation frames alone. Cancel queued notes on Stop, close, minimise, tab hiding or global mute, and require Play to resume after an interruption.
-- Store note events with stable IDs, start step, pitch and duration, separate from their drawing strokes. Validate bounds, file size, durations and supported format version on import.
-
-### Review and completion criteria
-
-Andrew reviews the grid mapping, held-note gesture and controls in the working preview before full integration. Match the tune remains in the accepted scope as a secondary activity after the free drawing instrument works; the preview can change its presentation without reopening approval of every earlier accepted detail.
-
-Verify predictable fast/backward strokes, repeated notes versus holds, erasing a hold, undo, page boundaries, scale changes, tempo changes without overlapping transports, import round-trips and interrupted playback. Listen on an actual phone as well as desktop. Audio quality and touch comfort require human review.
-
-## 9. Idea 44: magical Pong / air hockey
-
-### Preview-first concept: Spell Hockey (working name)
-
-**Design checkpoint:** build a playable preview with plain, Fire and Electric puck controls so Andrew can compare them. The mechanics below are starting values for that preview. Full app integration, final effects and tuning follow feedback, not assumed approval.
-
-Use a top-down **air-hockey table with circular strikers**, one at each end, rather than fixed Pong bars. The player controls the bottom striker against an AI at the top. A central goal opening at each end lets a puck score; the remainder of each end is a wall. The wizard can referee from outside the playing area.
-
-Start with a short **first to five** match, a quick rematch button and an optional practice mode. The base match should feel good before any powers are introduced. An optional Plain / Magic toggle allows the physics and AI to be enjoyed either way. Local multiplayer, online play and a tournament mode are outside this initial scope.
-
-### Core movement and fairness
-
-- The player's striker stays in its own half, with a small central buffer. The AI obeys the same restrictions and maximum movement speed.
-- Mouse/touch positions are movement targets, not teleports. Integrate toward them at a capped speed so a fast swipe cannot create unlimited puck velocity.
-- Use direct drag/point movement on desktop. On touch, also provide a relative control pad below the table, keeping fingers away from the puck. Handle pointer capture/cancellation and offer a short control demonstration.
-- Arrow keys or WASD move the player striker. Diagonal input is normalised. Space pauses; explicit buttons provide pause/resume and restart.
-- A moving striker transfers a bounded impulse to the puck, so hitting through it creates a stronger shot and sideways movement creates an angled shot. Apply only slight table drag so rallies keep moving.
-- The AI has a reaction delay, bounded speed, a limited prediction horizon and small aiming error. It never reads the player's future input. Easy/Normal change these values, not the puck's rules.
-- After a goal, clear powers and pickups, reposition both strikers, and serve with a short visible countdown. Alternate the opening serve; subsequent serves go to the conceding side. Prevent immediate unblockable serves.
-
-### How powerups spawn and activate
-
-The **puck** collects powerups by passing over them; players steer shots toward the pickup. This gives both sides access and changes the puck's behaviour with whoever next encounters it.
-
-- Proposed cadence: first pickup after eight seconds of active rally, then every 10-14 active seconds while eligible. No timer progress during pause/countdown.
-- Only one pickup and one active puck power at a time. While a power is active, pause spawning; do not allow unclear stacking or replacement.
-- Place pickups within a central band, clear of strikers, goals, walls and the puck's immediate collision path. Show a brief materialising outline before collection becomes active so a new power cannot appear directly under the puck unexpectedly.
-- An uncollected pickup expires after six seconds, followed by a cooldown before the next attempt. All durations and probabilities are tuning values.
-- The puck carries a distinct symbol and concise timer/charge indicator. A small label announces the change. Do not rely on flames, sparks or colour alone.
-
-### Proposed first powers for Andrew to review
-
-| Power | Player interaction | Table interaction | End condition |
-| --- | --- | --- | --- |
-| Fireball | The next striker contact gives a stronger rebound and a small immediate recoil to that striker, with control retained. | Each side-wall bounce adds a small speed boost within a strict cap. | Next striker contact, a goal, or five active seconds. |
-| Electric | The next striker contact adds an amplified but capped contribution from the striker's sideways velocity, allowing a deliberate angled return. | The next two side-wall bounces leave at a predictable 45-degree inward angle, preserving travel toward the same end of the table. | Next striker contact, two charged wall bounces, a goal, or six active seconds. |
-
-**Fireball detail:** propose +10% speed on a side-wall bounce, capped at 1.3 times normal maximum; apply a maximum powered-strike speed of 1.4 times normal maximum. Recoil is a small position change away from the contact, no more than 2% of table height and clamped to the striker's legal area. Never stun, disable input or shove a striker through its goal. Fire is consumed by the striker hit, after calculating the powered collision. Recoil size needs an early playtest; remove recoil if it feels like loss of control.
-
-**Electric detail:** the charged side-wall bank explicitly sets equal-magnitude horizontal/vertical components into the table, preserving speed and the existing vertical sign. Near-horizontal shots use the last meaningful vertical direction. Show a short bank-direction guide during approach so the changed rebound can be anticipated. End-wall rebounds stay ordinary; the power counter counts side walls only. On a striker hit, amplify the usual sideways velocity contribution by a proposed 25%, clamp outgoing speed/angle, then consume the power. It never homes automatically, teleports or stuns a player.
-
-The goal is a fast, aggressive Fire puck and a bank-shot/control-focused Electric puck. Both affect returns and table play through clearly different rules. These exact effects are proposed mechanics, not approved requirements. If Electric's fixed bank feels too artificial, the alternative is a smaller fixed angle adjustment toward the same end; choose after prototyping, not by piling both rules together.
-
-### Physics and OS integration
-
-- Implement a fixed-timestep simulation in normalised table units with frame-time accumulation and bounded catch-up. Rendering interpolates state; window resizing changes projection, not physics or speed.
-- Use swept collision/time-of-impact handling for puck/striker, walls, goal posts and pickup crossings. A fast Fire puck must not tunnel through a striker or count a goal twice.
-- Resolve simultaneous contacts in a stable order, separate overlapping bodies, and apply a rebound once per contact. Include minimum outward velocity to avoid a puck vibrating inside a striker or sticking on a wall.
-- Goal detection requires the puck to cross the goal line inside the opening, accounting for puck radius. Rounded post collisions are part of the geometry.
-- Use a lazy-loaded `hockey.js` module following the existing mount/unmount convention, a tile in Games, shared UI chrome and synthesised sound effects. Extend content-driven names/help in `content.js`.
-- Pause and silence on minimise, close, hidden tab, pointer interruption or focus leaving the active game controls. Resuming requires a visible action/countdown; do not let the AI score while the visitor is using another app.
-- Do not run two real-time apps' active input loops against each other. The music toy stops when its window is no longer active; the hockey game pauses on losing focus.
-- Reduced motion removes shake/trails/flashes without changing the puck physics. Use simple score, serve, goal and pause announcements rather than a continuous stream of screen-reader collision messages. Keyboard access does not by itself make a real-time physics game fully accessible; assess its practical usability honestly.
-
-### Build and playtest sequence
-
-1. Plain puck, table, goals and human striker; tune collision feel.
-2. Fair AI, scoring, countdown, pause and phone controls.
-3. Add Fireball and evaluate speed/recoil limits.
-4. Add Electric and evaluate whether its bank rule is readable and fun.
-5. Add spawn cadence, restrained effects, help, statistics and integration polish.
-
-A match is ready when rallies feel controllable without powerups, goal posts behave consistently, both powers remain returnable, the AI respects its limits, phone gestures work, and pause/resume cannot create a free goal. Keep local wins/losses and best rally as modest optional records; no online leaderboard is needed.
+Phase 1 must test the two simultaneous defensive targets, timing, readable threats, deliberate orb release, spell gates and pet character. Final balance, sound, art polish, records, progression and production integration wait for Phase 8 and feedback.
 
 ## 10. Phased implementation plan
 
@@ -468,7 +381,7 @@ A match is ready when rallies feel controllable without powerups, goal posts beh
 - Commit each completed phase, or a coherent substep within a large phase, on that branch. Suggested commit subjects below are descriptions, not instructions to push or merge.
 - Keep previews, reusable rule code and final implementation together. Keep review-only preview pages out of the production build unless Andrew explicitly wants them published.
 - Update this document's progress boxes as work actually completes. Acceptance of scope does not mean a phase is finished.
-- Phase 0 baseline and Phase 1 preview implementation are complete. Production integration remains deferred; stop here for Andrew to try the previews.
+- Phase 0 remains complete. Revised Phase 1 is ready for Andrew’s review; stop before later phases and production integration.
 - Full music/hockey integration depends on Andrew trying their previews. Independent approved phases may continue while that feedback is pending.
 - Avoid new blanket approval stops for accepted art, writing and contract details. Ask for missing authored material when needed; render optional sections safely without inventing it.
 
@@ -486,56 +399,37 @@ A match is ready when rallies feel controllable without powerups, goal posts beh
 
 Suggested commit: `docs: record phased content expansion plan`.
 
-### Phase 1: working previews for the music box and hockey
+### Phase 1: revised previews, pet-led musical spells and a hat duel
 
-**Purpose:** give Andrew something concrete to try before requesting design input.
+**Revision implemented (27 October 2026).** Andrew’s feedback replaced the initial grid editor and plain air hockey as the direction for these features. The first implementation and its 38-test result remain historical evidence, not approval of those concepts. Phase 0 is complete and is not being repeated.
 
-**Implementation status (27 October 2026): complete for review.** The previews are available through `npm run dev`:
+Current review paths through npm run dev:
 
-- [Music box](http://localhost:4321/design-lab/content-expansion/music)
-- [Spell hockey](http://localhost:4321/design-lab/content-expansion/hockey)
-- [Review hub](http://localhost:4321/design-lab/content-expansion/index)
+- [Starweave](http://localhost:4321/design-lab/content-expansion/starweave)
+- [Hat to Hat](http://localhost:4321/design-lab/content-expansion/duel)
+- [Workshop](http://localhost:4321/design-lab/content-expansion/index)
 
-Progress and evidence:
+Revision checklist:
 
-- [x] Editable labelled 16-step, 15-pitch music grid; Pencil/Eraser, interpolated fast/backward strokes, stroke-based holds versus separate attacks, Split/Join, Undo, Play/Stop, tempo and loop.
-- [x] Original sample and target overlay; deliberate Enable sound/Mute; audio-clock transport, cancellable queued voices and visible playhead. Muting preserves the pattern.
-- [x] Phone time paging and keyboard edits; verified at 390px without page-width overflow. Narrow-browser pointer checks do not establish real-phone touch comfort.
-- [x] Circular player/AI hockey strikers, actual swept puck/striker/post/table/pickup collisions, radius-aware goals, score, conceding-side serve/countdown, first-to-five match, pause/resume and alternating opening serves on rematch.
-- [x] Plain/Fire/Electric manual controls, ordinary pickup toggle, active-time timers/charges, Electric bank guide, bounded speed/impulses and small clamped Fire recoil. These are initial proposed powers, not final approved mechanics.
-- [x] Pointer/drag, keyboard and relative phone control pad, with a Pause/Resume button next to the pad. Real browser rallies and a pad drag were exercised.
-- [x] Small standalone note/audio/physics kernels, isolated review UI and concise limitation/help text. Production launchers, content, Solitaire and sound service are untouched.
-- [x] `npm test`: **38/38 passing** (23 baseline plus 15 preview regressions). Includes cancelled audio voices, interpolation/holds/erase, moving-striker sweeps, posts/goals, power rules, spawn/expiry, pause timers and five seeded stress matches ending at five. A wall-pinch issue discovered by stress testing was repaired and retained under regression coverage.
-- [x] `npm run build`: success without warnings. Source HTTP pages and all six script/style dependencies return 200 with correct MIME types. Physical `dist/` and root reference scan contain no preview; the production-preview server returns 404 for the hub, music, hockey and preview module while `/` returns 200.
-- [x] Browser checks: actual held drawing versus separate taps, Undo, sample/overlay, Play/playhead/Stop/Mute and keyboard edits; hockey Serve/countdown, pause/resume, manual powers, actual rallies, relative-pad pointer drag and pause when focus leaves game controls. No warning/error console entries observed.
-- [x] Clear open paths, browser previews and review notes supplied. See `design-lab/content-expansion/README.md` for operation and kernel boundaries.
-- [ ] Andrew tries both previews and supplies feedback on drawing, listening, holds, rally/AI feel, powers/recoil and real-phone controls. No user feedback or final design approval has been inferred.
+- [x] Record Andrew's feedback and replace sections 8/9 and the dependent Phase 7/8 briefs. Keep approved unrelated phases intact.
+- [x] Build a working musical spell circle with three audible rune families, predictable timing/pitch/duration, remixable original recipes and the actual animated pet conducting/reacting.
+- [x] Provide accessible moment buttons, phone controls, Undo, deliberate audio, clock-synchronised playback and cancellation.
+- [x] Build the coloured-hat duel with self/portal damage, chosen casts, bounded simultaneous projectiles, short timed shields, field rune powerups and expressive pet opponent.
+- [x] Provide pointer/touch/keyboard movement and aiming, phone pad/Cast/Shield, pause/countdown and explicit practice controls.
+- [x] Exercise meaningful music/audio and combat-rule tests, desktop/phone browser behaviour, console errors, production build and review-page exclusion.
+- [x] Update review notes with actual results, remaining limitations and direct preview links; commit on the same branch without pushing.
+- [ ] Andrew tries the revised concepts and supplies further feedback. Do not infer final design approval.
 
-**Remaining prototype limits:** music is one C-major bar with one sine voice/sample, no saves/reload persistence, longer patterns, import/export or full Match the tune activity. Hockey has no statistics, production sound or OS integration; rendering currently shows fixed-step positions rather than interpolating them. Actual-device listening/touch and more extreme-contact playtesting remain for review/integration. Stop/mute cancellation is covered by the transport tests and browser controls; hidden-tab/window-blur handlers are implemented, but an actual OS interruption/phone-audio test has not been independently established. Browser automation across background tabs did not reproduce native tab visibility changes, so it is not counted as that check. Phases 2–9 remain unstarted.
+Stop after this revised Phase 1. Phases 2 onward and production integration are outside this continuation.
 
-Deliver two isolated browser previews, provisionally under `design-lab/content-expansion/`, using the site's colours/window framing and runnable through the local dev server. Provide an obvious open path/link and test it. Verify the current build excludes review-only pages; do not expose a new live app automatically.
+Verification of the revised concepts:
 
-**Music preview must include:**
-
-- A usable 16-step pitch/time drawing grid with labelled notes, Pencil, Eraser, holds versus repeated notes, Undo, Play/Stop and tempo.
-- A small original sample melody to load, edit and compare against a target overlay.
-- Working sound enabled only through a deliberate action, a visible playhead and a phone-sized layout.
-- Enough note-editing detail to answer “Can I deliberately draw the tune I want?”.
-- A clearly labelled limitation list: named saves, longer patterns/import/export and the complete activity can wait for the full phase.
-
-**Hockey preview must include:**
-
-- A playable top-down table, circular player/AI strikers, goals, score, serve and pause.
-- Plain / Fire / Electric test controls, plus an ordinary pickup-spawning toggle. Manual testing must not require waiting for random spawns.
-- Keyboard and pointer/touch controls, speed limits, visible power duration/charges and understandable bank behaviour.
-- A brief written explanation beside the preview so Andrew can connect an observed rebound to its rule.
-- A phone-sized control-pad option, not merely a desktop animation.
-
-**Build approach:** reuse small standalone note/physics kernels in the eventual apps where practical. Keep preview-specific debug controls out of production. The previews should establish actual interactions, not only static mockups or screenshots.
-
-**Exit:** both previews open, respond, sound/play correctly, and include concise known limitations. Show them to Andrew and record feedback on drawing, puck feel, powers and controls. Pending feedback gates phases 7/8, not unrelated approved work.
-
-Suggested commits: `feat: prototype drawing music box`; `feat: prototype spell hockey`.
+- npm test: **53/53 pass**, comprising 23 original baseline tests, 15 retained initial-kernel regressions and 15 new musical-circle/audio/duel tests. New checks cover angle/pitch round-trips, actual waveform/harmonic differences and cancelled voices, chosen casts/two-orb budget, hat versus portal damage, shield timing/recharge/parry ownership, rune crossings, Fire/Electric rules, expiry, pause/countdown, moving-hat limits, swept posts and deterministic combat stress.
+- npm run build: success without warnings. Revised source routes/dependencies return HTTP 200. The production-preview server returns 404 for Starweave, the duel and the companion module while the portfolio root returns 200. The physical output/reference scan confirms exclusion. That temporary production server is stopped; the source server is retained for Andrew’s review.
+- Browser: audible-transport activation and cancellation, circle/numbered placement, actual ingredient drag, three-family pet response, Undo and mute preserving the composition. Duel: empty quiet arena, chosen cast causing a hat hit, a shot collecting Fire and later dealing three portal damage, shield activation without accidental pause, explicit pause/resume, aim slider and relative-pad movement. Desktop and 390px layouts have no horizontal page overflow. Console checks found no warnings/errors.
+- A UI focus bug discovered in playtesting was fixed: disabling Cast/Shield after use no longer automatically pauses combat. Keyboard and the focused arena remain usable after button activation.
+- Prototype limits are displayed on both pages: music has four pitches/sixteen moments/three voices, no saves/export/full activity; duel has initial balance/AI, circular hit areas, eight-second life and no orb-to-orb collisions, records, sound or OS integration. Actual phone listening/touch, live parry comfort, native OS/tab interruption and subjective game/music feel remain user/device checks. Do not count desktop automation as those checks.
+- The old /music and /hockey links lead to the revised pages. Original unused editor/hockey UI modules and kernels remain tracked as historical experiments; the shared circle sweep is reused by the duel. They are not the approved current concepts.
 
 ### Phase 2: art reverse sides and content authoring
 
@@ -622,31 +516,26 @@ Deliver in coherent substeps, with tests after each.
 
 Suggested commits: `feat: add Solitaire card enchantments`; `feat: clarify curse and card states`; `feat: offer achievable contracts from deal four`.
 
-### Phase 7: complete the music app after preview feedback
+### Phase 7: complete musical spellcraft after revised preview feedback
 
-- [ ] Record the phase 1 feedback and amend section 8 where needed.
-- [ ] Promote the approved drawing/note model and shared audio transport into a lazy-loaded app.
-- [ ] Complete paging/lengths, scales, note editing, local saves and validated JSON/PNG export/import as applicable. PNG export is visual only; editable import is JSON.
-- [ ] Add the original patterns and Match the tune activity after the instrument is reliable.
-- [ ] Integrate global sound, interruption handling, app launch, keyboard/mobile controls and documented storage behaviour.
-- [ ] Verify no scheduled notes survive Stop, mute, close or tab hiding.
+- [ ] Settle the rune circle, sound families, durations and pet participation from the new preview.
+- [ ] Promote the approved model/audio transport into a lazy-loaded production app.
+- [ ] Complete agreed saves, longer compositions, scale/pitch choices and import/export around that model, with validated editable data.
+- [ ] Develop the musical activity and authored recipes after the instrument's interaction is approved.
+- [ ] Integrate global sound, OS lifecycle, phone/keyboard controls and storage documentation.
+- [ ] Verify no voices survive Stop, mute, close, minimise, hiding or interruption.
 
-**Exit:** Andrew can draw/edit an intended tune, save/reload it, and understand why playback matches the visible pattern. The final interaction follows preview feedback.
+**Exit:** visitors can create a deliberate musical spell with the pet, edit and retain it, and understand its sounds. A generic grid editor does not satisfy this revised direction.
 
-Suggested commit: `feat: integrate drawing music box`.
+### Phase 8: complete the hat spell duel after revised preview feedback
 
-### Phase 8: complete hockey after preview feedback
+- [ ] Settle the self/portal defence, casting budget, aiming, shield timing and rune effects from the new preview.
+- [ ] Harden swept combat collisions, moving targets, simultaneous threats and idempotent damage.
+- [ ] Complete fair AI, pet reactions, sound, match/records and deliberate interruption/resume.
+- [ ] Verify actual phone movement/aim/Cast/Shield comfort and readable powered threats.
+- [ ] Integrate the lazy-loaded duel and content-driven help; remove review controls from production.
 
-- [ ] Record the phase 1 feedback and settle Fire/Electric behaviour, recoil, speed, AI and controls accordingly.
-- [ ] Harden swept collisions, goal posts, overlap recovery and bounded impulses at maximum powered speed.
-- [ ] Complete match/serve/AI/spawn state, Plain/Magic options, interruption/resume and local statistics.
-- [ ] Remove preview debug controls from production, keeping an isolated review harness if useful.
-- [ ] Integrate the lazy-loaded game, content-driven help and synthesised effects.
-- [ ] Playtest real pointer/touch/keyboard control and returnability of powered shots.
-
-**Exit:** the plain game is enjoyable, powers feel distinct and fair, the puck cannot tunnel or double-score, and switching apps cannot concede a goal.
-
-Suggested commit: `feat: integrate spell hockey`.
+**Exit:** the player can deliberately cast, defend their hat and portal, time a return and use field spells. No assumption of an always-live hockey puck remains.
 
 ### Phase 9: content population, regression and handoff
 
@@ -679,8 +568,8 @@ Use meaningful rule/interaction tests and `npm run build` after the correspondin
 - **Enchantments:** exact per-card versus carried-streak arithmetic, Hex/Kindred/Ember/Clover interaction, no hidden badge leak, Fireball tradeoff, Rewind/Undraw, last-card/target effects and no repeated reward.
 - **Contracts:** strict deal-four boundary, owned/usable spell prerequisites, single-peak exclusions, witness replay through real rules, timeout/no-offer fallback, immutable deck/loadout, undo accounting and one-time payout.
 - **Art/writing:** backward compatibility, partial fields, long text, escaped characters, process images excluded from art discovery, missing-path messages, focus and viewer/section navigation.
-- **Music:** paths/notes/holds, skipped columns and backwards strokes, rests, edits, scale preservation, saves/import, scheduled stop/mute and phone audio timing.
-- **Hockey:** collision sweep at powered speeds, moving strikers/posts, pickups, stable impulses, AI limits, goal detection, power expiration, resizing and interruption.
+- **Music:** rune/time/pitch mapping, duration and recipe edits, distinct voices, pet conducting, save/import when implemented, scheduled stop/mute and phone audio timing.
+- **Duel:** chosen cast limits, self/portal damage, shield timing and ownership, swept moving-hat/post/rune collisions, power rules, AI wind-up, expiry, resizing and interruption.
 - **Manual review:** actual audio listening and real gameplay are necessary for feel. Keyboard access alone is not proof a real-time game is usable by all assistive technology.
 
 ## 12. Review and author input still needed
@@ -699,8 +588,8 @@ Use meaningful rule/interaction tests and `npm run build` after the correspondin
 
 ### Review through concrete previews
 
-- [ ] Music: drawing-to-note mapping, sustained versus repeated notes, controls and phone usability.
-- [ ] Hockey: air-hockey movement, AI/rally feel, Fire/Electric behaviour and phone controls.
+- [ ] Revised music: rune-circle mapping, distinct voices, duration, pet conducting and phone usability.
+- [ ] Revised duel: deliberate casting, self/portal defence, reaction shield, field rune powers, pet opponent and phone controls.
 - [ ] Solitaire: multiplier arithmetic/feel and combined cursed/enchanted visuals as the design is refined. Treasure remains accepted; exact new multiplier values are proposed.
 - [ ] Layout prototypes: verify the intended broad-front versus peak-award tradeoff rather than assume peak count supplies it.
 
