@@ -56,9 +56,8 @@ Phase 1 content-expansion previews run through that source server:
 
 - [Design lab](http://localhost:4321/design-lab/content-expansion/index)
 - [Starweave musical spell circle](http://localhost:4321/design-lab/content-expansion/starweave)
-- [Hat to Hat spell duel](http://localhost:4321/design-lab/content-expansion/duel)
 
-These are isolated review pages, excluded from `dist/` and production launchers. Starweave uses musical runes and the animated pet conductor; sound requires Enable sound. Hat to Hat uses deliberate casts, timed shields, self/portal damage and a phone pad. Neither preview saves portfolio data. Run `npm test` for the drawing/audio/physics regressions. See [the canonical plan](CONTENT_EXPANSION_PLAN.md), [baseline](CONTENT_EXPANSION_BASELINE.md) and [preview notes](design-lab/content-expansion/README.md) for scope and verification limits. Stop the source server with Ctrl+C when finished trying them.
+These are isolated review pages, excluded from `dist/` and production launchers. Starweave uses musical runes and the animated pet conductor; sound requires Enable sound. The music preview saves no portfolio data. Hat to Hat is separately deferred on `codex/hat-to-hat`; see [its standalone plan](HAT_TO_HAT_PLAN.md). Run `npm test` for the drawing/audio and build-exclusion regressions. See [the canonical plan](CONTENT_EXPANSION_PLAN.md), [baseline](CONTENT_EXPANSION_BASELINE.md) and [preview notes](design-lab/content-expansion/README.md) for scope and verification limits. Stop the source server with Ctrl+C when finished trying them.
 
 ## Licence
 

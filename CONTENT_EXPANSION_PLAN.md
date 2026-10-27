@@ -400,6 +400,8 @@ Suggested commit: `docs: record phased content expansion plan`.
 
 Preview: http://localhost:4321/design-lab/content-expansion/starweave (also available via /music and the /index hub).
 
+After separation, the active suite passes **33/33 tests** and the production build succeeds without warnings. Starweave was rechecked in the browser after shared-style cleanup, with no console warnings/errors. Production output still excludes the preview directory.
+
 The pre-separation combined suite passed 61/61 tests. The active suite is reduced by moving game-only regressions with their preserved implementation; this does not mean those tests failed or that coverage was removed from the deferred branch. Retain the baseline interaction/Solitaire, musical model/audio and build-exclusion tests here. Device listening/touch and native interruption remain technical checks for Phase 7. Music currently has four pitches/sixteen moments/three voices and no saves/export/full activity.
 
 The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Proceed to Phase 2 in the new chat; do not implement later phases in this handoff.
