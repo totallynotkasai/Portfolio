@@ -2957,6 +2957,24 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .ss-hearts .is-half i { position: absolute; inset: 0; overflow: hidden; clip-path: inset(0 50% 0 0); }
 .ss-hearts .is-half i svg { fill: var(--pink); }
 .ss-card.is-hexed .ss-face { outline: 2px dashed var(--periwinkle); outline-offset: -5px; }
+.ss-hex-mark { position: absolute; left: -3px; top: 2px; z-index: 2; color: white; background: #45235f; border: 1px dashed white; border-radius: 0 0 7px 0; font: bold 10px/12px var(--font-body); width: 11px; text-align: center; pointer-events: none; }
+.ss-enchantment { position: absolute; right: 0; top: -15px; z-index: 2; border: 1px solid #182b27; border-radius: 50%; padding: 1px 2px; background: #fff0a8; color: #182b27; font: bold 10px/12px var(--font-body); pointer-events: none; }
+.ss-card.is-enchanted .ss-tip { top: -28px; }
+.ss-card.is-hexed:not(.is-sealed) .ss-corner { padding-left: 8px; }
+.ss-card.is-sealed.is-hexed .ss-hex-mark { left: -6px; top: 3px; }
+.ss-table { overflow: auto; justify-content: flex-start; }
+.ss-board { flex: 1 0 160px; min-height: 160px; padding-top: 30px; }
+.ss-inspect, .ss-contract, .ss-scoring { flex: none; width: 100%; max-height: 40%; overflow: auto; font: 12px/1.4 var(--font-body); margin: 3px 0; padding: 3px 8px; color: var(--text); background: var(--surface); overflow-wrap: anywhere; }
+.ss-inspect summary { cursor: pointer; font-weight: bold; padding: 3px 0; }
+.ss-inspect select { max-width: 100%; font: inherit; color: var(--text); background: var(--surface); }
+.ss-inspect p { margin: 4px 0; }
+.ss-inspect :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.ss-contract { border-left: 3px solid var(--ink); }
+.ss-scoring { border-left: 3px solid var(--teal); }
+.ss-scoring { max-height: 4.8em; }
+.ss-curse { gap: 3px; width: auto; }
+.ss-curse > span:not(.ss-hex) { font: bold 10px/1.2 var(--font-body); }
+.ss-contract-offer { border: 1px solid var(--ink); padding: 6px; margin: 6px 0; }
 .ss-streak.is-hot { background: var(--yellow); }
 .ss-curse svg.doodle { color: var(--white); }
 .ss-curse .ss-pic { width: 18px; height: 18px; }
@@ -3024,7 +3042,7 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .ss-draw b { color: var(--ink); background: var(--white); }
 .ss-act b[hidden] { display: none; }
 @media (max-width: 480px) {
-  .ss-draw { flex-direction: column; justify-content: center; align-self: stretch; min-width: 58px; gap: 2px; }
+  .ss-draw { flex: 0 0 76px; max-width: 76px; flex-direction: column; justify-content: center; align-self: stretch; min-width: 58px; gap: 2px; font-size: 12px; }
   .ss-spells { display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); gap: 4px; }
   .ss-spells .ss-act { justify-content: center; min-width: 0; min-height: 44px; padding: 0 3px; gap: 2px; }
   .ss-spells .ss-act svg.doodle, .ss-spells .ss-act .ss-pic { width: 16px; height: 16px; }

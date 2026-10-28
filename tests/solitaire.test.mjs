@@ -217,11 +217,11 @@ test('End Run banks current or completed deal once and persists the endless best
     assert.equal(g.run.step, 'over');
     assert.equal(g.run.hearts, 3);
     assert.equal(g.run.ended, true);
-    assert.equal(g.saved['kasai:solitaire'].endless.score, expected);
+    assert.equal(g.saved[g.STORE_KEY].endless.score, expected);
     assert.equal(g.endRun().length, 0);
     assert.equal(g.run.score, expected);
     g.newRun(999);
-    assert.equal(g.saved['kasai:solitaire'].endless.score, expected);
+    assert.equal(g.saved[g.STORE_KEY].endless.score, expected);
   }
 });
 

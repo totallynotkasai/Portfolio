@@ -31,7 +31,8 @@
   const RM = K.REDUCE_MOTION;
 
   /* ---------- the rules, in numbers ---------- */
-  const STORE_KEY = 'kasai:solitaire'; // { best: { score, deal, won, streak, at }, endless: { score, deal, at }, longest, won: { at, times } }
+  const LEGACY_STORE_KEY = 'kasai:solitaire'; // retain prior bests and shared trophy
+  const STORE_KEY = 'kasai:solitaire:enchanted-contracts-v2';
   const DEALS = 7;               // a run: six deals, then the Final Deal
   const TARGETS = [700, 850, 1000, 1050, 1150, 1250, 1600]; // the points each deal must reach (deals 4 to 7 are cursed too)
   const GROW = 1.08;             // endless: every deal's target this much higher than the last
@@ -216,7 +217,12 @@
      down draws what each event says. */
   let run = null;   // the run being played (it waits while the window is shut)
   let breakSerial = 0; // never reused, including across new runs in this page
-  const RULES_VERSION = 'solitaire-peaks-rewards-v1';
+  const RULES_VERSION = 'solitaire-enchanted-contracts-v2';
+  const ENCHANTMENTS = {
+    treasure: { mark: '+40', name: 'Treasure', text: 'Adds 40 points when this play’s scoring streak is at least five.' },
+    points: { mark: '×2P', name: 'Double Points', text: 'Doubles this card’s points after Ember and Kindred; Clover and peak awards stay separate.' },
+    streak: { mark: '×2S', name: 'Double Streak', text: 'Scores this play normally, then doubles the carried streak. No extra Clover payout. Counts toward Long Thread.' },
+  };
   const copy = (value) => JSON.parse(JSON.stringify(value));
   const freeze = (value) => {
     if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); }
@@ -372,7 +378,19 @@
     const eaten = p.curses.includes('moths') ? stock.splice(0, MOTHS) : [];
     const charges = {};
     SPELL_IDS.forEach((spell) => { charges[spell] = Math.min(mostOf(spell), resources.spells[spell] + (resources.extra[spell] || 0)); });
-    return freeze({ ...copy(p), id, rulesVersion: RULES_VERSION, randomState: run.seed, layoutDefinition: copy(LAYOUTS[p.layout]),
+    // Introduce the effects separately: Treasure 2, Points 3, Streak 4.
+    // Later deals have two occurrences at most; boosts never share a
+    // covering path, preventing an intentionally stacked boost chain.
+    const enchantments = Array(PLACES).fill(null);
+    const types = p.n === 1 ? [] : p.n === 2 ? ['treasure'] : p.n === 3 ? ['points'] : p.n === 4 ? ['streak'] : ['treasure', p.n % 2 ? 'points' : 'streak'];
+    const l = LAYOUTS[p.layout];
+    const reaches = (a, b) => a === b || l.slots[a].over.some((j) => reaches(j, b));
+    const used = [];
+    types.forEach((type) => {
+      const pool = range(PLACES).filter((i) => used.every((j) => !reaches(i, j) && !reaches(j, i)));
+      if (pool.length) { const i = pool[rand(pool.length)]; enchantments[i] = type; used.push(i); }
+    });
+    return freeze({ ...copy(p), id, rulesVersion: RULES_VERSION, randomState: run.seed, layoutDefinition: copy(l), enchantments,
       deck: cards, table: cards.slice(0, PLACES), pile: [cards[PLACES]], stock, eaten,
       resources: copy(resources), charges, refills: resources.have.deck });
   }
@@ -382,10 +400,26 @@
   function startDeal() {
     if (!run || !run.next || run.next.rulesVersion !== RULES_VERSION) return [];
     const b = run.reward;
-    if (run.step === 'pick' && (!b || b.status !== 'ready' || b.prepared !== run.next)) return [];
+    if (run.step === 'pick' && (!b || b.status !== 'ready' || b.prepared !== run.next || b.contractDecision === 'offered')) return [];
     const p = run.next;
     const resources = p.resources;
-    const d = {
+    const d = dealState(p, b && b.contractDecision === 'accepted' ? b.contractOffer : null);
+    run.spells = { ...resources.spells };
+    run.have = { ...resources.have };
+    run.hearts = resources.hearts;
+    run.max = resources.max;
+    run.extra = {};
+    run.n = p.n;
+    run.seed = p.randomState;
+    run.deal = d;
+    run.next = null;
+    if (b) b.status = 'started';
+    run.step = 'play';
+    return [{ t: 'deal', n: d.n }];
+  }
+
+  function dealState(p, contract = null) {
+    return {
       definition: p,
       layoutDefinition: p.layoutDefinition,
       n: p.n,
@@ -394,6 +428,11 @@
       hex: p.hex,
       layout: p.layout,
       slots: p.table.slice(),       // the card at each place (-1 once it's gone)
+      enchantments: p.enchantments.slice(),
+      contract: contract ? copy(contract.candidate || contract) : null,
+      casts: 0,
+      firstPeak: null,
+      lastScore: null,
       up: p.layoutDefinition.slots.map((s) => !s.over.length),
       pile: p.pile.slice(),         // its top card last
       stock: p.stock.slice(),       // its top card last
@@ -413,17 +452,6 @@
       over: false,
       swept: false,
     };
-    run.spells = { ...resources.spells };
-    run.have = { ...resources.have };
-    run.hearts = resources.hearts;
-    run.max = resources.max;
-    run.extra = {};
-    run.n = p.n;
-    run.deal = d;
-    run.next = null;
-    if (b) b.status = 'started';
-    run.step = 'play';
-    return [{ t: 'deal', n: d.n }];
   }
 
   // Play the card at place i onto the pile.
@@ -444,7 +472,11 @@
     const s = hexed ? 1 : streak + 1;
     const kin = !!have.kindred && suitOf(card) === suitOf(under);
     const clover = !!have.clover && s % 5 === 0;
-    return { pts: CARD * (s + (have.ember || 0)) * (kin ? 2 : 1) + (clover ? 50 : 0), streak: s, hexed, kin, clover };
+    return { pts: CARD * (s + (have.ember || 0)) * (kin ? 2 : 1) + (clover ? 50 : 0), streak: s, hexed, kin, clover, ember: have.ember || 0 };
+  }
+
+  function scoreWords(sc) {
+    return `${sc.normal} card points [10 × (${sc.streak}${sc.ember ? ` + ${sc.ember} Ember` : ''})${sc.kin ? ' × 2 Kindred' : ''}]${sc.enchantment === 'points' ? ' × 2 Double Points' : ''}${sc.clover ? ' + 50 Clover' : ''}${sc.enchantment === 'treasure' ? ` + ${sc.extra} Treasure` : ''} = ${sc.pts}. Streak ${sc.streak}${sc.carried !== sc.streak ? ` → ${sc.carried}` : ''}${sc.hexed ? ' (Hex reset before scoring)' : ''}. Peaks and stock score separately.`;
   }
 
   // A card onto the pile, by a play or by Wild.
@@ -463,13 +495,24 @@
     keep(d, i);
     const card = d.slots[i];
     const sc = action === 'fireball' ? null : scored(d, card, topOf(d), d.streak, have);
+    const enchantment = (d.enchantments || [])[i];
+    if (sc) {
+      sc.normal = sc.pts - (sc.clover ? 50 : 0);
+      sc.enchantment = enchantment;
+      sc.extra = enchantment === 'treasure' && sc.streak >= 5 ? 40 : enchantment === 'points' ? sc.normal : 0;
+      sc.pts += sc.extra;
+      sc.carried = enchantment === 'streak' ? sc.streak * 2 : sc.streak;
+      sc.before = d.streak;
+    }
     d.slots[i] = -1;
+    if (d.enchantments) d.enchantments[i] = null;
     let ev;
     if (sc) {
-      d.pile.push(card); d.nudge = null; d.streak = sc.streak;
+      d.pile.push(card); d.nudge = null; d.streak = sc.carried;
+      d.lastScore = scoreWords(sc);
       d.best = Math.max(d.best, d.streak); d.score += sc.pts;
       ev = [{ t: 'play', i, card, ...sc, wild: action === 'wild' }];
-    } else { d.burnt.push(card); ev = [{ t: 'burn', i, card }]; }
+    } else { d.burnt.push(card); ev = [{ t: 'burn', i, card, enchantment }]; }
     gone(d, i, ev, have);
     if (!d.reached && d.score >= d.target) { d.reached = true; ev.push({ t: 'target' }); }
     return ev;
@@ -487,7 +530,8 @@
   function keep(d, i) {
     d.drawn = null;
     d.seen = null;
-    d.undo.push({ i, card: d.slots[i], slots: d.slots.slice(), pile: d.pile.slice(), nudge: d.nudge, burnt: d.burnt.slice(), score: d.score, streak: d.streak, peaks: d.peaks, reached: d.reached });
+    d.undo.push({ i, card: d.slots[i], slots: d.slots.slice(), pile: d.pile.slice(), nudge: d.nudge, burnt: d.burnt.slice(), score: d.score, streak: d.streak, peaks: d.peaks, reached: d.reached,
+      best: d.best, firstPeak: d.firstPeak ?? null, enchantments: (d.enchantments || []).slice(), lastScore: d.lastScore ?? null });
   }
 
   // A card has left place i: the cards it lay over may be uncovered (they
@@ -501,6 +545,7 @@
     });
     if (!tipOf(d, i)) return;
     const pts = peakPoints(d.peaks, layoutOf(d).tips.length, have.twin);
+    if (d.firstPeak == null) d.firstPeak = i;
     d.peaks++;
     d.score += pts;
     ev.push({ t: 'peak', i, n: d.peaks, pts });
@@ -593,6 +638,7 @@
     if (id === 'nudge' && i !== -1 && i !== 1) return [];
     if (id === 'dispel' && !d.curses.includes(i)) return [];
     d.charges[id]--;
+    d.casts = (d.casts || 0) + 1;
     const ev = [{ t: 'cast', spell: id, i }];
     if (id === 'undraw') return ev.concat(undraw());
     // Any other spell: the last draw can't be taken back from here on.
@@ -627,7 +673,8 @@
   function rewind() {
     const d = run.deal;
     const s = d.undo.pop();
-    Object.assign(d, { slots: s.slots, pile: s.pile, nudge: s.nudge, burnt: s.burnt, score: s.score, streak: s.streak, peaks: s.peaks, reached: s.reached });
+    Object.assign(d, { slots: s.slots, pile: s.pile, nudge: s.nudge, burnt: s.burnt, score: s.score, streak: s.streak, peaks: s.peaks, reached: s.reached,
+      best: s.best, firstPeak: s.firstPeak, enchantments: s.enchantments, lastScore: s.lastScore });
     return settle([{ t: 'rewind', i: s.i, card: s.card }]);
   }
 
@@ -640,15 +687,12 @@
   function endDeal(swept) {
     const d = run.deal;
     if (!d || d.over) return [];
+    const ev = completeBoard(d, swept);
+    // Run rewards, hearts and records are outside the proof. The terminal
+    // score/target transition above is shared unchanged with live play.
+    if (run.simulation) return ev.concat({ t: 'end', swept: !!swept });
     run.reward = null;
-    d.over = true;
-    d.swept = !!swept;
-    const ev = [];
     if (swept) {
-      const pts = d.stock.length * LEFT_OVER;
-      d.score += pts;
-      ev.push({ t: 'sweep', left: d.stock.length, pts });
-      if (!d.reached && d.score >= d.target) { d.reached = true; ev.push({ t: 'target' }); }
       run.sweeps++;
       if (madeIt(d) && run.hearts < run.max) {
         const before = run.hearts;
@@ -666,6 +710,9 @@
       }
     }
     run.score += d.score;
+    d.contractPaid = d.contract && contractMet(d, d.contract) ? d.contract.bonus : 0;
+    run.score += d.contractPaid;
+    if (d.contract) ev.push({ t: 'contract', paid: d.contractPaid });
     const made = madeIt(d);
     const final = finalDeal(d.n);
     if (made) run.made++;
@@ -693,6 +740,18 @@
     makeBreak(!!swept && made ? 2 : 1);
     run.step = 'pick';
     ev.push({ t: 'pick', none: !run.reward.offer.length });
+    return ev;
+  }
+
+  function completeBoard(d, swept) {
+    d.over = true; d.swept = !!swept;
+    const ev = [];
+    if (swept) {
+      const pts = d.stock.length * LEFT_OVER;
+      d.score += pts;
+      ev.push({ t: 'sweep', left: d.stock.length, pts });
+    }
+    if (!d.reached && d.score >= d.target) { d.reached = true; ev.push({ t: 'target' }); }
     return ev;
   }
 
@@ -726,6 +785,27 @@
     b.resources = b.prepared.resources;
     run.next = b.prepared;
     b.status = 'ready';
+    b.contractDecision = 'none';
+    if (b.nextDeal >= 4) {
+      b.contractDecision = 'searching';
+      // Deal stays available while searching: starting cancels the proof
+      // and proceeds without a contract. An offer requires Accept/Skip.
+      searchContracts(b.prepared, { cancelled: () => !run || run.reward !== b || b.status !== 'ready' || b.contractDecision !== 'searching' }).then((result) => {
+        if (!run || run.reward !== b || b.status !== 'ready' || b.contractDecision !== 'searching') return;
+        b.contractSearch = result;
+        b.contractOffer = result.proof;
+        b.contractDecision = result.proof ? 'offered' : 'none';
+        if (view && !view.help) { const focused = view.overlay.contains(document.activeElement); syncCard(focused); announce(result.proof ? contractWords(result.proof.candidate) : 'No contract for this deal'); }
+      });
+    }
+  }
+
+  function decideContract(breakId, accept) {
+    const b = run && run.reward;
+    if (!b || run.step !== 'pick' || b.status !== 'ready' || b.id !== breakId || b.contractDecision !== 'offered') return [];
+    if (accept && (!b.contractOffer || b.contractOffer.definitionId !== b.prepared.id || b.contractOffer.rulesVersion !== RULES_VERSION)) return [];
+    b.contractDecision = accept ? 'accepted' : 'skipped';
+    return [{ t: 'contract-decision', accept }];
   }
 
   function choose(id, breakId, remaining) {
@@ -754,8 +834,159 @@
 
   function commitDeal(breakId) {
     const b = run && run.reward;
-    if (!run || run.step !== 'pick' || !b || b.id !== breakId || b.status !== 'ready' || b.remaining) return [];
+    if (!run || run.step !== 'pick' || !b || b.id !== breakId || b.status !== 'ready' || b.remaining || b.contractDecision === 'offered') return [];
+    if (b.contractDecision === 'searching') b.contractDecision = 'none';
     return startDeal();
+  }
+
+  /* Contract proof engine. Every edge dispatches the live rule functions
+     on a private context, restored synchronously before yielding. No DOM,
+     rewards, records or live random stream is touched by simulation. */
+  const CONTRACTS = {
+    thread: { name: 'Long Thread', bonus: 75 },
+    peak: { name: 'Chosen Peak', bonus: 75 },
+    reserve: { name: 'Five in Reserve', bonus: 100 },
+    touch: { name: 'Light Touch', bonus: 100 },
+    spark: { name: 'Keep a Spark', bonus: 75 },
+  };
+  function contractWords(c) {
+    const text = { thread: 'Reach scoring streak eight (Double Streak counts).', peak: `Clear ${c.tipName} before every other tip; Fireball counts.`,
+      reserve: 'Clean sweep with at least five stock cards left.', touch: 'Clean sweep with at most one charge spent, including information and undo spells.',
+      spark: `Reach the target and retain a ${c.spell ? words(c.spell).name : ''} charge at settlement.` };
+    return `${CONTRACTS[c.id].name}: ${text[c.id]} +${c.bonus} run points at settlement; cannot rescue a missed target.`;
+  }
+  function contractMet(d, c) {
+    return c.id === 'thread' ? d.best >= 8 : c.id === 'peak' ? d.firstPeak === c.tip : c.id === 'reserve' ? d.swept && d.stock.length >= 5 : c.id === 'touch' ? d.swept && d.casts <= 1 : c.id === 'spark' ? madeIt(d) && d.charges[c.spell] >= 1 : false;
+  }
+  function contractPool(p) {
+    if (p.n < 4 || p.rulesVersion !== RULES_VERSION) return [];
+    const pool = [{ id: 'thread' }];
+    if (p.layoutDefinition.tips.length > 1 && !p.curses.includes('seal')) p.layoutDefinition.tips.forEach((t) => pool.push({ id: 'peak', tip: t.slot, tipName: t.name }));
+    if (!p.curses.includes('moths') && !p.resources.have.deck) pool.push({ id: 'reserve' });
+    const owned = SPELL_IDS.filter((id) => p.charges[id] > 0);
+    if (owned.length) pool.push({ id: 'touch' });
+    owned.forEach((spell) => pool.push({ id: 'spark', spell }));
+    return pool.map((c) => ({ ...c, bonus: CONTRACTS[c.id].bonus }));
+  }
+  function inContext(state, fn) {
+    const liveRun = run;
+    try { run = state; return fn(); } finally { run = liveRun; }
+  }
+  function simulationOf(p) {
+    return { simulation: true, step: 'play', seed: p.randomState, have: { ...p.resources.have }, longest: 0, deal: dealState(p) };
+  }
+  function cloneSimulation(s) {
+    const { definition, layoutDefinition, ...dynamic } = s.deal;
+    return { ...s, deal: { ...copy(dynamic), definition, layoutDefinition } };
+  }
+  function transition(state, action) {
+    return inContext(state, () => {
+      if (action.type === 'play') return play(action.i);
+      if (action.type === 'draw') return draw(false, !!action.end);
+      if (action.type === 'cast') return cast(action.id, action.i);
+      if (action.type === 'reorder') return reorder(action.cards);
+      return [];
+    });
+  }
+  function permutations(list) {
+    return list.length < 2 ? [list] : list.flatMap((v, i) => permutations(list.filter((_, j) => j !== i)).map((rest) => [v, ...rest]));
+  }
+  function proofActions(state) {
+    return inContext(state, () => {
+      const d = state.deal;
+      if (d.over) return [];
+      if (d.seen) return permutations(d.seen).map((cards) => ({ type: 'reorder', cards }));
+      const actions = movesOf().map((i) => ({ type: 'play', i }));
+      SPELL_IDS.forEach((id) => {
+        if (!usable(id)) return;
+        const targets = SPELLS[id].aim ? opens(d) : id === 'dispel' ? d.curses : id === 'nudge' ? [-1, 1] : [undefined];
+        targets.forEach((i) => actions.push({ type: 'cast', id, ...(i === undefined ? {} : { i }) }));
+      });
+      if (canDraw(d) || stuck()) actions.push({ type: 'draw', end: true });
+      return actions;
+    });
+  }
+  function availableSpells(state) {
+    return inContext(state, () => SPELL_IDS.filter((id) => usable(id)));
+  }
+  function replayWitness(p, proof) {
+    if (!proof || proof.rulesVersion !== RULES_VERSION || proof.definitionId !== p.id) return null;
+    const c = contractPool(p).find((c) => JSON.stringify(c) === JSON.stringify(proof.candidate));
+    if (!c || !Array.isArray(proof.actions)) return null;
+    const state = simulationOf(p), usableOwned = new Set();
+    for (const action of proof.actions) {
+      availableSpells(state).forEach((id) => usableOwned.add(id));
+      const ev = transition(state, action);
+      if (!ev.length || ev.some((e) => e.t === 'deny')) return null;
+    }
+    if (!state.deal.over || !contractMet(state.deal, c) || (c.id === 'touch' && !usableOwned.size) || (c.id === 'spark' && !usableOwned.has(c.spell))) return null;
+    return state;
+  }
+  async function searchContracts(p, options = {}) {
+    try { return await findContractProof(p, options); }
+    catch { return { proof: null, reason: 'unsupported', nodes: 0 }; }
+  }
+  async function findContractProof(p, options) {
+    const budget = Math.min(options.nodeBudget ?? 5000, 10000);
+    const now = options.now || (() => Date.now());
+    const deadline = now() + (options.timeoutMs ?? 2500);
+    const pause = options.yield || (() => new Promise((resolve) => setTimeout(resolve, 0)));
+    const stop = () => options.cancelled?.() ? 'cancelled' : now() >= deadline ? 'timeout' : '';
+    const pool = contractPool(p);
+    // Rotate preference using pinned data, without drawing any randomness.
+    // Otherwise any first-peak witness would always eclipse spell goals.
+    if (pool.length) pool.push(...pool.splice(0, (p.deck[0] + p.n) % pool.length));
+    // Unknown additions must explicitly join the supported rule identity.
+    if (!pool.length || p.curses.some((id) => !CURSES[id]) || p.enchantments.some((id) => id && !ENCHANTMENTS[id]) || Object.keys(p.charges).some((id) => !SPELLS[id]) || Object.keys(p.resources.have).some((id) => !CHARMS[id]) || Object.keys(p.resources.spells).some((id) => !SPELLS[id])) return { proof: null, reason: 'unsupported', nodes: 0 };
+    let nodes = 0;
+    let frontier = [{ state: simulationOf(p), actions: [], usable: [], weight: 0 }];
+    const visited = new Set();
+    while (frontier.length && nodes < budget) {
+      const reason = stop(); if (reason) return { proof: null, reason, nodes };
+      const parent = frontier.shift();
+      const actions = proofActions(parent.state);
+      const usable = [...new Set(parent.usable.concat(availableSpells(parent.state)))];
+      for (const action of actions) {
+        if (nodes >= budget) break;
+        if (nodes % 12 === 0) { await pause(); const reason = stop(); if (reason) return { proof: null, reason, nodes }; }
+        nodes++;
+        const state = cloneSimulation(parent.state);
+        const ev = transition(state, action);
+        if (!ev.length || ev.some((e) => e.t === 'deny')) continue;
+        const d = state.deal;
+        const route = parent.actions.concat(action);
+        if (d.over) {
+          for (const candidate of pool) {
+            if (!contractMet(d, candidate) || (candidate.id === 'touch' && !usable.length) || (candidate.id === 'spark' && !usable.includes(candidate.spell))) continue;
+            const proof = { definitionId: p.id, rulesVersion: RULES_VERSION, candidate, actions: route };
+            if (replayWitness(p, proof)) {
+              const reason = stop();
+              if (reason) return { proof: null, reason, nodes };
+              return { proof: freeze(proof), reason: 'proven', nodes };
+            }
+          }
+          continue;
+        }
+        if (route.length >= 180) continue;
+        // Full dynamic identity includes undo, charges, RNG and progress;
+        // pruning may miss solutions, but never manufactures a witness.
+        const { definition, layoutDefinition, ...keyState } = d;
+        const identity = JSON.stringify([state.seed, keyState, usable]);
+        // Hash collisions can only prune a possible route, never prove
+        // one. Keep the visited set bounded in memory as well as nodes.
+        let hash = 2166136261;
+        for (let i = 0; i < identity.length; i++) hash = Math.imul(hash ^ identity.charCodeAt(i), 16777619);
+        const key = `${identity.length}:${hash >>> 0}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+        const removed = d.slots.filter((c) => c < 0).length;
+        const weight = removed * 150 + d.peaks * 100 + Math.min(d.score / d.target, 1) * 150 + d.best * 8 + d.stock.length * 2 - d.casts * 18 - route.length * 2;
+        frontier.push({ state, actions: route, usable, weight });
+      }
+      frontier.sort((a, b) => b.weight - a.weight);
+      frontier.length = Math.min(frontier.length, 32);
+    }
+    return { proof: null, reason: nodes >= budget ? 'budget' : 'no-witness', nodes };
   }
 
   // After a won run: endless deals, from a pick. The run's best is kept
@@ -948,8 +1179,8 @@
     const n = run.deal ? run.deal.n : run.n;
     if (run.newBest) {
       fields[BESTS[run.mode]] = endless()
-        ? { score: run.score, deal: n, at: Date.now() }
-        : { score: run.score, deal: n, won: !!won, streak: run.longest, at: Date.now() };
+        ? { score: run.score, deal: n, at: Date.now(), rulesVersion: RULES_VERSION }
+        : { score: run.score, deal: n, won: !!won, streak: run.longest, at: Date.now(), rulesVersion: RULES_VERSION };
     }
     if (Object.keys(fields).length) K.store.merge(STORE_KEY, fields);
   }
@@ -997,6 +1228,9 @@
           <div class="ss-table" data-table>
             <div class="ss-board"><div class="ss-peaks" role="group" aria-label="The peaks" data-peaks></div></div>
             <div class="ss-layout-note" data-layout-note></div>
+            <details class="ss-inspect"><summary>Inspect cards (no play)</summary><label>Card <select data-inspect-select aria-label="Inspect a table card"></select></label><p data-inspect-text aria-live="polite">Choose a card to inspect its state.</p></details>
+            <p class="ss-contract" data-contract-status hidden></p>
+            <p class="ss-scoring" data-scoring hidden></p>
             <div class="ss-low">
               <div class="ss-stock" data-stock></div>
               <div class="ss-pile" data-pile></div>
@@ -1288,18 +1522,23 @@
       const hexed = !d.idle && cursed(d, 'hex') && suitOf(c) === d.hex;
       el.classList.toggle('is-hexed', up && hexed);
       el.classList.toggle('is-ringed', ringed.indexOf(i) !== -1);
-      el.title = `${up ? caption(c) : 'Covered card'}${place}${held ? `. Sealed: clear ${sealWords(d)}` : ''}${up && hexed ? '. Hex: playing this suit restarts the streak.' : ''}`;
+      el.querySelectorAll('.ss-enchantment, .ss-hex-mark').forEach((badge) => badge.remove());
+      const enchanted = up && d.enchantments && ENCHANTMENTS[d.enchantments[i]];
+      el.classList.toggle('is-enchanted', !!enchanted);
+      if (enchanted) el.insertAdjacentHTML('beforeend', `<span class="ss-enchantment" aria-hidden="true">${enchanted.mark}</span>`);
+      if (up && hexed) el.insertAdjacentHTML('beforeend', '<span class="ss-hex-mark" aria-hidden="true">⬡</span>');
+      el.title = inspectWords(d, i);
       if (isFree) {
         el.setAttribute('role', 'button');
         el.tabIndex = i === view.focus ? 0 : -1;
         el.removeAttribute('aria-hidden');
-        el.setAttribute('aria-label', `${caption(c)}${place}${held ? `, sealed until ${sealWords(d)} are clear` : fitsNow.indexOf(i) !== -1 ? ', goes on the pile' : ''}${hexed ? ', Hex: restarts the streak' : ''}`);
+        el.setAttribute('aria-label', inspectWords(d, i));
       } else if (up && !d.idle) {
         // Face up but covered (Moonlight): named, though it can't be played yet.
         el.setAttribute('role', 'img');
         el.removeAttribute('tabindex');
         el.removeAttribute('aria-hidden');
-        el.setAttribute('aria-label', `${caption(c)}${place}, covered${held ? `, sealed until ${sealWords(d)} are clear` : ''}`);
+        el.setAttribute('aria-label', inspectWords(d, i));
       } else {
         el.removeAttribute('role');
         el.removeAttribute('tabindex');
@@ -1309,6 +1548,43 @@
     });
     view.peaks.querySelectorAll('[data-link-from]').forEach((el) => { el.style.display = d.slots[+el.dataset.linkFrom] < 0 || d.slots[+el.dataset.linkTo] < 0 ? 'none' : ''; });
     view.peaks.setAttribute('aria-label', d.idle ? 'The peaks' : `${layoutOf(d).name}, ${plural(layoutOf(d).tips.length - d.peaks, 'peak')} remaining: ${plural(d.slots.filter((c) => c >= 0).length, 'card')}, ${frees.length} uncovered`);
+    const select = view.root.querySelector('[data-inspect-select]');
+    if (select) {
+      const selected = select.value;
+      const html = d.slots.flatMap((c, i) => c >= 0 ? [`<option value="${i}">${i + 1}: ${esc(d.up[i] ? cardName(c) : 'Covered card')}${tipOf(d, i) ? ` — ${esc(tipOf(d, i).name)}` : ''}</option>`] : []).join('');
+      if (select.innerHTML !== html) select.innerHTML = html;
+      if (d.slots[+selected] >= 0) select.value = selected;
+      inspectCard(+select.value);
+    }
+  }
+
+  function inspectWords(d, i) {
+    const c = d.slots[i];
+    if (c == null || c < 0) return 'Card removed.';
+    const up = !!d.up[i], tip = tipOf(d, i);
+    const parts = [up ? caption(c) : 'Covered card', tip ? tip.name : `Table position ${i + 1}`];
+    parts.push(free(d, i) ? sealed(d, i) ? 'Sealed' : fits(d, c) ? 'Playable' : 'Uncovered; rank does not fit the pile' : 'Covered; remove its blockers first');
+    if (sealed(d, i)) parts.push(`Lock: clear ${sealWords(d)}. Revealing a face does not release this lock`);
+    if (cursed(d, 'seal') && layoutOf(d).sealGroups.some((g) => g.guards.includes(i))) parts.push('Seal guard: remove this numbered tip to release its lock');
+    if (up && cursed(d, 'hex') && suitOf(c) === d.hex) parts.push(`Hex: ${SUITS[d.hex].name} restart the streak at one before scoring; Kindred may still double points`);
+    const e = up && d.enchantments && ENCHANTMENTS[d.enchantments[i]];
+    if (e) {
+      parts.push(`${e.name}: ${e.text} Normal play or Wild triggers it; Fireball destroys it without triggering`);
+      if (open(d, i)) {
+        const sc = scored(d, c, topOf(d), d.streak, run.have);
+        const normal = sc.pts - (sc.clover ? 50 : 0);
+        parts.push(`If played now: ${scoreWords({ ...sc, normal, enchantment: d.enchantments[i], extra: d.enchantments[i] === 'treasure' && sc.streak >= 5 ? 40 : d.enchantments[i] === 'points' ? normal : 0,
+          pts: sc.pts + (d.enchantments[i] === 'treasure' && sc.streak >= 5 ? 40 : d.enchantments[i] === 'points' ? normal : 0), carried: d.enchantments[i] === 'streak' ? sc.streak * 2 : sc.streak })}`);
+      }
+    }
+    return parts.join('. ') + '.';
+  }
+  function inspectCard(i) {
+    if (!view) return;
+    const output = view.root.querySelector('[data-inspect-text]');
+    if (output) output.textContent = inspectWords(dealShown(), i);
+    const select = view.root.querySelector('[data-inspect-select]');
+    if (select && dealShown().slots[i] >= 0) select.value = String(i);
   }
 
   function drawLayoutNote(d, note = view.root.querySelector('[data-layout-note]')) {
@@ -1317,7 +1593,7 @@
     if (note.dataset.layout === key) return;
     const expanded = note.querySelector('details')?.open;
     note.dataset.layout = key;
-    note.innerHTML = `<details${expanded ? ' open' : ''}><summary>${esc(l.name)} · ${plural(l.tips.length, 'peak')} · Tip names${cursed(d, 'seal') ? ' / Seal' : ''}</summary><p>${esc(l.tips.map((t, i) => `${i + 1}: ${t.name}`).join(' · '))}.${cursed(d, 'seal') ? ` G = guard: clear ${esc(sealWords(d))} to unlock.` : ''}</p></details><span>${l.connected ? 'Lines join blockers; clear lower cards first. ' : ''}Scroll the board if needed.</span>`;
+    note.innerHTML = `<details${expanded ? ' open' : ''}><summary>${esc(l.name)} · ${plural(l.tips.length, 'peak')} · Legend / tip names</summary><p>${esc(l.tips.map((t, i) => `${i + 1}: ${t.name}`).join(' · '))}.${cursed(d, 'seal') ? ` G = guard: clear ${esc(sealWords(d))} to unlock.` : ''}</p><p>Playable: bright edge. Covered: overlapping cards or blocker lines. Sealed: square lock. Hexed: dashed edge and ⬡ ribbon. Enchanted: round +40 / ×2P / ×2S badge. Both badges can apply together. Spell targets have a separate outer ring. Inspect names every state without playing.</p></details><span>${l.connected ? 'Lines join blockers; clear lower cards first. ' : ''}Scroll the board if needed.</span>`;
   }
 
   // Same geometry for the preview and the board's exact dependency cues.
@@ -1377,6 +1653,7 @@
       `<b class="ss-count">${n}</b>` +
       (peek.length ? `<span class="ss-peek">${peek.map((c) => `<span class="ss-card is-peek">${faceHtml(c, cardPx(0.72))}</span>`).join('')}</span>` : '');
     view.stock.title = n ? `The stock: ${plural(n, 'card')} left${peek.length ? `. Next: ${peek.map(cardName).join(', then ')}` : ''}` : refill ? 'The stock is empty: the Second Deck fills it again when you draw' : 'The stock is empty';
+    if (cursed(d, 'moths')) view.stock.title += '. Moths: eleven cards eaten; Dispel can return them.';
   }
 
   /* ---------- a move, drawn ---------- */
@@ -1641,12 +1918,24 @@
     const chips = run && !d.idle ? d.curses.map(curseChip).join('') + CHARM_IDS.filter((id) => run.have[id] > 0).map(charmChip).join('') : '';
     if (view.chips !== chips) { view.owned.innerHTML = chips; view.chips = chips; }
     view.owned.hidden = !chips;
+    const status = view.root.querySelector('[data-contract-status]');
+    status.hidden = !d.contract;
+    if (d.contract) {
+      const c = d.contract;
+      const progress = c.id === 'thread' ? `Streak ${d.best}/8` : c.id === 'peak' ? `${c.tipName} first` : c.id === 'reserve' ? `Sweep; ${d.stock.length} stock (need 5)` : c.id === 'touch' ? `Sweep; ${d.casts}/1 casts` : `Target + ${words(c.spell).name}: ${d.charges[c.spell]} left`;
+      status.textContent = `${CONTRACTS[c.id].name} · ${progress} · ${d.over ? d.contractPaid ? `settled +${d.contractPaid}` : 'settled: no bonus' : `provisional${contractMet(d, c) ? ' ✓' : ''}`} · +${c.bonus} run points`;
+      status.title = contractWords(c);
+      status.setAttribute('aria-label', `${contractWords(c)} ${status.textContent}`);
+    }
+    const scoring = view.root.querySelector('[data-scoring]');
+    scoring.hidden = !d.lastScore;
+    scoring.textContent = d.lastScore ? `Last play: ${d.lastScore}` : '';
   }
   const curseChip = (id) => {
     const w = words(id);
     const d = dealShown();
     const label = `Curse: ${w.name}. ${id === 'seal' ? `Clear ${sealWords(d)} to release the locked cards. G marks a guard.` : id === 'hex' && d.hex >= 0 ? `${SUITS[d.hex].name} still score, but start the streak again.` : w.blurb}`;
-    return `<li class="ss-owned-item"><button type="button" class="gm-chip ink ss-curse" aria-label="${esc(label)}" aria-describedby="ss-tip-${id}">${iconOf(CURSES[id].icon)}${id === 'hex' && d.hex >= 0 ? `<span class="ss-hex ${SUITS[d.hex].colour}">${suitPic(SUITS[d.hex].id)}</span>` : ''}</button><span class="ss-tooltip" role="tooltip" id="ss-tip-${id}">${esc(label)}</span></li>`;
+    return `<li class="ss-owned-item"><button type="button" class="gm-chip ink ss-curse" aria-label="${esc(label)}" aria-describedby="ss-tip-${id}">${iconOf(CURSES[id].icon)}<span>${esc(w.name)}</span>${id === 'hex' && d.hex >= 0 ? `<span class="ss-hex ${SUITS[d.hex].colour}">${suitPic(SUITS[d.hex].id)}</span>` : ''}</button><span class="ss-tooltip" role="tooltip" id="ss-tip-${id}">${esc(label)}</span></li>`;
   };
   const charmChip = (id) => {
     const n = run.have[id];
@@ -1666,12 +1955,14 @@
     const b = view.drawBtn;
     const icon = end ? 'end' : 'draw';
     if (b.dataset.icon !== icon) { b.querySelector('svg').outerHTML = doodleIcon(icon); b.dataset.icon = icon; }
-    view.drawText.textContent = end ? 'End deal' : refill ? 'Reshuffle' : 'Draw';
+    view.drawText.textContent = end ? 'End deal' : `${refill ? 'Reshuffle' : 'Draw'}${cursed(d, 'toll') ? ': −15 points' : ''}${cursed(d, 'moths') ? ' (Moths)' : ''}`;
     view.left.textContent = n;
     view.left.hidden = end;
     b.disabled = !on || (!n && !end && !refill);
     b.classList.toggle('is-end', end);
     b.setAttribute('aria-label', end ? 'End the deal' : refill ? `Shuffle ${REFILL} cards from the pile back into the stock and draw` : `Draw a card, ${plural(n, 'card')} left`);
+    if (!end && cursed(d, 'toll')) b.setAttribute('aria-label', `${b.getAttribute('aria-label')}. Toll: costs up to 15 points.`);
+    if (cursed(d, 'circle')) view.pile.title += '. Broken Circle: Kings and Aces do not connect.';
     // A button for each spell you have: its charges left this deal and its key.
     const have = run && !d.idle ? SPELL_IDS.filter((id) => run.spells[id] > 0 || d.charges[id] > 0) : [];
     const html = have.length
@@ -1751,6 +2042,8 @@
   function cardHtml() {
     if (view.help || !run) {
       const bests = ['run', 'endless'].map(bestWords).concat(longestWords()).filter(Boolean);
+      const old = K.store.get(LEGACY_STORE_KEY, null) || {};
+      const legacy = [old.best ? `run ${num(old.best.score)}` : '', old.endless ? `endless ${num(old.endless.score)}` : '', old.longest ? `streak ${num(old.longest)}` : ''].filter(Boolean).join('; ');
       return `
         <section class="gm-card" aria-labelledby="ss-card-h">
           <span class="gm-card-art">${wizardPic('cards')}</span>
@@ -1762,9 +2055,12 @@
             <li>Seven deals with changing layouts. Miss a target and lose a heart, or only half a heart if you clear the table. A clean sweep that reaches its target heals a heart.</li>
             <li>Pick spells and charms between deals: target plus clean sweep earns two sequential rewards; other continuing deals earn one. Press Deal when ready. Curses join from deal 4. Hex restarts streaks for its marked suit, even with Kindred.</li>
             <li>The wizard’s star glows at streaks of 5, 10 and 15. After the Final Deal, keep dealing or bank your score with End Run.</li>
+            <li>Table enchantments: Treasure adds 40 at scoring streak five or higher; ×2P doubles only card points; ×2S doubles the carried streak after scoring. Clover only pays for a play at an exact multiple of five. Fireball destroys enchantments.</li>
+            <li>Optional proven contracts begin on deal four. Bonuses count only toward run score at settlement. Spending any charge counts as a cast even after undo. Inspect cards explains combined states without playing.</li>
           </ul>
           <p class="gm-keys"><span class="hint-mouse">Keys: arrows, Enter to play, D to draw, ${SPELL_IDS.map((id) => SPELLS[id].key.toUpperCase()).join(' ')} to cast, L to look.</span><span class="hint-touch">Tap a card to play it, or the stock to draw.</span></p>
           ${bests.map((t) => `<p class="gm-best">${esc(t)}</p>`).join('')}
+          ${legacy ? `<p class="gm-best">Previous rules records (kept separately): ${esc(legacy)}.</p>` : ''}
           <p class="gm-actions">${run
             ? '<button class="os-button" type="button" data-act="back" data-first>Back to the game</button>'
             : '<button class="os-button gm-go" type="button" data-act="start" data-first>Deal me in</button>'}</p>
@@ -1812,7 +2108,9 @@
           ${b.bookFull ? '<p>Spellbook: no temporary charge available; all spell charges are at their caps.</p>' : ''}
           ${ready ? `<p class="ss-next">${esc(nextWords(b.prepared))}</p>${nextDiagram(b.prepared)}
             <p>Next-deal charges: ${SPELL_IDS.filter((id) => b.prepared.charges[id]).map((id) => `${esc(words(id).name)} ${b.prepared.charges[id]}`).join(', ') || 'none'}. Hearts: ${b.resources.hearts}/${b.resources.max}.</p>` : '<p class="ss-next">Choose your rewards to prepare the next layout and deal.</p>'}
-          <p class="gm-actions"><button class="os-button gm-go" type="button" data-act="deal" ${token}${ready ? ' data-first' : ' disabled'}>Deal</button></p>
+          ${d.contract ? `<p>${esc(contractWords(d.contract))} ${d.contractPaid ? `Achieved: +${d.contractPaid} run points.` : 'No contract bonus.'}</p>` : ''}
+          ${ready && b.nextDeal >= 4 ? `<div class="ss-contract-offer" role="status">${b.contractDecision === 'searching' ? '<p>Checking a contract on this exact deal… Deal now proceeds without a contract.</p>' : b.contractOffer ? `<p>${esc(contractWords(b.contractOffer.candidate))}</p><p>A legal route was verified with your locked resources. Your choices can still lose it.</p>${b.contractDecision === 'offered' ? `<p class="gm-actions"><button type="button" class="os-button" data-act="accept-contract" ${token} data-first>Accept contract</button><button type="button" class="os-button" data-act="skip-contract" ${token}>Skip contract</button></p>` : `<p>Contract ${b.contractDecision}.</p>`}` : '<p>No contract for this deal</p>'}</div>` : ''}
+          <p class="gm-actions"><button class="os-button gm-go" type="button" data-act="deal" ${token}${ready && b.contractDecision !== 'offered' ? ' data-first' : ' disabled'}>Deal</button></p>
         </section>`;
     }
     const won = run.step === 'won';
@@ -1827,6 +2125,7 @@
           ? `${plural(run.hearts, 'heart')} to spare: +${WIN}, and +${PER_HEART} a heart.<br />Score: ${num(run.score)}`
           : `${finalDeal(d.n) ? 'Final Deal' : `Deal ${d.n}`}${endless() || finalDeal(d.n) ? '' : ` of ${DEALS}`}: ${num(d.score)} of ${num(d.target)} points.<br />Score: ${num(run.score)}`}</p>
         ${won ? `<p>${run.reward.total === 2 ? 'Target + clean sweep: two rewards' : 'One reward'} waiting if you keep dealing.</p>` : ''}
+        ${d.contract ? `<p>${esc(contractWords(d.contract))} ${d.contractPaid ? `Achieved: +${d.contractPaid} run points.` : 'No contract bonus.'}</p>` : ''}
         ${run.newBest
           ? `<p class="gm-best is-new">${endless() ? 'New best endless run!' : 'New best run!'}${run.bestLine ? ` <span>${esc(run.bestLine)}</span>` : ''}</p>`
           : bestText ? `<p class="gm-best">${esc(bestText)}</p>` : ''}
@@ -1965,18 +2264,21 @@
       else if (e.t === 'play') {
         out.push(`${e.wild ? 'Wild: ' : ''}${caption(e.card)} on the pile. ${e.hexed ? `Hexed: the streak starts again, plus ${e.pts}.` : `Streak ${e.streak}, plus ${e.pts}${e.kin ? ' (Kindred: double)' : ''}.`}`);
         if (e.clover) out.push('Lucky Clover: 50 bonus points included.');
+        if (e.enchantment) out.push(`${ENCHANTMENTS[e.enchantment].name}: ${scoreWords(e)}`);
         if (e.hexed) {
           note = `Hex: ${SUITS[suitOf(e.card)].name} restart the streak${e.kin ? ' (Kindred still doubles the score)' : ''}.`;
           wizardSays(note, 3200);
         }
-        if (e.streak >= 5 && e.streak % 5 === 0 && !e.hexed) {
-          note = `Streak ${e.streak}!`;
-          if (e.streak >= 10) wizardSays(lineOf('streakLines'), 2200);
+        const milestone = [15, 10, 5].find((n) => e.before < n && e.carried >= n);
+        if (milestone && !e.hexed) {
+          note = e.carried !== e.streak ? `Streak ${e.streak} → ${e.carried}` : `Streak ${e.carried}!`;
+          if (milestone >= 10) wizardSays(lineOf('streakLines'), 2200);
         }
       } else if (e.t === 'draw') {
         out.push(`${e.echo ? 'Echo: drew' : 'Drew'} the ${cardName(e.card)}${e.echo ? `, streak kept at ${d.streak}` : e.broke ? `. Streak over at ${e.broke}` : ''}.${e.toll ? ` Toll: minus ${e.toll}.` : ''}`);
       } else if (e.t === 'refill') out.push(`The Second Deck shuffles ${plural(e.n, 'card')} back into the stock.`);
-      else if (e.t === 'burn') out.push(`Fireball: the ${cardName(e.card)} burns away. The streak carries on at ${d.streak}.`);
+      else if (e.t === 'burn') out.push(`Fireball: the ${cardName(e.card)} burns away. The streak carries on at ${d.streak}.${e.enchantment ? ' Enchantment destroyed without triggering.' : ''}`);
+      else if (e.t === 'contract') out.push(e.paid ? `Contract achieved: plus ${e.paid} run points, separately from the target.` : 'Contract ended without a bonus.');
       else if (e.t === 'rewind') out.push(`Rewind: the ${cardName(e.card)} goes back. Streak ${d.streak}.`);
       else if (e.t === 'undraw') out.push(`Undraw: the ${cardName(e.card)} goes under the stock. Streak ${e.streak}${e.toll ? `, and the Toll's ${e.toll} comes back` : ''}.`);
       else if (e.t === 'scry') out.push(`Scry: the next ${e.cards.length > 1 ? `${e.cards.length} cards are` : 'card is'} ${e.cards.map(cardName).join(', then ')}.${e.cards.length > 1 ? ' Swap them round, then Done.' : ''}`);
@@ -2222,6 +2524,11 @@
   }
 
   function wire(v) {
+    v.root.querySelector('[data-inspect-select]').addEventListener('change', (e) => inspectCard(+e.target.value));
+    ['focusin', 'pointerover'].forEach((type) => v.peaks.addEventListener(type, (e) => {
+      const el = e.target.closest('[data-slot]');
+      if (el) inspectCard(+el.dataset.slot);
+    }));
     v.owned.addEventListener('click', (e) => {
       const chip = e.target.closest('button');
       if (chip) chip.focus({ preventScroll: true });
@@ -2271,7 +2578,7 @@
 
   function onKey(e) {
     if (e.altKey || e.metaKey || e.ctrlKey || e.defaultPrevented || !view || !run) return;
-    if (e.target.closest && e.target.closest('.win-bar, .gm-menu, .gm-owned, input, textarea')) return;
+    if (e.target.closest && e.target.closest('.win-bar, .gm-menu, .gm-owned, .ss-inspect, input, textarea, select')) return;
     if (view.card) { cardKey(e); return; }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     const onCardEl = e.target.closest && e.target.closest('.ss-card.is-free');
@@ -2399,7 +2706,7 @@
     if (!btn || !view) return;
     // Replacing a selected reward under the pointer must not turn the
     // second click of a double-click into an unseen second selection.
-    if (e.detail > 1 && (btn.dataset.up || ['deal', 'skip-reward', 'onwards'].includes(btn.dataset.act))) return;
+    if (e.detail > 1 && (btn.dataset.up || ['deal', 'skip-reward', 'onwards', 'accept-contract', 'skip-contract'].includes(btn.dataset.act))) return;
     if (btn.dataset.scry) { scryPick(Number(btn.dataset.scry)); return; }
     if (btn.dataset.up) {
       const ev = choose(btn.dataset.up, btn.dataset.break, Number(btn.dataset.remaining));
@@ -2425,6 +2732,8 @@
       announce(rewardWords());
     } else if (what === 'deal') {
       dealOn(btn.dataset.break);
+    } else if (what === 'accept-contract' || what === 'skip-contract') {
+      if (decideContract(btn.dataset.break, what === 'accept-contract').length) syncCard(true);
     } else if (what === 'back') backToGame();
     else if (what === 'scry-done') scryDone(true);
     else if (what === 'peek') {

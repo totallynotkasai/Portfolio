@@ -6,6 +6,8 @@ const exposed = source.replace('K.solitaire = { mount, unmount };', `K.test = {
   newRun, endDeal, endRun, keepDealing, choose, skipReward, commitDeal, prepareDeal, planOf, startDeal, scored,
   startPlannedDeal() { run.next = prepareDeal(run.next); return startDeal(); },
   play, cast, draw, reorder, free, sealed, open, opens, movesOf, fits, pileFace, hopeless,
+  RULES_VERSION, STORE_KEY, LEGACY_STORE_KEY, ENCHANTMENTS, searchContracts, replayWitness, contractPool, contractMet, contractWords, decideContract,
+  simulationOf, cloneSimulation, transition, proofActions, availableSpells, dealState, inspectWords, scoreWords, finishRun, bestRun,
   removeCard, validateLayout, layoutDiagram, nextWords, nextDiagram, drawLayoutNote, focusSlot,
   LAYOUTS, SPELLS, CHARMS, get run() { return run; }, get seed() { return run.seed; },
   rewardHtml() { view = { help: false, scry: null }; try { return cardHtml(); } finally { view = null; } },
@@ -21,8 +23,7 @@ const exposed = source.replace('K.solitaire = { mount, unmount };', `K.test = {
     unmount(); return replayed;
   }
 };`);
-export function game(seed = 123) {
-  const saved = {};
+export function game(seed = 123, saved = {}) {
   const K = { C: {}, DOODLE_ICONS: {}, doodleIcon: () => '<svg></svg>', esc: (s) => String(s), plural: (n, s) => `${n} ${s}${n === 1 ? '' : 's'}`,
     store: { get: (key, fallback) => saved[key] || fallback, merge: (key, fields) => { saved[key] = { ...saved[key], ...fields }; } } };
   vm.runInNewContext(exposed, { window: { Kasai: K }, console, setTimeout, clearTimeout });

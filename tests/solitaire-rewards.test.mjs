@@ -160,7 +160,7 @@ test('prepared definition deeply freezes exact deck, graph, curses and final res
     const p = b.prepared, before = json(p), rng = g.run.seed;
     assert.equal(p.randomState, rng);
     function frozen(value) { if (value && typeof value === 'object') { assert.ok(Object.isFrozen(value)); Object.values(value).forEach(frozen); } }
-    frozen(p); assert.match(p.rulesVersion, /rewards/); assert.equal(p.deck.length, 52); assert.equal(new Set(p.deck).size, 52);
+    frozen(p); assert.equal(p.rulesVersion, g.RULES_VERSION); assert.equal(p.deck.length, 52); assert.equal(new Set(p.deck).size, 52);
     assert.equal(p.table.length, 28); assert.equal(p.pile.length, 1); assert.equal(p.stock.length + p.eaten.length, 23);
     assert.equal(p.layoutDefinition.id, g.LAYOUTS[p.layout].id); assert.equal(g.validateLayout(p.layoutDefinition), true);
     if (p.curses.includes('seal')) assert.ok(p.layoutDefinition.sealGroups.length);

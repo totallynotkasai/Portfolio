@@ -12,8 +12,8 @@ const hook = `
   const stored = K.store;
   let sampleScores = {};
   K.store = { ...stored,
-    get(key, fallback) { return key === STORE_KEY ? sampleScores : stored.get(key, fallback); },
-    merge(key, fields) { if (key === STORE_KEY) Object.assign(sampleScores, fields); else stored.merge(key, fields); }
+    get(key, fallback) { return key === STORE_KEY || key === LEGACY_STORE_KEY ? sampleScores : stored.get(key, fallback); },
+    merge(key, fields) { if (key === STORE_KEY || key === LEGACY_STORE_KEY) Object.assign(sampleScores, fields); else stored.merge(key, fields); }
   };
   function sample(scenario) {
     if (run) run.recorded = true;
@@ -23,7 +23,32 @@ const hook = `
     view.help = false;
     view.scry = null;
     view.peek = false;
-    if (scenario.startsWith('layout-')) {
+    if (scenario === 'enchantments') {
+      Object.assign(run.spells, { wild: 2, fireball: 2, echo: 2, rewind: 2, moonlight: 1, scry: 2, undraw: 2, nudge: 2, dispel: 2 });
+      Object.assign(run.have, { ember: 1, kindred: 1, clover: 1 });
+      run.next = prepareDeal({ n: 6, target: 1250, curses: ['seal','hex','toll'], hex: 1, layout: 0 }); startDeal();
+      const d = run.deal;
+      // Swap occurrences rather than duplicate cards in this explicitly
+      // synthetic arithmetic/combined-state example.
+      const swap = (card, slot) => {
+        const old = d.slots[slot], lists = [d.slots, d.pile, d.stock];
+        const list = lists.find((list) => list.includes(card)); const index = list.indexOf(card);
+        list[index] = old; d.slots[slot] = card;
+      };
+      const pile = d.pile[0], place = d.slots.indexOf(0), stock = d.stock.indexOf(0);
+      if (place >= 0) d.slots[place] = pile; else d.stock[stock] = pile;
+      d.pile[0] = 0;
+      swap(1,18); swap(2,19); swap(3,20); swap(14,1);
+      d.enchantments.fill(null); d.enchantments[18]='treasure'; d.enchantments[19]='points'; d.enchantments[20]='streak'; d.enchantments[1]='streak';
+      d.up.fill(true); d.streak=4;
+      d.lastScore='Synthetic example (production: at most two enchantments): play 2 Flames Treasure at streak 5: 120 card + 50 Clover + 40 = 210; then 3 Flames ×2P: 140 × 2 = 280; then 4 Flames ×2S: 160, carry 7 → 14. Central Peak combines Hex + Seal + ×2S.';
+    } else if (scenario === 'contract-review' || scenario === 'contract-none') {
+      const p = prepareDeal({ n: 4, target: 1050, curses: ['hex'], hex: 1, layout: 0 }, resourcesOf(), 'review:fixed-deal');
+      run.deal.n=3; run.deal.score=1000; endDeal(false);
+      const b=run.reward;
+      Object.assign(b, {remaining:0, offer:[], prepared:p, resources:p.resources, status:'ready', contractDecision:'searching'}); run.next=p;
+      searchContracts(p, scenario === 'contract-none' ? {nodeBudget:0} : {}).then((r) => { if(run.reward!==b || b.status!=='ready') return; b.contractOffer=r.proof; b.contractSearch=r; b.contractDecision=r.proof?'offered':'none'; if(view) syncCard(false); });
+    } else if (scenario.startsWith('layout-')) {
       const id = Number(scenario.slice(7));
       Object.assign(run.spells, { wild: 2, fireball: 2, echo: 2, rewind: 2, moonlight: 1, scry: 2, undraw: 2, nudge: 2, dispel: 2 });
       run.next = prepareDeal({ n: 4, target: 1050, curses: LAYOUTS[id].sealGroups.length ? ['seal', 'hex'] : ['hex', 'toll'], hex: 1, layout: id });
@@ -78,7 +103,7 @@ const hook = `
   const controls = document.createElement('nav');
   controls.className = 'solitaire-preview-controls';
   controls.setAttribute('aria-label', 'Local preview scenarios');
-  const scenarios = [['double','Double rewards'], ['last-card','Play stock-bonus sweep'], ['book','Spellbook rewards'], ['last-reward','Last eligible reward'],
+  const scenarios = [['enchantments','Synthetic enchantment example'], ['contract-review','Pinned contract example'], ['contract-none','Zero-budget fallback'], ['double','Double rewards'], ['last-card','Play stock-bonus sweep'], ['book','Spellbook rewards'], ['last-reward','Last eligible reward'],
     ['exhausted','Exhausted rewards'], ['final','Won Final'], ['later-final','Endless Final'],
     ['new','New game'], ...LAYOUTS.map((l, i) => ['layout-'+i, l.name]), ['reward-preview','Single reward'],
     ['glow0','Streak 0'],['glow5','Streak 5'],['glow10','Streak 10'],['glow15','Streak 15'],
@@ -110,9 +135,9 @@ const hook = `
     const b = run.reward, p = b && b.prepared;
     diagnostic.hidden = false;
     diagnostic.textContent = JSON.stringify({ step: run.step, seed: run.seed, score: run.score, n: run.n,
-      break: b && { id: b.id, total: b.total, remaining: b.remaining, chosen: b.chosen, offer: b.offer, status: b.status },
+      break: b && { id: b.id, total: b.total, remaining: b.remaining, chosen: b.chosen, offer: b.offer, status: b.status, contractDecision:b.contractDecision, contract:b.contractOffer, search:b.contractSearch && {reason:b.contractSearch.reason,nodes:b.contractSearch.nodes} },
       prepared: p && { id: p.id, version: p.rulesVersion, layout: p.layoutDefinition.id, deck: p.deck, resources: p.resources, charges: p.charges },
-      live: { definition: run.deal.definition.id, table: run.deal.slots, pile: run.deal.pile, stock: run.deal.stock,
+      live: { definition: run.deal.definition.id, table: run.deal.slots, pile: run.deal.pile, stock: run.deal.stock, enchantments:run.deal.enchantments, contract:run.deal.contract,
         charges: run.deal.charges, spells: run.spells, have: run.have, extra: run.extra }
     }, null, 2);
   });
