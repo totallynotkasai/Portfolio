@@ -2,7 +2,7 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art), 3 (writing), 4 (variable-peak Solitaire foundation/previews), 5 (sequential rewards and immutable next deals) and Phase 6 technical implementation/verification complete. Phase 6 multipliers remain a technically tested prototype awaiting Andrew's final feel/balance review. Andrew explicitly authorised this new session through Phase 6 on 28 October 2026. Stop here: Phases 7 and 9 remain unimplemented. Hat to Hat remains on its separate branch and plan.**
+**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art), 3 (writing), 4 (variable-peak Solitaire), 5 (sequential rewards/immutable next deals), 6 technical implementation and Phase 7 production Starweave implementation/browser/automated verification are complete. Andrew explicitly extended the prior Phase 6 stopping point to authorise Phase 7 on 28 October 2026. Actual audio listening and physical/native-device checks remain unverified; see PHASE7_STARWEAVE_REVIEW.md. Phase 6 multiplier human feel/balance review also remains open independently. Stop before Phase 9, which remains unimplemented. Hat to Hat remains separately parked.**
 
 **Active implementation branch: `codex/content-expansion`.** Keep the remaining expansion phases on this branch. By Andrew’s later request, Hat to Hat is separately parked on `codex/hat-to-hat`; its complete brief and deferred tasks are in `HAT_TO_HAT_PLAN.md`. No push, merge or deployment is authorised.
 
@@ -357,7 +357,7 @@ Retain the previously agreed later-phase local autosave/named patterns, validate
 
 **Latest review:** Andrew is really happy with Starweave and says it strikes the perfect balance. Preserve this accepted concept during later technical completion. Remaining music work is technical completion/integration and device verification, not another conceptual redesign.
 
-Phase 1 reviewed the circle, sound differences, pet involvement and whether combining ingredients feels playful. Named saves, richer scales, longer compositions, import/export, the final music activity and production sound/OS integration await Phase 7 and feedback. Do not merely reskin the old grid. The initial kernels may remain as historical experiments; they are not the current interaction.
+Phase 1 reviewed the circle, sound differences, pet involvement and whether combining ingredients feels playful. Phase 7 now supplies named saves/autosave, richer pitch choices, up to eight circles, validated editable JSON import/export, visual PNG export, Match the tune and production sound/OS integration around that accepted interaction. Actual listening and physical/native-device verification remain open as recorded below. The initial rectangular kernels remain historical experiments, not the production interaction.
 
 ## 9. Separately deferred idea
 
@@ -406,7 +406,7 @@ After separation, the active suite passes **33/33 tests** and the production bui
 
 The pre-separation combined suite passed 61/61 tests. The active suite is reduced by moving game-only regressions with their preserved implementation; this does not mean those tests failed or that coverage was removed from the deferred branch. Retain the baseline interaction/Solitaire, musical model/audio and build-exclusion tests here. Device listening/touch and native interruption remain technical checks for Phase 7. Music currently has four pitches/sixteen moments/three voices and no saves/export/full activity.
 
-The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phases 2–6 followed in separate continuations, recorded below. Phases 7 and 9 remain deferred.
+The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phases 2–7 followed in separate continuations, recorded below. Phase 9 remains deferred.
 
 ### Phase 2: art reverse sides and content authoring
 
@@ -538,12 +538,16 @@ Suggested commits: `feat: add Solitaire card enchantments`; `feat: clarify curse
 
 ### Phase 7: complete musical spellcraft after revised preview feedback
 
+**Implementation and browser/automated verification complete on 28 October 2026, with listening and physical/native verification limits explicitly open.** Andrew authorised this continuation beyond the prior Phase 6 stop. See [PHASE7_STARWEAVE_REVIEW.md](PHASE7_STARWEAVE_REVIEW.md) and [STARWEAVE_AUTHORING.md](STARWEAVE_AUTHORING.md). No Phase 9 work, push, merge or deployment.
+
 - [x] Andrew accepted the current Starweave concept and balance; preserve its rune circle, sound families, durations and pet participation during later implementation.
-- [ ] Promote the approved model/audio transport into a lazy-loaded production app.
-- [ ] Complete agreed saves, longer compositions, scale/pitch choices and import/export around that model, with validated editable data.
-- [ ] Develop the musical activity and authored recipes after the instrument's interaction is approved.
-- [ ] Integrate global sound, OS lifecycle, phone/keyboard controls and storage documentation.
-- [ ] Verify no voices survive Stop, mute, close, minimise, hiding or interruption.
+- [x] Promote the approved model/audio transport into the lazy-loaded Games → Starweave app. Keep sixteen clockwise moments, concentric pitch rings, three distinct voices, duration choices, connections and the actual privately scoped production animated pet rig.
+- [x] Complete local autosave, 24 named patterns and persisted last-deletion recovery; 1–8 circles; six presets/custom MIDI pitch rings; strict editable JSON import/export and all-circle PNG export. Stable event IDs, explicit pitch/start/duration and out-of-palette rendering prevent silent retuning. Invalid/stale/quota/concurrent-tab data has recoverable feedback; Undo restores valid loads/imports/clears.
+- [x] Implement Match the tune with three original four-note exercises, exact musical comparison, written hints, cancellable listening and protected restoration of the visitor's own spell. Preserve the accepted three original remix recipes; do not attribute agent-created music to Andrew.
+- [x] Integrate the existing sound preference/mixer, OS focus/minimise/close, browser lifecycle and AudioContext state changes. Large equivalent numbered controls, ingredient/pitch/duration selectors, roving keyboard navigation, scrolling, light/dark and reduced-motion state are implemented. Document schema/versioning, limits and recipe behaviour in the tracked root guide.
+- [x] Verify cancellation through the actual production controller/transport/view logic: queued voices, interval, frame and subscriptions are released for Stop/edit/mute/hush/close/minimise/hiding/blur/focus/interruption, including pending-resume races. Actual browser Stop/mute/minimise/close/reopen checks also pass. Event doubles do not establish physical/native audio interruption behaviour.
+- [x] Run the full relevant regression suite and production build; remove review-only generated pages from packaging. Final **122/122 tests**, build without content warnings (**37 images, 106 variants, 19 artworks**). Browser checks at 1280×800, 390×844, 320×740 and 640×400 include activity success/cancellation, persistence, imports/actual exports, eight-circle playback, palette preservation, normal pet animation and a labelled reduced-motion fixture.
+- [ ] Actual audio listening, physical phone/touch/latency and native audio interruption checks; native browser zoom, screen-reader session and OS reduced-motion toggle. Enabled tools did not provide listening or these physical/native sessions. These are honest verification limits, not a new concept/scope approval gate.
 
 **Exit:** visitors can create a deliberate musical spell with the pet, edit and retain it, and understand its sounds. A generic grid editor does not satisfy this revised direction.
 
@@ -617,4 +621,4 @@ Functional art/writing features can be completed before this material arrives, u
 
 The canonical plan is **`CONTENT_EXPANSION_PLAN.md` in the repository root**, where Git can include it normally; it is tracked with the Phase 0 baseline commit. The original `docs/content-expansion-plan.md` is a local pointer to it, because docs is currently excluded by local Git rules. This avoids leaving the implementation instructions solely in an ignored folder.
 
-The active branch is **`codex/content-expansion`**. Andrew requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2, 3, 4, 5 and Phase 6 technical implementation/verification are complete here**; stop this continuation after Phase 6. Multiplier human feel/balance approval remains open. Phases 7 and 9 remain unimplemented. Preserve the branch separation; no push, merge or deployment is authorised.
+The active branch is **`codex/content-expansion`**. Andrew requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2–6 and Phase 7 production implementation/browser/automated verification are complete here.** Phase 7 actual listening/physical/native checks and Phase 6 multiplier human feel/balance review remain open with their recorded limits. This authorised continuation stops before **Phase 9, which remains unimplemented**. Preserve the branch separation; no push, merge or deployment is authorised.
