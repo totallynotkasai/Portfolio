@@ -2,7 +2,7 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art), 3 (writing), 4 (variable-peak Solitaire foundation/previews) and 5 (sequential rewards and immutable next deals) complete. Hat to Hat remains on its own branch and plan. The separately authorised continuation stops after Phase 5; Phases 6–7 and 9 remain unimplemented.**
+**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art), 3 (writing), 4 (variable-peak Solitaire foundation/previews), 5 (sequential rewards and immutable next deals) and Phase 6 technical implementation/verification complete. Phase 6 multipliers remain a technically tested prototype awaiting Andrew's final feel/balance review. Andrew explicitly authorised this new session through Phase 6 on 28 October 2026. Stop here: Phases 7 and 9 remain unimplemented. Hat to Hat remains on its separate branch and plan.**
 
 **Active implementation branch: `codex/content-expansion`.** Keep the remaining expansion phases on this branch. By Andrew’s later request, Hat to Hat is separately parked on `codex/hat-to-hat`; its complete brief and deferred tasks are in `HAT_TO_HAT_PLAN.md`. No push, merge or deployment is authorised.
 
@@ -371,7 +371,7 @@ Hat to Hat is outside this active plan. Its design, remaining work and verificat
 - Commit each completed phase, or a coherent substep within a large phase, on that branch. Suggested commit subjects below are descriptions, not instructions to push or merge.
 - Keep previews, reusable rule code and final implementation together. Keep review-only preview pages out of the production build unless Andrew explicitly wants them published.
 - Update this document's progress boxes as work actually completes. Acceptance of scope does not mean a phase is finished.
-- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew authorised Phases 2 and 3, then separate continuations through Phase 4 and now Phase 5 only. Stop after Phase 5; keep later numbered phases for their own continuations.
+- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew authorised Phases 2 and 3, then separate continuations through Phases 4 and 5. His new 28 October session explicitly authorises Phase 6. Stop after Phase 6; keep Phases 7 and 9 for their own continuations.
 - Starweave’s later integration follows the accepted concept and Phase 7 requirements. The separately deferred game supplies no approval gate or dependency for this plan.
 - Avoid new blanket approval stops for accepted art, writing and contract details. Ask for missing authored material when needed; render optional sections safely without inventing it.
 
@@ -406,7 +406,7 @@ After separation, the active suite passes **33/33 tests** and the production bui
 
 The pre-separation combined suite passed 61/61 tests. The active suite is reduced by moving game-only regressions with their preserved implementation; this does not mean those tests failed or that coverage was removed from the deferred branch. Retain the baseline interaction/Solitaire, musical model/audio and build-exclusion tests here. Device listening/touch and native interruption remain technical checks for Phase 7. Music currently has four pitches/sixteen moments/three voices and no saves/export/full activity.
 
-The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phases 2–5 followed in separate continuations, recorded below. Phases 6–7 and 9 remain deferred.
+The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phases 2–6 followed in separate continuations, recorded below. Phases 7 and 9 remain deferred.
 
 ### Phase 2: art reverse sides and content authoring
 
@@ -504,30 +504,33 @@ Suggested commit: `feat: grant two rewards for a successful clean sweep`.
 
 ### Phase 6: enchantments, curse visuals and achievable contracts
 
-Deliver in coherent substeps, with tests after each.
+**Technical implementation and verification complete on 28 October 2026.** This separately authorised session stops after Phase 6. The multiplier prototype is playable and tested; Andrew's human review of final feel/balance is still open, without creating another implementation scope gate. Detailed behavior, reproduction and verification limits are in [PHASE6_SOLITAIRE_REVIEW.md](PHASE6_SOLITAIRE_REVIEW.md).
 
 **6A: Treasure and multiplier prototype**
 
-- [ ] Add occurrence-based enchantments with the trigger/undo rules in section 4.
-- [ ] Implement accepted Treasure.
-- [ ] Prototype Double Points and Double Streak with explicit arithmetic, milestone/Clover rules and capped frequency.
-- [ ] Present a playable board/example and readable scoring breakdown; tune semantics and frequency from feedback before treating the multiplier balance as final.
-- [ ] Preserve existing face-up knowledge through Rewind and restore all reward-related state correctly.
+- [x] Add occurrence-based enchantments with the trigger/undo rules in section 4. Normal/Wild trigger; Fireball destroys; no stock or Second Deck enchantments.
+- [x] Implement accepted Treasure: flat +40 only at pre-boost scoring streak five or higher.
+- [x] Prototype Double Points and Double Streak with explicit arithmetic, milestone/Clover rules and capped frequency. Deal one has none; two introduces Treasure, three Points, four Streak; later deals have Treasure plus one alternating multiplier, at most two occurrences/one Double Streak, on separate covering paths.
+- [x] Present a playable isolated example and scoring breakdown, including Ember/Kindred and separate Clover/peak/stock awards. The synthetic example deliberately shows more simultaneous effects than production permits and is labelled accordingly. Keep exact semantics/frequency provisional pending human feedback.
+- [x] Preserve seen faces through Rewind; restore enchantment, score, streak, best and first-peak progress together. Undraw restores carried boost/Toll/undo state; spent charges/cast counts remain real.
+- [ ] Andrew's final human multiplier feel/balance review; no human approval or new success-rate/balance estimate is claimed.
 
 **6B: curse and combined-state presentation**
 
-- [ ] Improve Hex, Seal, global curse/affected-control indicators and the shared Inspect affordance.
-- [ ] Check combinations of enchantment + Hex, enchantment + Seal, spell targeting + curse, and multiple global curses.
-- [ ] Confirm rank/suit legibility, accessible labels, touch behaviour, dark mode and reduced motion.
+- [x] Improve Hex, Seal, global curse/affected-control indicators and shared Inspect: persistent dashed Hex/ribbon, square lock/numbered guards, named global curse strip, Toll/Moths draw text and Broken Circle pile explanation; round beneficial badges use a separate position. Compact legend explains combinations and targeting rings.
+- [x] Check enchantment + Hex, enchantment + Seal, targeting + curse and multiple global curses. Hover/focus/card labels and explicit Inspect selector share the explanation, with no covered enchantment leak. Inspect cannot play or invoke game hotkeys.
+- [x] Verify rank/suit legibility, accessible names, keyboard/focus and small-phone pointer interactions, light/dark contrast and a labelled reduced-motion fixture. Review 1280×800, 390×844, 320×740 and 640×400 equivalent zoom viewport; CSS zoom was separately inspected with limits recorded. Physical touch, native browser zoom, screen-reader and OS reduced-motion toggles remain unverified.
 
 **6C: contracts with proof of achievability**
 
-- [ ] Start offers only for deal four onward.
-- [ ] Implement the approved contract pool, resource/curse/peak filters and real spell-usability checks.
-- [ ] Implement bounded search, isolated deterministic state and replayable witness verification on the exact next-deal definition.
-- [ ] Offer only verified candidates; graceful no-offer fallback on unsupported mechanics, timeout or cancellation.
-- [ ] Add Accept/Skip and Deal within the reward screen, one-time settlement and separate run-score bonuses.
-- [ ] Exercise solver/live-rule equivalence with all approved enchantments, variable peaks and double-reward loadouts.
+- [x] Start offers only for deal four onward, including endless; deal-three settlement/reward locking is the first boundary.
+- [x] Implement all five exact conditions/bonuses, structural exclusions and owned usable spell checks. A legal prefix of the replayed successful witness must actually expose a use for an owned charge; Spellbook contributes only its pinned effective charge. Ownership alone is insufficient.
+- [x] Implement incremental deterministic search on isolated states of the exact frozen definition. Default 5,000 successor nodes, beam 32, route cap 180, yields every 12 successors or 8ms and 2.5-second wall cancellation. Every offered terminal witness replays Play/Draw/Cast/Reorder through live functions, including all nine spells, refill RNG, coverage/Seal, Hex, multipliers, target/stock arithmetic and undo accounting. No live RNG or state is consumed.
+- [x] Offer only a verified candidate, pinned to definition/rules identity. Unsupported mechanics/errors, no witness, budget exhaustion, timeout or cancellation yield no offer; no deck/objective changes. Deal can proceed immediately without a contract while checking. A completed failed search explicitly shows “No contract for this deal”.
+- [x] Add Accept/Skip then explicit Deal in the same retained reward screen. Settled contract bonuses affect run score only, pay once, cannot rescue targets, and never pay on unfinished banking/abandonment. First-peak progress and best restore through Rewind; all real charges count toward Light Touch. Preserve Phase 5 sequential entitlements/caps/Spellbook/Final flow.
+- [x] Verify solver/live equivalence across all layouts and supported resources, exact immutable consumption, stale/repeated decisions, interruption/reopen, fallback and one-time settlement. Prepared definitions and witnesses use `solitaire-enchanted-contracts-v2`; new bests/longest use a separate storage key, leaving old records and shared trophies intact.
+
+**Verification:** clean Phase 5 baseline **71/71 tests** and successful build; Phase 6 **89/89 tests**, including 18 new regressions, and successful production build without content warnings (37 images, 106 variants, 19 artworks). Existing art/writing/viewer/interaction/accepted Starweave tests remain passing. Actual browser checks covered arithmetic/undo, combined Inspect, Accept/Skip, exact definition retained through close/reopen, zero-budget fallback, two distinct Final-to-endless selections, Help/Back during search, and reachable explicit Deal. Final production packaging excludes disposable QA pages. See the review for limits and the final built-site smoke check.
 
 **Exit:** multiplier effects and curse states are understandable, witnesses satisfy actual contracts, no impossible or no-spell-only offer slips through, and reward/undo loops cannot farm points. Save new-rule bests separately from prior bests.
 
@@ -614,4 +617,4 @@ Functional art/writing features can be completed before this material arrives, u
 
 The canonical plan is **`CONTENT_EXPANSION_PLAN.md` in the repository root**, where Git can include it normally; it is tracked with the Phase 0 baseline commit. The original `docs/content-expansion-plan.md` is a local pointer to it, because docs is currently excluded by local Git rules. This avoids leaving the implementation instructions solely in an ignored folder.
 
-The active branch is **`codex/content-expansion`**. Andrew subsequently requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2, 3, 4 and 5 are complete here**; stop this continuation after Phase 5. Phases 6–7 and 9 remain unimplemented. Preserve the branch separation; no push, merge or deployment is authorised.
+The active branch is **`codex/content-expansion`**. Andrew requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2, 3, 4, 5 and Phase 6 technical implementation/verification are complete here**; stop this continuation after Phase 6. Multiplier human feel/balance approval remains open. Phases 7 and 9 remain unimplemented. Preserve the branch separation; no push, merge or deployment is authorised.

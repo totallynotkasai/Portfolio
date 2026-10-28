@@ -880,6 +880,7 @@
     return { ...s, deal: { ...copy(dynamic), definition, layoutDefinition } };
   }
   function transition(state, action) {
+    if (state.deal.seen && action.type !== 'reorder') return [];
     return inContext(state, () => {
       if (action.type === 'play') return play(action.i);
       if (action.type === 'draw') return draw(false, !!action.end);
@@ -930,6 +931,7 @@
     const budget = Math.min(options.nodeBudget ?? 5000, 10000);
     const now = options.now || (() => Date.now());
     const deadline = now() + (options.timeoutMs ?? 2500);
+    let sliceStarted = now();
     const pause = options.yield || (() => new Promise((resolve) => setTimeout(resolve, 0)));
     const stop = () => options.cancelled?.() ? 'cancelled' : now() >= deadline ? 'timeout' : '';
     const pool = contractPool(p);
@@ -948,7 +950,10 @@
       const usable = [...new Set(parent.usable.concat(availableSpells(parent.state)))];
       for (const action of actions) {
         if (nodes >= budget) break;
-        if (nodes % 12 === 0) { await pause(); const reason = stop(); if (reason) return { proof: null, reason, nodes }; }
+        if (nodes % 12 === 0 || now() - sliceStarted >= 8) {
+          await pause(); sliceStarted = now();
+          const reason = stop(); if (reason) return { proof: null, reason, nodes };
+        }
         nodes++;
         const state = cloneSimulation(parent.state);
         const ev = transition(state, action);

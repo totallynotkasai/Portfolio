@@ -181,6 +181,9 @@ test('witness and live transitions agree for all nine spells, reorder, all multi
       if (!sim.deal.over) assert.equal(g.run.seed, sim.seed); // live settlement alone rolls the subsequent reward offer
       assert.ok(simEvents.length);
       witnessActions.push(action);
+      if (action.id === 'scry') {
+        const before = json(sim); assert.equal(g.transition(sim, { type: 'draw' }).length, 0); assert.equal(json(sim), before);
+      }
     };
     actions.forEach(check);
     // Refill path, including deterministic shuffle: the preceding casts
