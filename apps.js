@@ -921,7 +921,7 @@
   };
 
   /* ══════════════════════════════════════════════════════════════════════
-     GAMES  (a folder: Wizard Sweeper, Not Rubbish, Star Drop and Spell Solitaire)
+     GAMES  (a folder: Starweave, Wizard Sweeper, Not Rubbish, Star Drop and Spell Solitaire)
      ══════════════════════════════════════════════════════════════════════
      Each game is its own script, fetched the first time it opens so the
      desktop never waits for it. The build stamps the addresses below with
@@ -1036,7 +1036,7 @@
     colour: 'coral',
     icon: 'games',
     path: '/games',
-    size: [700, 510], // room for the genre descriptions below the four games
+    size: [900, 510], // room for all five games and their descriptions in one row
     head: () => copy('games', { heading: 'Games', sub: 'Things to play when you should be working.' }),
     render(win) {
       const ids = Object.keys(GAMES);
