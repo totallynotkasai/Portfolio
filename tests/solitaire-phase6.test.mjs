@@ -102,7 +102,7 @@ test('introductions, occurrence cap, graph spacing and immutable consumption hol
   assert.equal(d.enchantments[i], null); assert.ok(d.stock.every(Number.isInteger));
 });
 
-test('Inspect shares combined beneficial/harmful explanations and never leaks covered badges; Moonlight reveals without unlocking', () => {
+test('Card descriptions combine beneficial/harmful states and never leak covered badges; Moonlight reveals without unlocking', () => {
   const g = game(); g.run.next = g.prepareDeal({ n: 4, target: 1050, curses: ['seal', 'hex'], hex: 0, layout: 0 }); g.startDeal();
   const d = g.run.deal; d.slots[1] = 1; d.enchantments[1] = 'streak';
   assert.ok(!g.inspectWords(d, 1).includes('Double Streak'));
@@ -111,7 +111,8 @@ test('Inspect shares combined beneficial/harmful explanations and never leaks co
   assert.match(text, /Double Streak/); assert.match(text, /Hex/); assert.match(text, /Lock/); assert.match(text, /West Peak and East Peak/);
   assert.equal(g.sealed(d, 1), true); assert.equal(json(d), before);
   const source = readFileSync(new URL('../solitaire.js', import.meta.url), 'utf8');
-  assert.match(source, /Inspect cards \(no play\)/); assert.match(source, /\.ss-inspect, input, textarea, select/);
+  assert.doesNotMatch(source, /ss-inspect|data-inspect-|ss-layout-note|data-layout-note/);
+  assert.match(source, /el\.title = inspectWords\(d, i\)/);
 });
 
 test('contract structural filters: deal four/endless, owned charges including Spellbook, single-tip/Seal and Moths/Second Deck exclusions', () => {

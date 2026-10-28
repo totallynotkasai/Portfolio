@@ -45,14 +45,12 @@ test('tip IDs may occur anywhere in the slot array; explicit metadata governs aw
   assert.ok(d.slots.every((c) => c < 0)); assert.equal(d.peaks, 5); assert.equal(d.score, 1300);
 });
 
-test('Dispel updates guard instructions without closing an expanded explanation', () => {
+test('Dispel removes guard instructions from card descriptions', () => {
   const g = game(), d = deal(g, 6, ['seal']);
-  const details = { open: true }, note = { dataset: {}, innerHTML: '', querySelector: () => details };
-  g.drawLayoutNote(d, note);
-  assert.match(note.innerHTML, /G = guard: clear West Tower and East Tower/);
-  d.charges.dispel = 1; g.cast('dispel', 'seal'); g.drawLayoutNote(d, note);
-  assert.doesNotMatch(note.innerHTML, /G = guard|\/ Seal/);
-  assert.match(note.innerHTML, /<details open>/);
+  const slot = g.LAYOUTS[6].sealGroups[0].cards[0];
+  assert.match(g.inspectWords(d, slot), /Lock: clear West Tower and East Tower/);
+  d.charges.dispel = 1; g.cast('dispel', 'seal');
+  assert.doesNotMatch(g.inspectWords(d, slot), /Lock:|Seal guard/);
 });
 
 test('all graphs structurally sweep with Seal active; each peak award and Twin Peaks are generic', () => {

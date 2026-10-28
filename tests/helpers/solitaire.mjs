@@ -8,7 +8,7 @@ const exposed = source.replace('K.solitaire = { mount, unmount };', `K.test = {
   play, cast, draw, reorder, free, sealed, open, opens, movesOf, fits, pileFace, hopeless,
   RULES_VERSION, STORE_KEY, LEGACY_STORE_KEY, ENCHANTMENTS, searchContracts, replayWitness, contractPool, contractMet, contractWords, decideContract,
   simulationOf, cloneSimulation, transition, proofActions, availableSpells, dealState, inspectWords, scoreWords, finishRun, bestRun,
-  removeCard, validateLayout, layoutDiagram, nextWords, nextDiagram, drawLayoutNote, focusSlot,
+  removeCard, validateLayout, layoutDiagram, nextWords, nextDiagram, focusSlot,
   LAYOUTS, SPELLS, CHARMS, get run() { return run; }, get seed() { return run.seed; },
   rewardHtml() { view = { help: false, scry: null }; try { return cardHtml(); } finally { view = null; } },
   rejectedClick(dataset, detail = 1) {

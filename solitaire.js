@@ -1232,8 +1232,6 @@
         <div class="ss-stage" data-stage>
           <div class="ss-table" data-table>
             <div class="ss-board"><div class="ss-peaks" role="group" aria-label="The peaks" data-peaks></div></div>
-            <div class="ss-layout-note" data-layout-note></div>
-            <details class="ss-inspect"><summary>Inspect cards (no play)</summary><label>Card <select data-inspect-select aria-label="Inspect a table card"></select></label><p data-inspect-text aria-live="polite">Choose a card to inspect its state.</p></details>
             <p class="ss-contract" data-contract-status hidden></p>
             <p class="ss-scoring" data-scoring hidden></p>
             <div class="ss-low">
@@ -1495,7 +1493,6 @@
   // ringed by an armed spell.
   function syncCards() {
     const d = dealShown();
-    drawLayoutNote(d);
     const on = live(d) && !view.card;
     const fitsNow = on ? movesOf() : [];
     const ringed = on && view.armed ? opens(d) : [];
@@ -1553,14 +1550,6 @@
     });
     view.peaks.querySelectorAll('[data-link-from]').forEach((el) => { el.style.display = d.slots[+el.dataset.linkFrom] < 0 || d.slots[+el.dataset.linkTo] < 0 ? 'none' : ''; });
     view.peaks.setAttribute('aria-label', d.idle ? 'The peaks' : `${layoutOf(d).name}, ${plural(layoutOf(d).tips.length - d.peaks, 'peak')} remaining: ${plural(d.slots.filter((c) => c >= 0).length, 'card')}, ${frees.length} uncovered`);
-    const select = view.root.querySelector('[data-inspect-select]');
-    if (select) {
-      const selected = select.value;
-      const html = d.slots.flatMap((c, i) => c >= 0 ? [`<option value="${i}">${i + 1}: ${esc(d.up[i] ? cardName(c) : 'Covered card')}${tipOf(d, i) ? ` — ${esc(tipOf(d, i).name)}` : ''}</option>`] : []).join('');
-      if (select.innerHTML !== html) select.innerHTML = html;
-      if (d.slots[+selected] >= 0) select.value = selected;
-      inspectCard(+select.value);
-    }
   }
 
   function inspectWords(d, i) {
@@ -1584,23 +1573,6 @@
     }
     return parts.join('. ') + '.';
   }
-  function inspectCard(i) {
-    if (!view) return;
-    const output = view.root.querySelector('[data-inspect-text]');
-    if (output) output.textContent = inspectWords(dealShown(), i);
-    const select = view.root.querySelector('[data-inspect-select]');
-    if (select && dealShown().slots[i] >= 0) select.value = String(i);
-  }
-
-  function drawLayoutNote(d, note = view.root.querySelector('[data-layout-note]')) {
-    const l = layoutOf(d);
-    const key = `${l.id}|${cursed(d, 'seal')}`;
-    if (note.dataset.layout === key) return;
-    const expanded = note.querySelector('details')?.open;
-    note.dataset.layout = key;
-    note.innerHTML = `<details${expanded ? ' open' : ''}><summary>${esc(l.name)} · ${plural(l.tips.length, 'peak')} · Legend / tip names</summary><p>${esc(l.tips.map((t, i) => `${i + 1}: ${t.name}`).join(' · '))}.${cursed(d, 'seal') ? ` G = guard: clear ${esc(sealWords(d))} to unlock.` : ''}</p><p>Playable: bright edge. Covered: overlapping cards or blocker lines. Sealed: square lock. Hexed: dashed edge and ⬡ ribbon. Enchanted: round +40 / ×2P / ×2S badge. Both badges can apply together. Spell targets have a separate outer ring. Inspect names every state without playing.</p></details><span>${l.connected ? 'Lines join blockers; clear lower cards first. ' : ''}Scroll the board if needed.</span>`;
-  }
-
   // Same geometry for the preview and the board's exact dependency cues.
   function layoutDiagram(l, connectionsOnly = false) {
     const height = (l.depth - 1) * l.rowScale + 1.4;
@@ -2061,7 +2033,7 @@
             <li>Pick spells and charms between deals: target plus clean sweep earns two sequential rewards; other continuing deals earn one. Press Deal when ready. Curses join from deal 4. Hex restarts streaks for its marked suit, even with Kindred.</li>
             <li>The wizard’s star glows at streaks of 5, 10 and 15. After the Final Deal, keep dealing or bank your score with End Run.</li>
             <li>Table enchantments: Treasure adds 40 at scoring streak five or higher; ×2P doubles only card points; ×2S doubles the carried streak after scoring. Clover only pays for a play at an exact multiple of five. Fireball destroys enchantments.</li>
-            <li>Optional proven contracts begin on deal four. Bonuses count only toward run score at settlement. Spending any charge counts as a cast even after undo. Inspect cards explains combined states without playing.</li>
+            <li>Optional proven contracts begin on deal four. Bonuses count only toward run score at settlement. Spending any charge counts as a cast even after undo.</li>
           </ul>
           <p class="gm-keys"><span class="hint-mouse">Keys: arrows, Enter to play, D to draw, ${SPELL_IDS.map((id) => SPELLS[id].key.toUpperCase()).join(' ')} to cast, L to look.</span><span class="hint-touch">Tap a card to play it, or the stock to draw.</span></p>
           ${bests.map((t) => `<p class="gm-best">${esc(t)}</p>`).join('')}
@@ -2529,11 +2501,6 @@
   }
 
   function wire(v) {
-    v.root.querySelector('[data-inspect-select]').addEventListener('change', (e) => inspectCard(+e.target.value));
-    ['focusin', 'pointerover'].forEach((type) => v.peaks.addEventListener(type, (e) => {
-      const el = e.target.closest('[data-slot]');
-      if (el) inspectCard(+el.dataset.slot);
-    }));
     v.owned.addEventListener('click', (e) => {
       const chip = e.target.closest('button');
       if (chip) chip.focus({ preventScroll: true });
@@ -2583,7 +2550,7 @@
 
   function onKey(e) {
     if (e.altKey || e.metaKey || e.ctrlKey || e.defaultPrevented || !view || !run) return;
-    if (e.target.closest && e.target.closest('.win-bar, .gm-menu, .gm-owned, .ss-inspect, input, textarea, select')) return;
+    if (e.target.closest && e.target.closest('.win-bar, .gm-menu, .gm-owned, input, textarea, select')) return;
     if (view.card) { cardKey(e); return; }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     const onCardEl = e.target.closest && e.target.closest('.ss-card.is-free');
