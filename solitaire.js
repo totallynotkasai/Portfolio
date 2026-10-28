@@ -1233,7 +1233,6 @@
           <div class="ss-table" data-table>
             <div class="ss-board"><div class="ss-peaks" role="group" aria-label="The peaks" data-peaks></div></div>
             <p class="ss-contract" data-contract-status hidden></p>
-            <p class="ss-scoring" data-scoring hidden></p>
             <div class="ss-low">
               <div class="ss-stock" data-stock></div>
               <div class="ss-pile" data-pile></div>
@@ -1904,9 +1903,6 @@
       status.title = contractWords(c);
       status.setAttribute('aria-label', `${contractWords(c)} ${status.textContent}`);
     }
-    const scoring = view.root.querySelector('[data-scoring]');
-    scoring.hidden = !d.lastScore;
-    scoring.textContent = d.lastScore ? `Last play: ${d.lastScore}` : '';
   }
   const curseChip = (id) => {
     const w = words(id);

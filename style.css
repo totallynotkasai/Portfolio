@@ -3042,10 +3042,8 @@ img.ss-suit, img.ss-pic { object-fit: contain; }
 .ss-card.is-sealed.is-hexed .ss-hex-mark { left: -6px; top: 3px; }
 .ss-table { overflow: auto; justify-content: flex-start; }
 .ss-board { flex: 1 0 160px; min-height: 160px; padding-top: 30px; }
-.ss-contract, .ss-scoring { flex: none; width: 100%; max-height: 40%; overflow: auto; font: 12px/1.4 var(--font-body); margin: 3px 0; padding: 3px 8px; color: var(--text); background: var(--surface); overflow-wrap: anywhere; }
+.ss-contract { flex: none; width: 100%; max-height: 40%; overflow: auto; font: 12px/1.4 var(--font-body); margin: 3px 0; padding: 3px 8px; color: var(--text); background: var(--surface); overflow-wrap: anywhere; }
 .ss-contract { border-left: 3px solid var(--ink); }
-.ss-scoring { border-left: 3px solid var(--teal); }
-.ss-scoring { max-height: 4.8em; }
 .ss-curse { gap: 3px; width: auto; }
 .ss-curse > span:not(.ss-hex) { font: bold 10px/1.2 var(--font-body); }
 .ss-contract-offer { border: 1px solid var(--ink); padding: 6px; margin: 6px 0; }
