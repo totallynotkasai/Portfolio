@@ -2,7 +2,7 @@
 
 Phased implementation plan, revised after Andrew's feedback on 27 October 2026.
 
-**Status: Phase 0 complete; Starweave concept accepted; Phases 2 (art), 3 (writing), 4 (variable-peak Solitaire), 5 (sequential rewards/immutable next deals), 6 technical implementation and Phase 7 production Starweave implementation/browser/automated verification are complete. Andrew explicitly extended the prior Phase 6 stopping point to authorise Phase 7 on 28 October 2026. Actual audio listening and physical/native-device checks remain unverified; see PHASE7_STARWEAVE_REVIEW.md. Phase 6 multiplier human feel/balance review also remains open independently. Stop before Phase 9, which remains unimplemented. Hat to Hat remains separately parked.**
+**Status: Phase 0 complete; Phase 1 Starweave concept accepted; Phases 2–7 technical implementation and Phase 9 final integration review/handoff complete on 28 October 2026, within the verification limits recorded in PHASE9_INTEGRATION_REVIEW.md. Andrew explicitly authorised Phase 9 beyond the earlier stopping point. No additional art/novel material was supplied: existing real content remains, with absent optional sections hidden. Actual audio listening, physical/native-device checks and Phase 6 multiplier human feel/balance review remain open independently. Hat to Hat remains separately parked. No push, merge or deployment.**
 
 **Active implementation branch: `codex/content-expansion`.** Keep the remaining expansion phases on this branch. By Andrew’s later request, Hat to Hat is separately parked on `codex/hat-to-hat`; its complete brief and deferred tasks are in `HAT_TO_HAT_PLAN.md`. No push, merge or deployment is authorised.
 
@@ -371,7 +371,7 @@ Hat to Hat is outside this active plan. Its design, remaining work and verificat
 - Commit each completed phase, or a coherent substep within a large phase, on that branch. Suggested commit subjects below are descriptions, not instructions to push or merge.
 - Keep previews, reusable rule code and final implementation together. Keep review-only preview pages out of the production build unless Andrew explicitly wants them published.
 - Update this document's progress boxes as work actually completes. Acceptance of scope does not mean a phase is finished.
-- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew authorised Phases 2 and 3, then separate continuations through Phases 4 and 5. His new 28 October session explicitly authorises Phase 6. Stop after Phase 6; keep Phases 7 and 9 for their own continuations.
+- Phase 0 remains complete and Starweave’s Phase 1 concept is accepted. Andrew authorised Phases 2 and 3, then separate continuations through Phases 4–7. His latest 28 October session explicitly authorises Phase 9 final integration, fixes, verification, documentation and local commits. Earlier stopping points are historical; no new blanket scope approval is required. No push, merge or deployment.
 - Starweave’s later integration follows the accepted concept and Phase 7 requirements. The separately deferred game supplies no approval gate or dependency for this plan.
 - Avoid new blanket approval stops for accepted art, writing and contract details. Ask for missing authored material when needed; render optional sections safely without inventing it.
 
@@ -406,7 +406,7 @@ After separation, the active suite passes **33/33 tests** and the production bui
 
 The pre-separation combined suite passed 61/61 tests. The active suite is reduced by moving game-only regressions with their preserved implementation; this does not mean those tests failed or that coverage was removed from the deferred branch. Retain the baseline interaction/Solitaire, musical model/audio and build-exclusion tests here. Device listening/touch and native interruption remain technical checks for Phase 7. Music currently has four pitches/sixteen moments/three voices and no saves/export/full activity.
 
-The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phases 2–7 followed in separate continuations, recorded below. Phase 9 remains deferred.
+The separately deferred game’s design and historical preview records live exclusively in its standalone plan. Phases 2–7 and the Phase 9 integration review followed in separate continuations, recorded below.
 
 ### Phase 2: art reverse sides and content authoring
 
@@ -538,7 +538,7 @@ Suggested commits: `feat: add Solitaire card enchantments`; `feat: clarify curse
 
 ### Phase 7: complete musical spellcraft after revised preview feedback
 
-**Implementation and browser/automated verification complete on 28 October 2026, with listening and physical/native verification limits explicitly open.** Andrew authorised this continuation beyond the prior Phase 6 stop. See [PHASE7_STARWEAVE_REVIEW.md](PHASE7_STARWEAVE_REVIEW.md) and [STARWEAVE_AUTHORING.md](STARWEAVE_AUTHORING.md). No Phase 9 work, push, merge or deployment.
+**Implementation and browser/automated verification complete on 28 October 2026, with listening and physical/native verification limits explicitly open.** Andrew authorised this continuation beyond the prior Phase 6 stop. See [PHASE7_STARWEAVE_REVIEW.md](PHASE7_STARWEAVE_REVIEW.md) and [STARWEAVE_AUTHORING.md](STARWEAVE_AUTHORING.md). Phase 9 followed under its separate authorisation below. No push, merge or deployment.
 
 - [x] Andrew accepted the current Starweave concept and balance; preserve its rune circle, sound families, durations and pet participation during later implementation.
 - [x] Promote the approved model/audio transport into the lazy-loaded Games → Starweave app. Keep sixteen clockwise moments, concentric pitch rings, three distinct voices, duration choices, connections and the actual privately scoped production animated pet rig.
@@ -557,13 +557,17 @@ The former game integration phase has moved entirely to `HAT_TO_HAT_PLAN.md` on 
 
 ### Phase 9: content population, regression and handoff
 
-- [ ] Populate any real art/novel content Andrew has supplied; keep other optional sections hidden.
-- [ ] Run the repository's relevant tests and production build; resolve regressions caused by these phases.
-- [ ] Review desktop/small phone, light/dark, reduced motion, keyboard, touch and zoom.
-- [ ] Check every app still launches, resizes, closes and releases listeners/timers/audio correctly.
-- [ ] Inspect final diff/build contents so review-only fixtures/debug controls are not accidentally published.
-- [ ] Summarise completed phases, preview decisions, remaining author inputs and known limitations.
-- [ ] Leave all work on the same branch, ready for the user's merge/deployment decision.
+**Final integration review complete on 28 October 2026, with the device/listening/human limits below.** Andrew explicitly authorised this session beyond Phase 7. Started clean at `60e79cf` on the existing `codex/content-expansion` checkout. Detailed outcomes and reproduction: [PHASE9_INTEGRATION_REVIEW.md](PHASE9_INTEGRATION_REVIEW.md).
+
+- [x] Review all available real art/novel material. No new supplied notes, process images, premise, cover, characters, setting or current sample were available. Keep 19 real artworks, summary/status-only Dilettante and the separately stopped Prospector archive; absent optional fields stay hidden. Authoring guides remain canonical.
+- [x] Run current relevant regressions and production build. Starting **122/122**, final **127/127** tests pass; production build succeeds without content warnings (**37 source images, 106 variants, 19 artworks**). Five added tests execute the existing apps' actual teardown functions with tracked synthetic resources. No expansion-caused production regression was found; README now correctly includes Starweave alongside four roguelikes.
+- [x] Complete available browser review at **1280×800, 390×844, 320×740 and 640×400**: keyboard, pointer, light/dark, scroll/focus reachability and a labelled JS/CSS reduced-motion fixture. The latter two sizes include small-phone and equivalent 200% layout-space checks. Touch has event-level regressions only. Native browser capture timed out at app approval before zoom could be performed. These are explicitly limited checks, not physical touch, native zoom, OS motion toggling, screen-reader or listening verification.
+- [x] Check production app launch, maximise/restore resizing, minimise/restore and close through the shell, including five Games entries, paint.exe, folders, CV, all five project details, viewer, pet and wallpaper. Review cleanup ownership in source and regressions: per-view clocks/effects/observers/keyboard handlers are released on teardown; Starweave also disconnects audio/subscriptions and does not resume after minimisation. Deliberately cached folder DOM and module-lifetime listeners are documented rather than misreported as leaks.
+- [x] Inspect final diff and built package. Production scripts/content are unchanged in Phase 9; only tests and tracked root documentation change. The final build removes disposable `dist/qa/`; packaging tests exclude QA/design-lab/fixture references and retain ES-module syntax/transitive cache stamping checks. Hat to Hat code/tests are absent.
+- [x] Summarise completed phases, accepted preview decisions, author inputs and limits in the tracked root review. Keep Phase 6 multiplier human feel/balance review and Phase 7 listening/native-device tasks visibly open; no fabricated approvals or authored content.
+- [x] Keep this work in coherent local commits on `codex/content-expansion`, ready for Andrew's later merge/deployment decision. No branch/worktree switch, reset, push, merge or deployment.
+
+**Still unverified (not implied by the completed integration review):** actual audio listening/feel/loudness, physical touch/phone latency, hardware mute/calls/native interruption, native browser zoom, screen-reader use, OS reduced-motion toggle, and Andrew's final multiplier feel/balance approval. Earlier evidence remains scoped to its original reports; it is not relabelled as new human/device verification.
 
 **Exit:** the agreed scope is implemented and verified, or any explicitly deferred preview decision is accurately recorded as unfinished. Do not mark a preview-gated feature complete merely because its prototype exists.
 
@@ -621,4 +625,4 @@ Functional art/writing features can be completed before this material arrives, u
 
 The canonical plan is **`CONTENT_EXPANSION_PLAN.md` in the repository root**, where Git can include it normally; it is tracked with the Phase 0 baseline commit. The original `docs/content-expansion-plan.md` is a local pointer to it, because docs is currently excluded by local Git rules. This avoids leaving the implementation instructions solely in an ignored folder.
 
-The active branch is **`codex/content-expansion`**. Andrew requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2–6 and Phase 7 production implementation/browser/automated verification are complete here.** Phase 7 actual listening/physical/native checks and Phase 6 multiplier human feel/balance review remain open with their recorded limits. This authorised continuation stops before **Phase 9, which remains unimplemented**. Preserve the branch separation; no push, merge or deployment is authorised.
+The active branch is **`codex/content-expansion`**. Andrew requested the game be preserved separately on **`codex/hat-to-hat`**, with its own plan. **Phases 2–7 technical implementation and Phase 9 final integration review/handoff are complete here.** Phase 7 actual listening/physical/native checks and Phase 6 multiplier human feel/balance review remain open with their recorded limits. Andrew's latest authorisation extends the earlier Phase 7 stop through Phase 9; see **`PHASE9_INTEGRATION_REVIEW.md`** for the final results and remaining inputs. Preserve the branch separation; no push, merge or deployment is authorised.

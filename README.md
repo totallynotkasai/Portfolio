@@ -1,6 +1,6 @@
 # Kasai OS
 
-My portfolio is a little operating system. Double-click an icon on the lavender desktop and a window opens: my coding projects, my art as a binder of spell cards, my writing and certificates, four games, and a pet wizard who wanders about behind the windows. Hand-written HTML, CSS and JavaScript with no framework, hosted on Vercel.
+My portfolio is a little operating system. Double-click an icon on the lavender desktop and a window opens: my coding projects, my art as a binder of spell cards, my writing and certificates, four games, a musical spell circle, and a pet wizard who wanders about behind the windows. Hand-written HTML, CSS and JavaScript with no framework, hosted on Vercel.
 
 **Live site:** https://www.andrewworgan.co.uk
 
@@ -22,7 +22,8 @@ My portfolio is a little operating system. Double-click an icon on the lavender 
 - **Writing and certificates:** Writing includes a current overview of *Dilettante's in the Interim*, using the existing summary and rewrite status until more authored material is supplied. Optional premise, cover, characters, setting and current sample sections appear only when populated. The first two chapters of *Prospector's Attempt at Sourdough Spellcasting* remain a separately labelled archive of the stopped draft, with chapter buttons. Certificates has image previews and the original PDFs for Microsoft 365 Fundamentals and Emergency First Aid at Work.
 - **My CV**, a button under the About text, opens my CV on a sheet of paper in a window of its own (or go straight to [`/cv`](https://www.andrewworgan.co.uk/cv)). Its menu bar prints it or saves it as a PDF, and only the page prints.
 - **The image viewer** opens art, certificates and the Trash's old designs full size, and steps through the rest of that folder with its arrows, the arrow keys or a swipe.
-- **Games** holds four roguelikes:
+- **Games** holds Starweave and four roguelikes:
+  - **Starweave**: compose around sixteen clockwise moments with Star chimes, Ember plucks and Moon hums while the pet conducts. Keep up to eight circles, save named patterns, remix original recipes, exchange editable JSON, export a picture and try Match the tune. Sound starts deliberately through the global preference.
   - **Wizard Sweeper**: Minesweeper where the mines are sleeping wizards. Every level is a little bigger, and you pick an upgrade between levels.
   - **Not Rubbish**: someone dropped the pet wizard in the Trash. He climbs out turn by turn through the site's retired designs, bonking gremlins that mark the tiles they'll strike, with a program to install after every floor and the Empty Recycle Bin dialog waiting on the lid.
   - **Star Drop**: the pet wizard is asleep and his nightmares are creeping towards his bed. In his dream he flicks the star off his hat through a sky of pegs: every peg it pops is damage (coloured pegs count for more, and once in a blue moon a moon rises that makes a shot count ten times over), and after each shot the nightmares step closer. A run is a week of nights, picking a new star or a charm each morning, with the Bogeyman waiting on Sunday; endless runs keep going, harder every night, until his hearts run out.
@@ -61,6 +62,8 @@ Phase 1 content-expansion previews run through that source server:
 - [Starweave musical spell circle](http://localhost:4321/design-lab/content-expansion/starweave)
 
 These are isolated review pages, excluded from `dist/` and production launchers. Starweave uses musical runes and the animated pet conductor; sound requires Enable sound. The music preview saves no portfolio data. Hat to Hat is separately deferred on `codex/hat-to-hat`; see [its standalone plan](HAT_TO_HAT_PLAN.md). Run `npm test` for the drawing/audio and build-exclusion regressions. See [the canonical plan](CONTENT_EXPANSION_PLAN.md), [baseline](CONTENT_EXPANSION_BASELINE.md) and [preview notes](design-lab/content-expansion/README.md) for scope and verification limits. Stop the source server with Ctrl+C when finished trying them.
+
+The [Phase 9 integration handoff](PHASE9_INTEGRATION_REVIEW.md) records the final 127-test/build/browser review, completed expansion phases, remaining author inputs and unperformed listening/physical/native checks. Solitaire's multiplier feel/balance review remains open. To verify a clean production package, run `npm run build` then `npm test`; the build removes disposable `dist/qa/` review pages.
 
 ## Licence
 
