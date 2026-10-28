@@ -162,7 +162,12 @@ export async function checkContent(root = ROOT) {
   // Every .js file at the top level is deployed, so every one is checked.
   const scripts = (await readdir(root)).filter((f) => /\.js$/i.test(f)).sort();
   for (const file of scripts) {
-    try { new vm.Script(await readFile(join(root, file), 'utf8'), { filename: file }); }
+    try {
+      const source = await readFile(join(root, file), 'utf8');
+      if (/^(?:import|export)\s/m.test(source)) {
+        execFileSync(process.execPath, ['--check', '--input-type=module'], { input: source, stdio: ['pipe','pipe','pipe'] });
+      } else new vm.Script(source, { filename: file });
+    }
     catch (e) { errors.push(`${file} has a syntax error:\n    ${firstLines(e)}`); }
   }
   if (errors.length) return { errors, warnings };
@@ -480,17 +485,24 @@ export async function stampAssetUrls(dist = DIST) {
 
   // Script addresses written inside the scripts, like '/sweeper.js'.
   const files = await readdir(dist);
-  for (const f of files) {
-    if (!/\.js$/i.test(f)) continue;
+  const stamped = new Set(), visiting = new Set();
+  const stampScript = async (f) => {
+    if (stamped.has(f)) return;
+    if (visiting.has(f)) throw new Error(`Cyclic script dependency while stamping ${f}`);
+    visiting.add(f);
     const file = join(dist, f);
     const code = await readFile(file, 'utf8');
     let out = code;
-    for (const url of new Set([...code.matchAll(/['"](\/[\w.-]+\.js)['"]/g)].map((m) => m[1]))) {
-      const v = await hashOf(url);
+    for (const url of new Set([...code.matchAll(/['"]((?:\/|\.\/)[\w.-]+\.js)['"]/g)].map((m) => m[1]))) {
+      const name = url.replace(/^(?:\.\/|\/)/, '');
+      if (files.includes(name)) await stampScript(name);
+      const v = await hashOf('/' + name);
       if (v) out = out.split(`'${url}'`).join(`'${url}?v=${v}'`).split(`"${url}"`).join(`"${url}?v=${v}"`);
     }
     if (out !== code) await writeFile(file, out);
-  }
+    visiting.delete(f); stamped.add(f);
+  };
+  for (const f of files.filter(f => /\.js$/i.test(f))) await stampScript(f);
 
   // Then the pages' own links, hashed after the steps above so they cover
   // them: the stylesheet and scripts, and the pictures (the taskbar's

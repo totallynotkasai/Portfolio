@@ -12,6 +12,87 @@
    (images, certificates, projects, bio) edit  content.js  only.
    ============================================================ */
 
+/* ---------- STARWEAVE ---------- */
+.st-body { overflow: auto; padding: 0; }
+.st-app { container-type: inline-size; min-width: 0; padding: 16px; color: var(--text); background: var(--paper); font-size: 14px; line-height: 1.5; }
+.st-app h2, .st-app h3 { font-family: var(--font-display); margin: 0 0 10px; }
+.st-app h2 { font-size: 26px; }
+.st-app p { margin: 8px 0 12px; overflow-wrap: anywhere; }
+.st-app button, .st-app select, .st-app input, .st-app textarea { font: inherit; color: var(--text); }
+.st-app button, .st-app select, .st-app input:not([type=checkbox]):not([type=range]), .st-app textarea { background: var(--surface); border: 2px solid var(--text); border-radius: 8px; padding: 8px 10px; min-height: 44px; max-width: 100%; }
+.st-app button { cursor: var(--cursor-pointer); }
+.st-app button:disabled { opacity: .5; cursor: default; }
+.st-app button:not(:disabled):hover { box-shadow: inset 0 0 0 2px var(--periwinkle); }
+.st-app button[aria-pressed=true], .st-app [data-play] { background: var(--yellow); color: var(--ink); }
+.st-app label { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.st-app select { min-width: 0; }
+.st-app input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--periwinkle-ink); }
+.st-app input[type=range] { width: 100px; }
+.st-app summary { cursor: var(--cursor-pointer); min-height: 44px; padding: 10px 0; font-weight: 700; }
+.st-app details { border-top: 1px solid var(--grey); padding-top: 4px; margin: 12px 0; }
+.st-row, .st-transport { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.st-transport { padding: 10px; background: var(--surface); border: 1px solid var(--grey); border-radius: 10px; }
+.st-status { font-weight: 600; min-height: 3em; }
+.st-layout { display: grid; grid-template-columns: minmax(0,1fr) 270px; gap: 20px; }
+.st-workspace, .st-tools { min-width: 0; }
+.st-tools { border-left: 1px solid var(--grey); padding-left: 18px; }
+.st-tools>label { margin: 14px 0 0; }
+.st-palette { display: grid; gap: 8px; }
+.st-palette button { display: grid; grid-template-columns: 40px 1fr; gap: 0 10px; text-align: left; align-items: center; }
+.st-palette button>span { grid-row: span 2; font-size: 30px; text-align: center; background: var(--rune); color: var(--ink); border: 1px solid var(--ink); border-radius: 50%; }
+.st-palette small { color: var(--ink-muted); }
+.st-palette button[aria-pressed=true] { background: var(--rune); }
+.st-palette button[aria-pressed=true] small { color: #4a4e63; }
+.st-stage { position: relative; width: 100%; max-width: 550px; margin: auto; aspect-ratio: 1; }
+.st-stage>svg { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: pan-y; }
+.st-ring { fill: none; stroke: var(--grey-ink); opacity: .5; stroke-width: 1; }
+.st-outline { fill: none; stroke: var(--periwinkle); stroke-width: 2; stroke-dasharray: 2 8; }
+.st-ring-label { font: 11px var(--font-body); fill: var(--text); }
+.st-number { font: 12px var(--font-body); fill: var(--text); text-anchor: middle; }
+.st-connections { fill: #ae9df312; stroke: var(--periwinkle-ink); stroke-width: 1.5; stroke-dasharray: 4 5; }
+.st-socket circle { stroke: var(--text); stroke-width: 1.3; }
+.st-outside circle { stroke-dasharray: 2 2; }
+.st-rune { font: 24px var(--font-body); fill: var(--ink); text-anchor: middle; }
+.st-duration { font: 11px var(--font-body); fill: var(--text); text-anchor: middle; }
+.st-socket.is-sounding circle { stroke: var(--coral-ink); stroke-width: 5; }
+.st-conductor { position: absolute; width: 27%; height: 30%; left: 36.5%; top: 37%; pointer-events: none; }
+.st-conductor svg { width: 100%; height: 100%; }
+.st-orbit { position: absolute; transform: translate(-50%,-50%); font-size: 26px; color: var(--yellow); -webkit-text-stroke: 1px var(--ink); pointer-events: none; }
+.st-speech { border: 2px solid var(--periwinkle); border-radius: 16px; padding: 12px; text-align: center; font-family: var(--font-display); background: var(--surface); }
+.st-position { min-height: 1.5em; text-align: center; font-variant-numeric: tabular-nums; }
+.st-hint { font-size: 12px; color: var(--ink-muted); }
+.st-moments { display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); gap: 5px; }
+.st-moments button { display: grid; justify-items: center; min-width: 0; padding: 4px 1px; min-height: 66px; }
+.st-moments button small { font-size: 11px; }
+.st-moments button>span { font-size: 23px; }
+.st-moments .has-rune { background: var(--rune); color: var(--ink); }
+.st-moments .is-sounding { outline: 3px solid var(--coral-ink); outline-offset: -4px; }
+.st-recipes { display: grid; gap: 8px; }
+.st-custom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.st-library { border-top: 2px solid var(--periwinkle); padding-top: 18px; margin-top: 18px; }
+.st-json-label { display: flex !important; flex-direction: column; align-items: stretch !important; }
+.st-app textarea { width: 100%; resize: vertical; font-family: var(--font-mono); overflow-wrap: anywhere; }
+.st-app input[type=file] { width: 260px; }
+.st-storage { font-size: 13px; }
+@container (max-width: 720px) {
+  .st-layout { grid-template-columns: 1fr; }
+  .st-tools { border-left: 0; padding-left: 0; border-top: 1px solid var(--grey); padding-top: 16px; }
+  .st-palette { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .st-palette button { display: flex; flex-direction: column; text-align: center; gap: 6px; padding: 8px 4px; }
+  .st-palette small { display: none; }
+  .st-palette strong { font-size: 12px; }
+  .st-palette button>span { width: 38px; }
+}
+@container (max-width: 380px) {
+  .st-moments { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .st-quick label { width: 100%; justify-content: space-between; }
+  .st-row>label { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-orbit { display: none; }
+  .st-conductor * { animation: none !important; transition: none !important; }
+}
+
 /* ---------- FONTS ---------- */
 @font-face {
   font-family: 'Arial Rounded MT Bold';

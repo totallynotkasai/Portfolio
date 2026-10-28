@@ -478,6 +478,7 @@
 
   // Silence, now (the everyday channel back to full).
   function hush() {
+    K.emit('silence', {});
     if (!ctx) return;
     voices.slice().forEach(fade);
     const t = ctx.currentTime;
@@ -514,5 +515,12 @@
     toggle: () => set(!on),
     play,
     hush,
+    // Called only by a deliberate instrument Play action. Share preference,
+    // compressor and master volume with every other production sound.
+    instrument() {
+      if (!on || document.hidden) return null;
+      const context = wake();
+      return context ? { context, output: everyday } : null;
+    },
   };
 })();

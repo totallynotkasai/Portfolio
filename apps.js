@@ -929,6 +929,10 @@
      never gets a stale copy of a game. `pose` is the pet wizard's drawing
      on the game's file; `prefix` names its window's classes. */
   const GAMES = {
+    starweave: {
+      label: 'Starweave', file: 'starweave.exe', colour: 'lavender', size: [1000, 760], minSize: [360, 480],
+      sub: 'Weave a musical spell', genre: 'Musical spellcraft', pose: 'happy', script: '/musicbox.js', prefix: 'st',
+    },
     sweeper: {
       label: 'Wizard Sweeper', file: 'sweeper.exe', colour: 'ink', size: [600, 680], minSize: [340, 420],
       sub: "Don't wake the wizards", genre: 'Minesweeper roguelike', pose: 'asleep', script: '/sweeper.js', prefix: 'sw',

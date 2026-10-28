@@ -313,10 +313,13 @@
     sync(o.push);
   }
 
+  let lastFront = null;
   function restack() {
     order.forEach((id, k) => { wins.get(id).el.style.zIndex = String(10 + k); });
     const f = front();
     wins.forEach((w) => w.el.classList.toggle('is-active', w === f));
+    const id = f ? f.id : null;
+    if (id !== lastFront) { lastFront = id; K.emit('windowfocus', { id }); }
   }
 
   /* ---------- motion ----------

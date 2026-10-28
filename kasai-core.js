@@ -36,7 +36,11 @@
 
   /* ---------- tiny event hub (windows opening, the pet listening) ---------- */
   const listeners = {};
-  K.on = (name, fn) => { (listeners[name] = listeners[name] || []).push(fn); };
+  K.on = (name, fn) => {
+    const list = listeners[name] = listeners[name] || [];
+    list.push(fn);
+    return () => { const i = list.indexOf(fn); if (i !== -1) list.splice(i, 1); };
+  };
   K.emit = (name, data) => {
     (listeners[name] || []).forEach((fn) => {
       try { fn(data); } catch (err) { console.error(err); }
